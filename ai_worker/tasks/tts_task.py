@@ -1,8 +1,10 @@
 # 표준 라이브러리
 import asyncio
 import os
+import uuid  # S3 파일명 중복 방지용 고유 ID 생성
 
 # 서드파티 라이브러리
+import boto3
 import httpx
 from celery import Celery
 from celery.utils.log import get_task_logger
@@ -61,8 +63,7 @@ def convert_text_to_speech(self, guide_id: str, summary_text: str, user_id: str)
         tts_audio = asyncio.run(_call_clova_tts(summary_text))
 
         # 변환된 MP3 데이터를 S3에 업로드 → URL 반환
-        # S3 업로드는 다음 브랜치(feature/tts-s3-upload)에서 구현 예정
-        # 현재는 tts_audio(bytes) 반환까지만 처리
+        s3_url = _upload_to_s3(tts_audio, user_id)
         logger.info(f"TTS 변환 완료 - guide_id: {guide_id}")
 
         # 팀 규칙: API 응답은 { success, data, message } 구조 유지
@@ -70,7 +71,7 @@ def convert_text_to_speech(self, guide_id: str, summary_text: str, user_id: str)
             "success": True,
             "data": {
                 "guide_id": guide_id,
-                "tts_audio_size": len(tts_audio),  # 디버깅용 (실제 URL은 S3 업로드 후 반환)
+                "s3_url": s3_url,  # DB 저장용 URL (팀장 연동 후 GUIDE_ASSETS에 저장)
             },
             "message": "TTS 변환이 완료되었습니다.",
         }
@@ -140,3 +141,47 @@ async def _call_clova_tts(text: str) -> bytes:
 
     # MP3 음성 데이터(bytes) 반환 → 다음 브랜치(feature/tts-s3-upload)에서 S3 업로드
     return response.content
+
+def _upload_to_s3(audio_data: bytes, user_id: str) -> str:
+    """
+    음성 파일을 S3에 업로드하고 URL을 반환한다.
+
+    Args:
+        audio_data: MP3 음성 데이터 (bytes)
+        user_id: 사용자 ID (S3 경로 구분용)
+
+    Returns:
+        str: S3 파일 URL
+
+    Note:
+        - AWS_ACCESS_KEY, AWS_SECRET_KEY, S3_BUCKET_NAME은 반드시 .env에서 관리
+        - 개인정보 보호: user_id 기반 경로로 사용자별 접근 분리
+    """
+
+    # .env에서 S3 접속 정보 읽기
+    bucket_name = os.getenv("S3_BUCKET_NAME")
+    region = os.getenv("AWS_REGION", "ap-northeast-2")  # 기본값: 서울 리전
+
+    # S3 파일 경로 구성
+    # tts/{user_id}/ → 사용자별 폴더 분리 (개인정보 접근 분리 목적)
+    # uuid.uuid4() → 랜덤 고유 ID → 같은 사용자가 여러 번 생성해도 파일명 겹치지 않음
+    file_key = f"tts/{user_id}/{uuid.uuid4()}.mp3"
+
+    # boto3 → AWS S3를 Python으로 제어하는 클라이언트 초기화
+    s3_client = boto3.client(
+        "s3",
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_KEY"),
+        region_name=region,
+    )
+
+    # S3에 MP3 파일 업로드
+    s3_client.put_object(
+        Bucket=bucket_name,       # 업로드할 S3 버킷 이름
+        Key=file_key,             # S3 내 저장 경로 + 파일명
+        Body=audio_data,          # 실제 MP3 데이터
+        ContentType="audio/mpeg", # 파일 형식 명시
+    )
+
+    # S3 URL 조합: 이 URL을 app/ 파트에서 GUIDE_ASSETS 테이블에 저장
+    return f"https://{bucket_name}.s3.{region}.amazonaws.com/{file_key}"
