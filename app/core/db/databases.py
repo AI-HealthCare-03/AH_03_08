@@ -7,8 +7,23 @@ from app.core import config
 TORTOISE_APP_MODELS = [
     "aerich.models",
     "app.models.users",
+    "app.models.medical_records",
+    "app.models.guides",
+    "app.models.medications",
+    "app.models.underlying_diseases",
+    "app.models.allergies",
+    "app.models.chat_sessions",
+    "app.models.chat_messages",
+    "app.models.calendar_events",
+    "app.models.notifications",
+    "app.models.guide_assets",
+    "app.models.feedbacks",
+    "app.models.feedback_tags",
+    "app.models.access_logs",        # 추가
+    "app.models.error_logs",         # 추가
+    "app.models.audit_logs",         # 추가
+    "app.models.model_metrics",      # 추가 (ModelMetric + MetricSnapshot 둘 다 포함)
 ]
-
 TORTOISE_ORM = {
     "connections": {
         "default": {
