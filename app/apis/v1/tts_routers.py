@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse as Response
 
 # 로컬 모듈
-from app.dependencies.security import get_current_user
+from app.dependencies.security import get_request_user
 from app.dtos.tts import GuideAssetCreateRequest, GuideAssetCreateResponse
 from app.models.users import User
 from app.services.tts import TtsService
@@ -25,7 +25,7 @@ async def create_guide_asset(
     guide_id: str,
     request: GuideAssetCreateRequest,
     tts_service: Annotated[TtsService, Depends(TtsService)],
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_request_user)],
 ) -> Response:
     """
     TTS 음성 / 카드뉴스 이미지 생성 요청 엔드포인트.
