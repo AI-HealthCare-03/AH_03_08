@@ -19,8 +19,11 @@ ai = [
     "torch",
     "torchvision",
     "torchaudio",
-    "sentence-transformers>=5.2.0"
+    "sentence-transformers>=5.2.0",
+    "httpx>=0.28.1",  # CLOVA TTS API 비동기 호출용 (REQ-TTS-001)
+    "celery>=5.0.0", # Celery 비동기 태스크 등록 및 실행용 (REQ-TTS-002)
 ]
+
 app = [
     "aerich>=0.9.2",
     "asyncmy>=0.2.11",
