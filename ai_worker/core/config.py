@@ -9,6 +9,11 @@ class Config(BaseSettings):
 
     TIMEZONE: zoneinfo.ZoneInfo = field(default_factory=lambda: zoneinfo.ZoneInfo("Asia/Seoul"))
 
-    # Redis — .env 의 값을 읽음
     CELERY_BROKER_URL: str = "redis://redis:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://redis:6379/2"
+
+    DB_HOST: str = "mysql"
+    DB_PORT: int = 3306
+    DB_USER: str = "root"
+    DB_PASSWORD: str = "pw1234"
+    DB_NAME: str = "ai_health"

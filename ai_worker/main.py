@@ -7,7 +7,7 @@ celery_app = Celery(
     "ai_worker",
     broker=config.CELERY_BROKER_URL,
     backend=config.CELERY_RESULT_BACKEND,
-    include=["ai_worker.tasks.ai_tasks"],
+    include=["ai_worker.tasks.ai_tasks", "ai_worker.tasks.ocr_task"],
 )
 
 celery_app.conf.update(
