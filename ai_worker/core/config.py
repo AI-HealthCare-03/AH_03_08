@@ -14,6 +14,6 @@ class Config(BaseSettings):
 
     DB_HOST: str = "mysql"
     DB_PORT: int = 3306
-    DB_USER: str = "root"
-    DB_PASSWORD: str = "pw1234"
+    DB_USER: str
+    DB_PASSWORD: str
     DB_NAME: str = "ai_health"
