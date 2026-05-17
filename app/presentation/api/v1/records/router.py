@@ -65,7 +65,9 @@ async def upload_record(
 
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="파일 크기는 10MB를 초과할 수 없습니다.")
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="파일 크기는 10MB를 초과할 수 없습니다."
+        )
 
     command = UploadRecordCommand(
         user_id=user.id,

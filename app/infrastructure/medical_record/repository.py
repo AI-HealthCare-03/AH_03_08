@@ -7,7 +7,6 @@ from app.models.medical_records import MedicalRecord as MedicalRecordORM
 
 
 class TortoiseRecordRepository(AbstractRecordRepository):
-
     def _to_domain(self, orm: MedicalRecordORM) -> MedicalRecord:
         return MedicalRecord(
             id=orm.id,
@@ -34,9 +33,7 @@ class TortoiseRecordRepository(AbstractRecordRepository):
         orm = await MedicalRecordORM.get_or_none(id=record_id)
         return self._to_domain(orm) if orm else None
 
-    async def find_by_user_id_paginated(
-        self, user_id: int, page: int, limit: int
-    ) -> tuple[list[MedicalRecord], int]:
+    async def find_by_user_id_paginated(self, user_id: int, page: int, limit: int) -> tuple[list[MedicalRecord], int]:
         qs = MedicalRecordORM.filter(user_id=user_id).order_by("-created_at")
         total = await qs.count()
         records = await qs.offset((page - 1) * limit).limit(limit)

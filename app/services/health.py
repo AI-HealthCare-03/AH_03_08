@@ -2,8 +2,10 @@ from fastapi import HTTPException
 from starlette import status
 
 from app.dtos.health import (
-    MedicalRecordCreateRequest, MedicationCreateRequest,
-    UnderlyingDiseaseRequest, AllergyRequest,
+    AllergyRequest,
+    MedicalRecordCreateRequest,
+    MedicationCreateRequest,
+    UnderlyingDiseaseRequest,
 )
 from app.models.users import User
 from app.repositories.health_repository import HealthRepository
@@ -42,7 +44,9 @@ class HealthService:
         )
 
     async def create_disease(self, user: User, data: UnderlyingDiseaseRequest):
-        return await self.repo.create_disease(user_id=user.id, name=data.underlying_disease_name, severity=data.severity)
+        return await self.repo.create_disease(
+            user_id=user.id, name=data.underlying_disease_name, severity=data.severity
+        )
 
     async def get_diseases(self, user: User):
         return await self.repo.get_diseases_by_user(user_id=user.id)

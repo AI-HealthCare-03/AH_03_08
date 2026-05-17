@@ -35,7 +35,7 @@ def process_ocr(self, record_id: str, file_path: str) -> dict:
         return OcrTaskResult(record_id=record_id, parsed_data=result).model_dump()
     except Exception as exc:
         logger.warning(f"[OCR Task] 재시도 {self.request.retries + 1}/3: {exc}")
-        raise self.retry(exc=exc, countdown=30)
+        raise self.retry(exc=exc, countdown=30) from exc
 
 
 async def _run_ocr(file_path: str) -> dict:
