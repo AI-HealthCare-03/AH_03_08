@@ -47,7 +47,8 @@ class TtsService:
         if asset_type != AssetType.tts:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="가이드가 생성되지 않은 상태입니다.",
+                detail="지원하지 않는 asset_type입니다.",
+
             )
 
         # 고유한 asset_id 생성
