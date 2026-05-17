@@ -4,9 +4,11 @@ from app.apis.v1.auth_routers import auth_router
 from app.apis.v1.user_routers import user_router
 from app.apis.v1.health_routers import health_router
 from app.apis.v1.ai_routers import ai_router
+from app.presentation.api.v1.records.router import records_router
 
 v1_routers = APIRouter(prefix="/api/v1")
 v1_routers.include_router(auth_router)
 v1_routers.include_router(user_router)
 v1_routers.include_router(health_router)
 v1_routers.include_router(ai_router)
+v1_routers.include_router(records_router)
