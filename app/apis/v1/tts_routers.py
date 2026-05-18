@@ -35,7 +35,7 @@ async def create_guide_asset(
 
     Args:
         guide_id: GUIDES 테이블의 guide_id
-        request: { asset_type: "tts" or "card_image" }
+        request: { asset_type: "tts_medication" or "tts_lifestyle" }
         current_user: JWT 인증된 사용자 (Bearer token)
 
     Returns:

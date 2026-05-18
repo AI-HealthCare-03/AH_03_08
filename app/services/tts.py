@@ -32,9 +32,9 @@ class TtsService:
 
         Args:
             guide_id: GUIDES 테이블의 guide_id
-            asset_type: "tts" or "card_image"
+            asset_type: "tts_medication" 또는 "tts_lifestyle"
             user_id: 요청한 사용자 ID
-            summary_text: GUIDES.medication_guide 또는 GUIDES.lifestyle_guide
+            summary_text: GUIDES.medication_guide_summary 또는 GUIDES.lifestyle_guide_summary
 
         Returns:
             GuideAssetCreateResponse: { asset_id, status }
@@ -44,7 +44,7 @@ class TtsService:
             - app과 ai_worker가 별도 컨테이너라 send_task()로 Redis에 등록
         """
         # asset_type 검증
-        if asset_type != AssetType.tts:
+        if asset_type not in (AssetType.tts_medication, AssetType.tts_lifestyle):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="지원하지 않는 asset_type입니다.",
@@ -62,6 +62,7 @@ class TtsService:
                 "guide_id": guide_id,
                 "summary_text": summary_text,
                 "user_id": user_id,
+                "asset_type": asset_type,
             },
         )
 
