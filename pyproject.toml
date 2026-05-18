@@ -34,6 +34,8 @@ app = [
     "pyjwt>=2.10.1",
     "tortoise-orm>=0.25.3",
     "uvicorn>=0.40.0",
+    "celery>=5.0.0",
+
 ]
 dev = [
     "coverage>=7.13.2",
