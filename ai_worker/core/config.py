@@ -17,3 +17,8 @@ class Config(BaseSettings):
     DB_USER: str
     DB_PASSWORD: str
     DB_NAME: str = "ai_health"
+
+    OPENAI_API_KEY: str
+    CLOVA_OCR_URL: str
+    CLOVA_OCR_SECRET: str
+    OCR_PROVIDER: str = "clova"
