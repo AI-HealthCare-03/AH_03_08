@@ -38,5 +38,7 @@ class Config(BaseSettings):
     JWT_LEEWAY: int = 5
 
     OPENAI_API_KEY: str = ""
+    OPENAI_CHAT_MODEL: str = "gpt-4o-mini"
+    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
     CLOVA_OCR_URL: str = ""
     CLOVA_OCR_SECRET: str = ""
