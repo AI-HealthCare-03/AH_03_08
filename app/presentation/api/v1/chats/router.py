@@ -77,6 +77,7 @@ async def _get_ws_user(token: str) -> User | None:
     try:
         verified = JwtService().verify_jwt(token=token, token_type="access")
         from app.repositories.user_repository import UserRepository
+
         return await UserRepository().get_user(verified.payload["user_id"])
     except Exception:
         return None

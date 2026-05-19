@@ -10,7 +10,6 @@ from tortoise.contrib.test import TestCase
 
 from app.application.chat.dto.chat_dto import SendMessageCommand
 from app.application.chat.use_cases.stream_message import StreamMessageUseCase
-from app.domain.chat.entity import ChatMessage, ChatSession
 from app.infrastructure.chat.llm_client import StubLLMClient
 from app.infrastructure.chat.repository import TortoiseChatMessageRepository, TortoiseChatSessionRepository
 from app.main import app
@@ -100,7 +99,7 @@ class TestStreamMessageUseCase(TestCase):
 
     async def test_session_not_found_raises_404(self):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            headers = await _get_auth_headers(client)
+            await _get_auth_headers(client)
             user = await User.get(email=_SIGNUP["email"])
 
         session_repo = TortoiseChatSessionRepository()

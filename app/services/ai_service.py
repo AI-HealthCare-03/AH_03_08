@@ -1,5 +1,5 @@
-from fastapi import HTTPException
 from celery import Celery
+from fastapi import HTTPException
 from starlette import status
 
 from app.models.users import User
@@ -15,14 +15,16 @@ class AIService:
     async def request_analysis(self, user: User, medical_record) -> object:
         task = celery_app.send_task(
             "ai_worker.tasks.ai_tasks.analyze_health_data",
-            args=[{
-                "user_id": str(user.id),
-                "record_id": str(medical_record.id),
-                "data": {
-                    "ocr_raw_text": medical_record.ocr_raw_text,
-                    "parsed_data": medical_record.parsed_data,
-                },
-            }],
+            args=[
+                {
+                    "user_id": str(user.id),
+                    "record_id": str(medical_record.id),
+                    "data": {
+                        "ocr_raw_text": medical_record.ocr_raw_text,
+                        "parsed_data": medical_record.parsed_data,
+                    },
+                }
+            ],
         )
         guide = await self.repo.create_guide(
             user_id=user.id,

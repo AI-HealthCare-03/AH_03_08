@@ -5,10 +5,14 @@ from fastapi.responses import ORJSONResponse as Response
 
 from app.dependencies.security import get_request_user
 from app.dtos.health import (
-    MedicalRecordCreateRequest, MedicalRecordResponse,
-    MedicationCreateRequest, MedicationResponse,
-    UnderlyingDiseaseRequest, UnderlyingDiseaseResponse,
-    AllergyRequest, AllergyResponse,
+    AllergyRequest,
+    AllergyResponse,
+    MedicalRecordCreateRequest,
+    MedicalRecordResponse,
+    MedicationCreateRequest,
+    MedicationResponse,
+    UnderlyingDiseaseRequest,
+    UnderlyingDiseaseResponse,
 )
 from app.models.users import User
 from app.services.health import HealthService

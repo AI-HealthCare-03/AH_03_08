@@ -1,6 +1,6 @@
-from uuid import UUID
 from datetime import datetime
 from typing import Annotated
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -14,7 +14,7 @@ class MedicalRecordCreateRequest(BaseModel):
 
 
 class MedicalRecordResponse(BaseSerializerModel):
-    id: UUID          # str → UUID
+    id: UUID  # str → UUID
     ocr_raw_text: str | None
     parsed_data: dict | None
     status: str
@@ -32,7 +32,7 @@ class MedicationCreateRequest(BaseModel):
 
 
 class MedicationResponse(BaseSerializerModel):
-    id: UUID          # str → UUID
+    id: UUID  # str → UUID
     drug_name: str
     dosage: str | None
     frequency: str | None
@@ -47,7 +47,7 @@ class UnderlyingDiseaseRequest(BaseModel):
 
 
 class UnderlyingDiseaseResponse(BaseSerializerModel):
-    id: UUID          # str → UUID
+    id: UUID  # str → UUID
     underlying_disease_name: str
     severity: str | None
     created_at: datetime
@@ -59,7 +59,7 @@ class AllergyRequest(BaseModel):
 
 
 class AllergyResponse(BaseSerializerModel):
-    id: UUID          # str → UUID
+    id: UUID  # str → UUID
     allergy_name: str
     severity: str | None
     created_at: datetime
@@ -70,7 +70,7 @@ class AIAnalysisRequest(BaseModel):
 
 
 class GuideResponse(BaseSerializerModel):
-    id: UUID          # str → UUID
+    id: UUID  # str → UUID
     medical_record_id: UUID
     medication_guide: str | None
     lifestyle_guide: str | None

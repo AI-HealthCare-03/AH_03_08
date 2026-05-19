@@ -19,10 +19,10 @@ TORTOISE_APP_MODELS = [
     "app.models.guide_assets",
     "app.models.feedbacks",
     "app.models.feedback_tags",
-    "app.models.access_logs",        # 추가
-    "app.models.error_logs",         # 추가
-    "app.models.audit_logs",         # 추가
-    "app.models.model_metrics",      # 추가 (ModelMetric + MetricSnapshot 둘 다 포함)
+    "app.models.access_logs",  # 추가
+    "app.models.error_logs",  # 추가
+    "app.models.audit_logs",  # 추가
+    "app.models.model_metrics",  # 추가 (ModelMetric + MetricSnapshot 둘 다 포함)
 ]
 TORTOISE_ORM = {
     "connections": {

@@ -1,4 +1,3 @@
-
 from fastapi import HTTPException, status
 
 from app.application.chat.dto.chat_dto import SendMessageCommand
@@ -46,9 +45,7 @@ class SendMessageUseCase:
         if not session:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="채팅 세션을 찾을 수 없습니다.")
 
-        user_message = await self.message_repo.save(
-            ChatMessage(session_id=command.session_id, role="user", content=command.content)
-        )
+        await self.message_repo.save(ChatMessage(session_id=command.session_id, role="user", content=command.content))
 
         recent = await self.message_repo.find_recent_by_session_id(command.session_id, limit=_CONTEXT_TURNS)
         # find_recent_by_session_id는 최신순으로 반환 → LLM에는 오래된 순으로 전달

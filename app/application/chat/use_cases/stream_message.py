@@ -43,9 +43,7 @@ class StreamMessageUseCase:
         if not session:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="채팅 세션을 찾을 수 없습니다.")
 
-        await self.message_repo.save(
-            ChatMessage(session_id=command.session_id, role="user", content=command.content)
-        )
+        await self.message_repo.save(ChatMessage(session_id=command.session_id, role="user", content=command.content))
 
         recent = await self.message_repo.find_recent_by_session_id(command.session_id, limit=_CONTEXT_TURNS)
         history = [{"role": m.role, "content": m.content} for m in reversed(recent)]
@@ -62,6 +60,4 @@ class StreamMessageUseCase:
             yield token
 
         full_reply = "".join(tokens)
-        await self.message_repo.save(
-            ChatMessage(session_id=command.session_id, role="assistant", content=full_reply)
-        )
+        await self.message_repo.save(ChatMessage(session_id=command.session_id, role="assistant", content=full_reply))

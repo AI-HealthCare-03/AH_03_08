@@ -1,8 +1,8 @@
-from app.models.medical_records import MedicalRecord
+from app.models.allergies import Allergy
 from app.models.guides import Guide
+from app.models.medical_records import MedicalRecord
 from app.models.medications import Medication
 from app.models.underlying_diseases import UnderlyingDisease
-from app.models.allergies import Allergy
 
 
 class HealthRepository:
@@ -46,7 +46,9 @@ class HealthRepository:
         )
 
     # ── Medication ────────────────────────────────────────────
-    async def create_medication(self, medical_record_id, drug_name, dosage=None, frequency=None, instructions=None, warnings=None):
+    async def create_medication(
+        self, medical_record_id, drug_name, dosage=None, frequency=None, instructions=None, warnings=None
+    ):
         return await self._medication.create(
             medical_record_id=medical_record_id,
             drug_name=drug_name,
