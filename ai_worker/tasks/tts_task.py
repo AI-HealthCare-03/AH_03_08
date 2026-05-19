@@ -41,8 +41,8 @@ async def _call_openai_tts(text: str) -> bytes:
     client = AsyncOpenAI(api_key=api_key)
 
     response = await client.audio.speech.create(
-        model="tts-1",       # 빠른 TTS 모델
-        voice="nova",        # 한국어에 적합한 자연스러운 목소리
+        model="tts-1",  # 빠른 TTS 모델
+        voice="nova",  # 한국어에 적합한 자연스러운 목소리
         input=text,
         response_format="mp3",
     )
