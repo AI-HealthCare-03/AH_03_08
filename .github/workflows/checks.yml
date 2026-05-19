@@ -33,7 +33,7 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: uv sync --group app --frozen
+        run: uv sync --frozen
 
       - name: Run Ruff Check (Linting)
         run: uv run ruff check .
@@ -58,7 +58,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
-          enable-cache: false
+          enable-cache: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
