@@ -120,10 +120,8 @@ def analyze_health_data(self, request_data: dict) -> dict:
         request = AnalysisRequest(**request_data)
         logger.info(f"[AI Task] 분석 시작 user_id={request.user_id} record_id={request.record_id}")
 
+        # TODO: LLM 기반 복약/생활습관 가이드 생성 구현 (REQ-GUIDE-001)
         result = _run_analysis(request.data)
-
-        # DB 업데이트
-        asyncio.run(_update_db(request.record_id, result))
 
         response = AnalysisResult(
             user_id=request.user_id,

@@ -5,6 +5,7 @@ class Guide(models.Model):
     id = fields.UUIDField(pk=True)
     user = fields.ForeignKeyField("models.User", related_name="guides")
     medical_record = fields.ForeignKeyField("models.MedicalRecord", related_name="guides")
+<<<<<<< HEAD
     status = fields.CharField(max_length=20, default="processing")
     medication_guide = fields.TextField(null=True)
     lifestyle_guide = fields.TextField(null=True)
@@ -12,6 +13,10 @@ class Guide(models.Model):
     allergy_warnings = fields.JSONField(null=True)
     condition_interactions = fields.JSONField(null=True)
     prompt_version = fields.CharField(max_length=20, default="v1.0")
+=======
+    medication_guide = fields.TextField(null=True)  # 복약 안내
+    lifestyle_guide = fields.TextField(null=True)  # 생활습관 안내
+>>>>>>> origin/feature/ocr-upload
     llm_model = fields.CharField(max_length=100, null=True)
     llm_temperature = fields.FloatField(null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
