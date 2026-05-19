@@ -37,7 +37,7 @@ dependencies = [
 [package.dev-dependencies]
 ai = [
     { name = "celery" },
-    { name = "pillow" },
+    { name = "httpx" },
     { name = "scikit-learn" },
     { name = "sentence-transformers" },
     { name = "torch", version = "2.11.0", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'darwin'" },
@@ -80,7 +80,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 ai = [
     { name = "celery", specifier = ">=5.0.0" },
-    { name = "pillow", specifier = ">=10.0.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "scikit-learn", specifier = ">=1.8.0" },
     { name = "sentence-transformers", specifier = ">=5.2.0" },
     { name = "torch", index = "https://download.pytorch.org/whl/cpu" },

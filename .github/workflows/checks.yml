@@ -33,7 +33,7 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: uv sync --frozen
+        run: uv sync --group app --frozen
 
       - name: Run Ruff Check (Linting)
         run: uv run ruff check .
@@ -66,7 +66,7 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: uv sync --group app --frozen
+        run: uv sync --group app
 
       - name: Check if tests exist
         id: check_tests
