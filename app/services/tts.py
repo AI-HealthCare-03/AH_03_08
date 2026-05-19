@@ -48,7 +48,6 @@ class TtsService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="지원하지 않는 asset_type입니다.",
-
             )
 
         # 고유한 asset_id 생성
