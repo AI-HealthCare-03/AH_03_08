@@ -7,13 +7,13 @@ from pydantic import BaseModel
 # Response DTO: 분석 요청 후 즉시 반환되는 데이터 (202 Accepted)
 class ImageAnalyzeResponse(BaseModel):
     analysis_id: str  # 생성된 분석 작업 ID
-    status: str       # "processing" (Celery 작업 등록 완료)
+    status: str  # "processing" (Celery 작업 등록 완료)
 
 
 # Response DTO: 결과 조회 응답 (GET /api/v1/images/{analysis_id})
 class DrugInfoResponse(BaseModel):
     analysis_id: str
-    status: str                    # "processing" or "completed"
+    status: str  # "processing" or "completed"
     drug_name: str | None = None
     dl_material: str | None = None
     drug_shape: str | None = None

@@ -1,15 +1,15 @@
 # 표준 라이브러리
+import glob
 import io
 import json
-import glob
 import os
 
 # 서드파티 라이브러리
 import torch
 import torch.nn as nn
+from celery import Celery
 from PIL import Image
 from torchvision import models, transforms
-from celery import Celery
 
 # 로거 설정
 from ai_worker.core.logger import logger
@@ -23,6 +23,7 @@ celery_app = Celery(
 # -------------------------
 # 이미지 전처리
 # -------------------------
+
 
 def preprocess_image(image_bytes: bytes) -> torch.Tensor:
     """
@@ -43,14 +44,16 @@ def preprocess_image(image_bytes: bytes) -> torch.Tensor:
         - mean/std는 ImageNet 학습 기준값 사용
     """
     # 전처리 파이프라인 정의
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),       # 모델 입력 크기로 리사이즈
-        transforms.ToTensor(),               # PIL Image → Tensor (0~255 → 0~1)
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],      # ImageNet 평균값
-            std=[0.229, 0.224, 0.225],       # ImageNet 표준편차
-        ),
-    ])
+    transform = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),  # 모델 입력 크기로 리사이즈
+            transforms.ToTensor(),  # PIL Image → Tensor (0~255 → 0~1)
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],  # ImageNet 평균값
+                std=[0.229, 0.224, 0.225],  # ImageNet 표준편차
+            ),
+        ]
+    )
 
     # bytes → PIL Image 변환
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -62,9 +65,11 @@ def preprocess_image(image_bytes: bytes) -> torch.Tensor:
 
     return tensor
 
+
 # -------------------------
 # 모델 로드 (REQ-IMG-002)
 # -------------------------
+
 
 def load_model() -> nn.Module:
     """
@@ -98,6 +103,7 @@ def load_model() -> nn.Module:
 # 모델 추론 (REQ-IMG-002)
 # -------------------------
 
+
 def predict(model: nn.Module, tensor: torch.Tensor) -> tuple[int, float]:
     """
     전처리된 이미지 텐서를 모델에 입력하여 클래스 인덱스와 confidence score를 반환한다.
@@ -122,7 +128,7 @@ def predict(model: nn.Module, tensor: torch.Tensor) -> tuple[int, float]:
 
     # Top-5 로그 기록 (관리자 모니터링용)
     top5 = torch.topk(probabilities, k=5, dim=1)
-    top5_log = [(idx.item(), round(conf.item(), 4)) for idx, conf in zip(top5.indices[0], top5.values[0])]
+    top5_log = [(idx.item(), round(conf.item(), 4)) for idx, conf in zip(top5.indices[0], top5.values[0], strict=False)]
     logger.info(f"모델 추론 완료 - class_idx: {class_idx}, confidence: {confidence_score:.4f}")
     logger.info(f"Top-5 예측 - {top5_log}")
 
@@ -132,6 +138,7 @@ def predict(model: nn.Module, tensor: torch.Tensor) -> tuple[int, float]:
 # -------------------------
 # K코드 변환 (REQ-IMG-003)
 # -------------------------
+
 
 def get_kcode(class_idx: int) -> str:
     """
@@ -148,7 +155,7 @@ def get_kcode(class_idx: int) -> str:
     if not label_path:
         raise ValueError("PILL_LABEL_PATH 환경변수가 설정되지 않았습니다.")
 
-    with open(label_path, "r") as f:
+    with open(label_path) as f:
         data = json.load(f)
 
     # 인덱스 → K코드 매핑
@@ -165,6 +172,7 @@ def get_kcode(class_idx: int) -> str:
 # -------------------------
 # 약품 정보 조회 (REQ-IMG-004)
 # -------------------------
+
 
 def get_drug_info(kcode: str) -> dict:
     """
@@ -191,7 +199,7 @@ def get_drug_info(kcode: str) -> dict:
     if not json_files:
         raise ValueError(f"K코드 {kcode}에 해당하는 약품 정보가 없습니다.")
 
-    with open(json_files[0], "r", encoding="utf-8") as f:
+    with open(json_files[0], encoding="utf-8") as f:
         data = json.load(f)
 
     info = data["images"][0]
@@ -208,9 +216,11 @@ def get_drug_info(kcode: str) -> dict:
         "di_edi_code": info.get("di_edi_code"),
     }
 
+
 # -------------------------
 # Celery Task (REQ-IMG-005)
 # -------------------------
+
 
 @celery_app.task(bind=True, max_retries=3)
 def classify_pill(self, analysis_id: str, image_bytes: bytes, record_id: str, user_id: str) -> dict:
