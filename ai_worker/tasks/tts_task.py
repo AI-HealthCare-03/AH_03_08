@@ -2,7 +2,6 @@
 import os
 
 # 서드파티 라이브러리
-import httpx
 from celery.utils.log import get_task_logger
 
 # 로컬 모듈
