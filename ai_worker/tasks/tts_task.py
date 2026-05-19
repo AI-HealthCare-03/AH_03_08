@@ -29,6 +29,7 @@ celery_app = Celery(
 # Celery Task (이번 브랜치 핵심)
 # -------------------------
 
+
 # @celery_app.task → 이 함수를 Celery가 처리할 Task로 등록
 # bind=True → self(현재 Task 자신)를 참조 → self.retry() 호출 가능
 # max_retries=3 → 실패 시 최대 3번까지 재시도
@@ -81,6 +82,7 @@ def convert_text_to_speech(self, guide_id: str, summary_text: str, user_id: str)
         # countdown=10 → 10초 후 재시도 / max_retries=3 초과 시 최종 실패
         raise self.retry(exc=exc, countdown=10) from exc
 
+
 async def _call_clova_tts(text: str) -> bytes:
     """
     CLOVA TTS API를 호출하여 음성 데이터를 반환한다.
@@ -114,15 +116,15 @@ async def _call_clova_tts(text: str) -> bytes:
     # headers: CLOVA 서버에 인증 정보 및 데이터 형식 전달
     headers = {
         "Authorization": f"Bearer {api_key}",  # CLOVA API 키 인증
-        "Content-Type": "application/json",     # JSON 형식으로 전송
+        "Content-Type": "application/json",  # JSON 형식으로 전송
     }
 
     # payload: CLOVA TTS 변환 설정값
     payload = {
-        "text": text,       # GUIDES 테이블에서 가져온 가이드 요약본 텍스트
+        "text": text,  # GUIDES 테이블에서 가져온 가이드 요약본 텍스트
         "speaker": "nara",  # 한국어 여성 목소리 (복약 안내에 적합한 화자)
-        "speed": 0,         # 읽기 속도 (0 = 기본 속도)
-        "format": "mp3",    # 출력 파일 형식
+        "speed": 0,  # 읽기 속도 (0 = 기본 속도)
+        "format": "mp3",  # 출력 파일 형식
     }
 
     # AsyncClient: 비동기 HTTP 클라이언트 (with 블록 종료 시 연결 자동 해제)
