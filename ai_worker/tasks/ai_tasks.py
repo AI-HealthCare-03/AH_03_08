@@ -40,7 +40,7 @@ def analyze_health_data(self, request_data: dict) -> dict:
 
     except Exception as exc:
         logger.warning(f"[AI Task] 재시도 {self.request.retries + 1}/3: {exc}")
-        raise self.retry(exc=exc, countdown=30 * (2 ** self.request.retries)) from exc
+        raise self.retry(exc=exc, countdown=30 * (2**self.request.retries)) from exc
 
 
 def _run_analysis(data: dict) -> dict:

@@ -65,7 +65,7 @@ class TestUploadRecordAPI(TestCase):
                 files={"file": _FAKE_IMAGE},
             )
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 class TestGetRecordAPI(TestCase):
