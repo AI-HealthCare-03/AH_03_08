@@ -66,7 +66,7 @@
 
 #     except Exception as exc:
 #         logger.warning(f"[AI Task] 재시도 {self.request.retries + 1}/3: {exc}")
-#         raise self.retry(exc=exc, countdown=30)
+#         raise self.retry(exc=exc, countdown=30) from exc
 
 
 # async def _update_db(record_id: int, status: str, result: dict):
@@ -91,10 +91,10 @@
 #         "recommendations": ["규칙적인 운동", "충분한 수면"],
 #     }
 
-import logging
 import asyncio
-import asyncmy
+import logging
 
+import asyncmy
 from celery import Task
 
 from ai_worker.main import celery_app
@@ -137,12 +137,13 @@ def analyze_health_data(self, request_data: dict) -> dict:
 
     except Exception as exc:
         logger.warning(f"[AI Task] 재시도 {self.request.retries + 1}/3: {exc}")
-        raise self.retry(exc=exc, countdown=30)
+        raise self.retry(exc=exc, countdown=30) from exc
 
 
 async def _update_db(record_id: int, result: dict):
     """Tortoise 없이 직접 SQL로 DB 업데이트"""
     import json
+
     conn = await asyncmy.connect(
         host="mysql",
         port=3306,
