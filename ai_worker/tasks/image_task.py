@@ -58,7 +58,6 @@ def preprocess_image(image_bytes: bytes) -> torch.Tensor:
     logger.info(f"이미지 전처리 완료 - tensor shape: {tensor.shape}")
 
     return tensor
-<<<<<<< HEAD
 
 
 
@@ -122,12 +121,10 @@ def predict(model: nn.Module, tensor: torch.Tensor) -> tuple[int, float]:
     class_idx = predicted.item()
     confidence_score = confidence.item()
 
-<<<<<<< HEAD
-=======
+
     # Top-5 로그 기록 (관리자 모니터링용)
     top5 = torch.topk(probabilities, k=5, dim=1)
     top5_log = [(idx.item(), round(conf.item(), 4)) for idx, conf in zip(top5.indices[0], top5.values[0], strict=False)]
->>>>>>> origin/feature/image-api-router
     logger.info(f"모델 추론 완료 - class_idx: {class_idx}, confidence: {confidence_score:.4f}")
 
     return class_idx, confidence_score
@@ -213,10 +210,6 @@ def get_drug_info(kcode: str) -> dict:
         "di_etc_otc_code": info.get("di_etc_otc_code"),
         "di_edi_code": info.get("di_edi_code"),
     }
-<<<<<<< HEAD
-=======
->>>>>>> origin/feature/image-preprocess
-=======
 
 
 # -------------------------
@@ -289,4 +282,3 @@ def classify_pill(self, analysis_id: str, image_bytes: bytes, record_id: str, us
     except Exception as exc:
         logger.error(f"낱알약 분류 실패 - analysis_id: {analysis_id}, error: {exc}")
         raise self.retry(exc=exc, countdown=10) from exc
->>>>>>> origin/feature/image-api-router
