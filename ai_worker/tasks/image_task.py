@@ -9,10 +9,10 @@ from torchvision import transforms
 # 로거 설정
 from ai_worker.core.logger import logger
 
-
 # -------------------------
 # 이미지 전처리
 # -------------------------
+
 
 def preprocess_image(image_bytes: bytes) -> torch.Tensor:
     """
@@ -33,14 +33,16 @@ def preprocess_image(image_bytes: bytes) -> torch.Tensor:
         - mean/std는 ImageNet 학습 기준값 사용
     """
     # 전처리 파이프라인 정의
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),       # 모델 입력 크기로 리사이즈
-        transforms.ToTensor(),               # PIL Image → Tensor (0~255 → 0~1)
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],      # ImageNet 평균값
-            std=[0.229, 0.224, 0.225],       # ImageNet 표준편차
-        ),
-    ])
+    transform = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),  # 모델 입력 크기로 리사이즈
+            transforms.ToTensor(),  # PIL Image → Tensor (0~255 → 0~1)
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],  # ImageNet 평균값
+                std=[0.229, 0.224, 0.225],  # ImageNet 표준편차
+            ),
+        ]
+    )
 
     # bytes → PIL Image 변환
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
