@@ -21,6 +21,10 @@ class User(models.Model):
     last_login = fields.DatetimeField(null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
+    height_cm = fields.FloatField(null=True)
+    weight_kg = fields.FloatField(null=True)
+    oauth_provider = fields.CharField(max_length=20, null=True)  # kakao / google
+    oauth_id = fields.CharField(max_length=100, null=True)
 
     class Meta:
         table = "users"

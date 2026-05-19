@@ -1,0 +1,6 @@
+from abc import ABC, abstractmethod
+
+
+class OCRProvider(ABC):
+    @abstractmethod
+    async def extract_text(self, file_path: str) -> str: ...

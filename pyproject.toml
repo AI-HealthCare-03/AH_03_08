@@ -11,6 +11,8 @@ dependencies = [
     "python-dateutil>=2.9.0.post0",
     "redis>=7.1.0",
     "tomlkit>=0.14.0",
+    "tzdata>=2025.2",
+    "aiomysql>=0.2.0",
 ]
 
 [dependency-groups]
@@ -20,23 +22,34 @@ ai = [
     "torchvision",
     "torchaudio",
     "sentence-transformers>=5.2.0",
-    "httpx>=0.28.1",  # CLOVA TTS API 비동기 호출용 (REQ-TTS-001)
-    "celery>=5.0.0", # Celery 비동기 태스크 등록 및 실행용 (REQ-TTS-002)
-    "boto3>=1.0.0",  # AWS S3 제어 라이브러리 (REQ-TTS-003)
+    "httpx>=0.28.1",
+    "boto3>=1.0.0",
+    "anthropic>=0.51.0",
+    "langchain>=0.3.25",
+    "langchain-anthropic>=0.3.15",
+    "langchain-chroma>=0.2.4",
+    "langchain-community>=0.3.23",
+    "langchain-core>=0.3.59",
+    "langchain-openai>=0.3.0",
+    "chromadb>=0.6.3",
+    "celery>=5.4.0",
+    "tortoise-orm>=0.25.3",
+    "asyncmy>=0.2.11",
 ]
-
 app = [
     "aerich>=0.9.2",
     "asyncmy>=0.2.11",
+    "celery>=5.4.0",
     "bcrypt<=4.0.1",
     "fastapi[standard]>=0.128.0",
     "httpx>=0.28.1",
+    "openai>=1.0.0",
     "orjson>=3.11.5",
     "passlib[bcrypt]>=1.7.4",
     "pyjwt>=2.10.1",
     "tortoise-orm>=0.25.3",
     "uvicorn>=0.40.0",
-    "celery>=5.0.0",
+    "email-validator>=2.0.0",
 ]
 dev = [
     "coverage>=7.13.2",
