@@ -7,6 +7,7 @@ import os
 # 서드파티 라이브러리
 import torch
 import torch.nn as nn
+from celery import Celery
 from PIL import Image
 from torchvision import models, transforms
 
@@ -58,6 +59,7 @@ def preprocess_image(image_bytes: bytes) -> torch.Tensor:
 
     return tensor
 <<<<<<< HEAD
+
 
 
 # -------------------------
@@ -120,6 +122,12 @@ def predict(model: nn.Module, tensor: torch.Tensor) -> tuple[int, float]:
     class_idx = predicted.item()
     confidence_score = confidence.item()
 
+<<<<<<< HEAD
+=======
+    # Top-5 로그 기록 (관리자 모니터링용)
+    top5 = torch.topk(probabilities, k=5, dim=1)
+    top5_log = [(idx.item(), round(conf.item(), 4)) for idx, conf in zip(top5.indices[0], top5.values[0], strict=False)]
+>>>>>>> origin/feature/image-api-router
     logger.info(f"모델 추론 완료 - class_idx: {class_idx}, confidence: {confidence_score:.4f}")
 
     return class_idx, confidence_score
@@ -205,5 +213,80 @@ def get_drug_info(kcode: str) -> dict:
         "di_etc_otc_code": info.get("di_etc_otc_code"),
         "di_edi_code": info.get("di_edi_code"),
     }
+<<<<<<< HEAD
 =======
 >>>>>>> origin/feature/image-preprocess
+=======
+
+
+# -------------------------
+# Celery Task (REQ-IMG-005)
+# -------------------------
+
+
+@celery_app.task(bind=True, max_retries=3)
+def classify_pill(self, analysis_id: str, image_bytes: bytes, record_id: str, user_id: str) -> dict:
+    """
+    낱알약 이미지를 분류하는 Celery Task.
+
+    REQ-IMG-005: 비동기 처리
+    - 이미지 전처리 → 모델 추론 → K코드 변환 → 약품 정보 조회 → DB 저장
+
+    Args:
+        analysis_id: 분류 작업 고유 ID
+        image_bytes: 사용자가 업로드한 이미지 파일 (bytes)
+        record_id: MEDICAL_RECORDS 테이블의 record_id (FK)
+        user_id: 요청한 사용자 ID
+
+    Returns:
+        dict: { "success": bool, "data": { "drug_info": dict }, "message": str }
+
+    Note:
+        - 개인정보 보호: 이미지 데이터 로그 출력 금지
+        - Threshold 0.7 미만 시 분류 불가 처리
+    """
+    try:
+        logger.info(f"낱알약 분류 시작 - analysis_id: {analysis_id}, record_id: {record_id}")
+
+        # 1. 이미지 전처리
+        tensor = preprocess_image(image_bytes)
+
+        # 2. 모델 로드 및 추론
+        model = load_model()
+        class_idx, confidence_score = predict(model, tensor)
+
+        # 3. Threshold 검증 (0.7 미만 시 분류 불가)
+        if confidence_score < 0.7:
+            logger.warning(f"분류 불가 - confidence: {confidence_score:.4f}")
+            return {
+                "success": False,
+                "data": None,
+                "message": "분류할 수 없는 약품입니다.",
+            }
+
+        # 4. K코드 변환
+        kcode = get_kcode(class_idx)
+
+        # 5. 약품 정보 조회
+        drug_info = get_drug_info(kcode)
+        drug_info["confidence_score"] = confidence_score
+
+        # 6. DB 저장
+        # TODO: 팀장님 feature/db-models-and-api merge 후 DB 저장 연동 예정
+
+        logger.info(f"낱알약 분류 완료 - analysis_id: {analysis_id}, kcode: {kcode}")
+
+        return {
+            "success": True,
+            "data": {
+                "analysis_id": analysis_id,
+                "kcode": kcode,
+                "drug_info": drug_info,
+            },
+            "message": "낱알약 분류가 완료되었습니다.",
+        }
+
+    except Exception as exc:
+        logger.error(f"낱알약 분류 실패 - analysis_id: {analysis_id}, error: {exc}")
+        raise self.retry(exc=exc, countdown=10) from exc
+>>>>>>> origin/feature/image-api-router
