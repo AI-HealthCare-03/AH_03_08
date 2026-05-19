@@ -10,12 +10,8 @@ from app.apis.v1.llm_routers import chat_router, guide_router, record_router
 v1_routers = APIRouter(prefix="/api/v1")
 v1_routers.include_router(auth_router)
 v1_routers.include_router(user_router)
-<<<<<<< HEAD
 v1_routers.include_router(health_router)
 v1_routers.include_router(ai_router)
 v1_routers.include_router(record_router)
 v1_routers.include_router(guide_router)
 v1_routers.include_router(chat_router)
-=======
-v1_routers.include_router(image_router)
->>>>>>> origin/feature/image-api-router
