@@ -2,18 +2,18 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-# 1. uv 설치 (공식 이미지에서 복사해오는 가장 깔끔한 방법)
+# asyncmy==0.2.11 은 Apple Silicon(aarch64) 환경에서 prebuilt wheel 이 없어 소스 컴파일이 필요함
+# gcc, libc6-dev 없으면 "error: command 'gcc' failed" 로 빌드 실패 (x86_64 환경에서는 무해)
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev && rm -rf /var/lib/apt/lists/*
+
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-# 2. 의존성 패키지 관리 파일을 컨테이너 내부에 복사합니다.
 COPY pyproject.toml uv.lock ./
 
-# 3. pyproject.toml에 명시된 의존성 패키지 중에서 'app' 그룹만 설치합니다.
-RUN uv sync --group ai --no-dev --frozen
+RUN uv sync --group ai --no-dev
 
-# 4. 로컬 소스 코드를 컨테이너 내부로 복사합니다.
-COPY ./ai_worker ./app
+RUN uv pip install celery redis --python /app/.venv/bin/python
 
-# 5. 해당 이미지를 활용하여 도커컨테이너 실행시 실행되는 명령어입니다.
-# 아래 커맨드를 수정한 뒤에 사용합니다.
-CMD ["echo", "'hello world'"]
+COPY ./ai_worker ./ai_worker
+
+CMD ["/app/.venv/bin/celery", "-A", "ai_worker.main:celery_app", "worker", "--loglevel=info", "--concurrency=2"]

@@ -7,8 +7,24 @@ from app.core import config
 TORTOISE_APP_MODELS = [
     "aerich.models",
     "app.models.users",
+    "app.models.llm",
+    "app.models.allergies",
+    "app.models.underlying_diseases",
+    "app.models.medical_records",
+    "app.models.medications",
+    "app.models.guides",
+    "app.models.guide_assets",
+    "app.models.chat_sessions",
+    "app.models.chat_messages",
+    "app.models.calendar_events",
+    "app.models.notifications",
+    "app.models.feedbacks",
+    "app.models.feedback_tags",
+    "app.models.model_metrics",
+    "app.models.access_logs",
+    "app.models.audit_logs",
+    "app.models.error_logs",
 ]
-
 TORTOISE_ORM = {
     "connections": {
         "default": {

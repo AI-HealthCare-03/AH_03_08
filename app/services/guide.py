@@ -1,0 +1,22 @@
+﻿from app.repositories.guide_repository import (
+    create_guide,
+    get_guides_by_user,
+    get_guide_by_id,
+    create_feedback,
+    get_all_feedbacks,
+)
+
+async def get_guides(user_id: str):
+    return await get_guides_by_user(user_id=user_id)
+
+async def get_guide(guide_id: str, user_id: str):
+    return await get_guide_by_id(guide_id=guide_id, user_id=user_id)
+
+async def create_guide_service(user_id: str, medical_record_id: str):
+    return await create_guide(user_id=user_id, medical_record_id=medical_record_id)
+
+async def create_feedback_service(user_id: str, guide_id: str, rating: int, comment: str = None):
+    return await create_feedback(user_id=user_id, guide_id=guide_id, rating=rating, comment=comment)
+
+async def get_feedbacks():
+    return await get_all_feedbacks()
