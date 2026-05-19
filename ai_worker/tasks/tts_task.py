@@ -172,7 +172,7 @@ async def _process_tts(summary_text: str, user_id: str, guide_id: str, asset_typ
         str: S3 파일 URL
     """
     # 1. CLOVA TTS 변환
-    tts_audio = await _call_clova_tts(summary_text)
+    tts_audio = await _call_openai_tts(summary_text)
 
     # 2. S3 업로드 (동기 함수 - async 안에서 직접 호출 가능)
     s3_url = _upload_to_s3(tts_audio, user_id)
