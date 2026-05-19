@@ -17,11 +17,7 @@ class AIService:
             "ai_worker.tasks.ai_tasks.analyze_health_data",
             args=[
                 {
-<<<<<<< HEAD
                     "user_id": str(user.id),
-=======
-                    "user_id": user.id,
->>>>>>> origin/feature/ocr-upload
                     "record_id": str(medical_record.id),
                     "data": {
                         "ocr_raw_text": medical_record.ocr_raw_text,

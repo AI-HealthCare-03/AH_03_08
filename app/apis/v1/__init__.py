@@ -1,5 +1,8 @@
 from fastapi import APIRouter
 
+from app.apis.v1.auth_routers import auth_router
+from app.apis.v1.user_routers import user_router
+from app.apis.v1.health_routers import health_router
 from app.apis.v1.ai_routers import ai_router
 from app.apis.v1.llm_routers import chat_router, guide_router, record_router
 
