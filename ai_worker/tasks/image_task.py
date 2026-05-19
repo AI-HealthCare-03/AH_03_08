@@ -57,6 +57,7 @@ def preprocess_image(image_bytes: bytes) -> torch.Tensor:
     logger.info(f"이미지 전처리 완료 - tensor shape: {tensor.shape}")
 
     return tensor
+<<<<<<< HEAD
 
 
 # -------------------------
@@ -204,3 +205,5 @@ def get_drug_info(kcode: str) -> dict:
         "di_etc_otc_code": info.get("di_etc_otc_code"),
         "di_edi_code": info.get("di_edi_code"),
     }
+=======
+>>>>>>> origin/feature/image-preprocess
