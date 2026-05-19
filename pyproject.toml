@@ -21,6 +21,8 @@ ai = [
     "torchaudio",
     "sentence-transformers>=5.2.0",
     "httpx>=0.28.1",  # CLOVA TTS API 비동기 호출용 (REQ-TTS-001)
+    "openai>=1.0.0",  # ← 추가
+
 ]
 
 app = [
