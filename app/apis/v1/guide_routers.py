@@ -1,6 +1,5 @@
-from typing import Annotated
-
 import os
+from typing import Annotated
 
 from celery import Celery
 from fastapi import APIRouter, Depends, HTTPException
