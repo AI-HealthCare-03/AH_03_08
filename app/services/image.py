@@ -31,6 +31,7 @@ class ImageService:
             - 개인정보 보호: 이미지 데이터 로그 출력 금지
             - 파일 업로드는 POST /api/v1/records/upload에서 처리
             - app과 ai_worker가 별도 컨테이너라 send_task()로 Redis에 등록
+            - TODO: DB 연동 후 record_type == 2(낱알약) 검증 추가 필요
         """
         # 고유한 analysis_id 생성
         analysis_id = str(uuid.uuid4())
