@@ -187,8 +187,10 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
             age = None
             if user.birthday:
                 today = date.today()
-                age = today.year - user.birthday.year - (
-                    (today.month, today.day) < (user.birthday.month, user.birthday.day)
+                age = (
+                    today.year
+                    - user.birthday.year
+                    - ((today.month, today.day) < (user.birthday.month, user.birthday.day))
                 )
             gender = user.gender
             if hasattr(gender, "value"):
@@ -203,8 +205,7 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
                 "height_cm": user.height_cm,
                 "weight_kg": user.weight_kg,
                 "allergies": [
-                    {"name": row.allergy_name, "severity": row.severity or "unknown"}
-                    for row in allergy_rows
+                    {"name": row.allergy_name, "severity": row.severity or "unknown"} for row in allergy_rows
                 ],
                 "conditions": [{"name": row.underlying_disease_name} for row in disease_rows],
             }
