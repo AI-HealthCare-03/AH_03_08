@@ -1,4 +1,4 @@
-from typing import Annotated
+﻿from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -35,6 +35,19 @@ async def get_feedbacks_api(current_user: CurrentUser):
         "success": True,
         "data": {"total": len(feedbacks), "items": [str(f.id) for f in feedbacks]},
         "message": "피드백 목록 조회 성공",
+    }
+
+
+@router.get("/{guide_id}/status")
+async def get_guide_status_api(guide_id: str, current_user: CurrentUser):
+    """가이드 생성 진행 여부를 폴링할 때 사용 (processing → done / failed)."""
+    guide = await get_guide(guide_id=guide_id, user_id=current_user.id)
+    if not guide:
+        raise HTTPException(status_code=404, detail="가이드를 찾을 수 없습니다.")
+    return {
+        "success": True,
+        "data": {"guide_id": str(guide.id), "status": guide.status},
+        "message": "가이드 상태 조회 성공",
     }
 
 
