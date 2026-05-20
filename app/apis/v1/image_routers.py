@@ -2,9 +2,11 @@
 # 표준 라이브러리
 from typing import Annotated
 from uuid import UUID
+
 # 서드파티 라이브러리
 from fastapi import APIRouter, Depends, Form, status
 from fastapi.responses import JSONResponse as Response
+
 # 로컬 모듈
 from app.dependencies.security import get_request_user
 from app.dtos.image import DrugInfoResponse, ImageAnalyzeResponse
@@ -12,6 +14,7 @@ from app.models.users import User
 from app.services.image import ImageService
 
 image_router = APIRouter(prefix="/images", tags=["images"])
+
 
 @image_router.post(
     "/analyze",
@@ -45,6 +48,7 @@ async def analyze_image(
         content=result.model_dump(),
         status_code=status.HTTP_202_ACCEPTED,
     )
+
 
 @image_router.get(
     "/{analysis_id}",

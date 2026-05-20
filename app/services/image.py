@@ -2,13 +2,16 @@
 # 표준 라이브러리
 import os
 import uuid
+
 # 서드파티 라이브러리
 from celery import Celery
+
 # 로컬 모듈
 from app.dtos.image import ImageAnalyzeResponse
 
 # Celery 앱 초기화 (Redis 브로커 연결)
 celery_app = Celery(broker=os.getenv("REDIS_URL", "redis://redis:6379/0"))
+
 
 class ImageService:
     async def analyze_image(
