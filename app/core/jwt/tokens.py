@@ -24,7 +24,7 @@ class Token:
             raise TokenError("lifetime must be set")
 
         self.token = token
-        self.current_time = datetime.now(tz=config.TIMEZONE)
+        self.current_time = datetime.now(tz=config.timezone)
         self.payload: dict[str, Any] = {}
 
         if token is not None:

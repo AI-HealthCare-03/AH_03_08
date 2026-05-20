@@ -91,7 +91,6 @@
 #         "recommendations": ["규칙적인 운동", "충분한 수면"],
 #     }
 
-import asyncio
 import logging
 
 import asyncmy

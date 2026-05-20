@@ -53,7 +53,7 @@ class UserRepository:
         return await self._model.filter(phone_number=phone_number).exists()
 
     async def update_last_login(self, user_id: int) -> None:
-        await self._model.filter(id=user_id).update(last_login=datetime.now(config.TIMEZONE))
+        await self._model.filter(id=user_id).update(last_login=datetime.now(config.timezone))
 
     async def update_instance(self, user: User, data: dict[str, Any]) -> None:
         update_fields = []
@@ -62,6 +62,6 @@ class UserRepository:
                 setattr(user, key, value)
                 update_fields.append(key)
         if update_fields:
-            user.updated_at = datetime.now(config.TIMEZONE)
+            user.updated_at = datetime.now(config.timezone)
             update_fields.append(UPDATED_AT_FIELD)
             await user.save(update_fields=update_fields)

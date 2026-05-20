@@ -41,7 +41,7 @@ class MedicalRecordRepository:
         await self._model.filter(id=record_id).update(
             parsed_data=parsed_data,
             status=RecordStatus.DONE,
-            updated_at=datetime.now(config.TIMEZONE),
+            updated_at=datetime.now(config.timezone),
         )
 
 
@@ -77,14 +77,14 @@ class GuideRepository:
             summary=summary,
             allergy_warnings=allergy_warnings,
             condition_interactions=condition_interactions,
-            completed_at=datetime.now(config.TIMEZONE),
-            updated_at=datetime.now(config.TIMEZONE),
+            completed_at=datetime.now(config.timezone),
+            updated_at=datetime.now(config.timezone),
         )
 
     async def update_failed(self, guide_id: int) -> None:
         await self._model.filter(id=guide_id).update(
             status=GuideStatus.FAILED,
-            updated_at=datetime.now(config.TIMEZONE),
+            updated_at=datetime.now(config.timezone),
         )
 
 
@@ -105,13 +105,13 @@ class GuideAssetRepository:
         await self._model.filter(id=asset_id).update(
             status=RecordStatus.DONE,
             file_url=file_url,
-            updated_at=datetime.now(config.TIMEZONE),
+            updated_at=datetime.now(config.timezone),
         )
 
     async def update_failed(self, asset_id: int) -> None:
         await self._model.filter(id=asset_id).update(
             status=RecordStatus.FAILED,
-            updated_at=datetime.now(config.TIMEZONE),
+            updated_at=datetime.now(config.timezone),
         )
 
 

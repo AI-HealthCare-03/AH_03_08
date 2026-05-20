@@ -12,8 +12,6 @@ from app.dtos.llm import (
     ChatMessageListResponse,
     ChatMessageResponse,
     ChatMessageSendRequest,
-    ChatSessionListResponse,
-    ChatSessionResponse,
     GuideDetailResponse,
     GuideGenerateRequest,
     GuideGenerateResponse,
@@ -33,6 +31,7 @@ chat_router = APIRouter(prefix="/chat", tags=["chat"])
 # ════════════════════════════════════════
 # MedicalRecord
 # ════════════════════════════════════════
+
 
 @record_router.post("", status_code=status.HTTP_201_CREATED)
 async def create_record(
@@ -79,6 +78,7 @@ async def get_record(
 # ════════════════════════════════════════
 # Guide
 # ════════════════════════════════════════
+
 
 @guide_router.post("/generate", status_code=status.HTTP_202_ACCEPTED)
 async def generate_guide(
@@ -153,6 +153,7 @@ async def get_asset(
 # Chat
 # ════════════════════════════════════════
 
+
 @chat_router.post("/sessions", status_code=status.HTTP_201_CREATED)
 async def create_session(
     user: Annotated[User, Depends(get_request_user)],
@@ -209,9 +210,7 @@ async def get_message_list(
     limit: int = 20,
     cursor: int | None = None,
 ) -> Response:
-    messages = await service.get_message_list(
-        session_id=session_id, user_id=user.id, limit=limit, cursor=cursor
-    )
+    messages = await service.get_message_list(session_id=session_id, user_id=user.id, limit=limit, cursor=cursor)
     next_cursor = messages[-1].id if len(messages) == limit else None
     return Response(
         ChatMessageListResponse(
@@ -229,9 +228,7 @@ async def send_message(
     user: Annotated[User, Depends(get_request_user)],
     service: Annotated[ChatService, Depends(ChatService)],
 ) -> Response:
-    assistant_msg = await service.send_message(
-        session_id=session_id, user_id=user.id, message=body.message
-    )
+    assistant_msg = await service.send_message(session_id=session_id, user_id=user.id, message=body.message)
     return Response(
         ChatMessageResponse.model_validate(assistant_msg).model_dump(),
         status_code=status.HTTP_202_ACCEPTED,
@@ -242,6 +239,7 @@ async def send_message(
 # WebSocket — LLM 스트리밍
 # ════════════════════════════════════════
 
+
 @chat_router.websocket("/ws/{session_id}")
 async def websocket_chat_stream(websocket: WebSocket, session_id: int):
     """
@@ -251,6 +249,7 @@ async def websocket_chat_stream(websocket: WebSocket, session_id: int):
     await websocket.accept()
 
     import redis.asyncio as aioredis
+
     from app.core import config
 
     redis_url = getattr(config, "REDIS_URL", "redis://redis:6379/0")

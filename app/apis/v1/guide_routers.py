@@ -1,32 +1,45 @@
-﻿from fastapi import APIRouter, HTTPException, Depends
-from app.dtos.guide import GuideGenerateRequest, FeedbackCreateRequest
-from app.services.guide import (
-    get_guides,
-    get_guide,
-    create_guide_service,
-    create_feedback_service,
-    get_feedbacks,
-)
+﻿from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException
+
 from app.dependencies.security import get_request_user
+from app.dtos.guide import FeedbackCreateRequest, GuideGenerateRequest
 from app.models.users import User
+from app.services.guide import (
+    create_feedback_service,
+    create_guide_service,
+    get_feedbacks,
+    get_guide,
+    get_guides,
+)
 
 router = APIRouter(prefix="/guides", tags=["guides"])
 
+CurrentUser = Annotated[User, Depends(get_request_user)]
+
 
 @router.get("")
-async def get_guides_api(current_user: User = Depends(get_request_user)):
+async def get_guides_api(current_user: CurrentUser):
     guides = await get_guides(user_id=current_user.id)
-    return {"success": True, "data": {"total": len(guides), "items": [str(g.id) for g in guides]}, "message": "가이드 목록 조회 성공"}
+    return {
+        "success": True,
+        "data": {"total": len(guides), "items": [str(g.id) for g in guides]},
+        "message": "가이드 목록 조회 성공",
+    }
 
 
 @router.get("/feedbacks/list")
-async def get_feedbacks_api(current_user: User = Depends(get_request_user)):
+async def get_feedbacks_api(current_user: CurrentUser):
     feedbacks = await get_feedbacks()
-    return {"success": True, "data": {"total": len(feedbacks), "items": [str(f.id) for f in feedbacks]}, "message": "피드백 목록 조회 성공"}
+    return {
+        "success": True,
+        "data": {"total": len(feedbacks), "items": [str(f.id) for f in feedbacks]},
+        "message": "피드백 목록 조회 성공",
+    }
 
 
 @router.get("/{guide_id}")
-async def get_guide_api(guide_id: str, current_user: User = Depends(get_request_user)):
+async def get_guide_api(guide_id: str, current_user: CurrentUser):
     guide = await get_guide(guide_id=guide_id, user_id=current_user.id)
     if not guide:
         raise HTTPException(status_code=404, detail="가이드를 찾을 수 없습니다.")
@@ -46,7 +59,7 @@ async def get_guide_api(guide_id: str, current_user: User = Depends(get_request_
 
 
 @router.post("/generate", status_code=202)
-async def generate_guide_api(request: GuideGenerateRequest, current_user: User = Depends(get_request_user)):
+async def generate_guide_api(request: GuideGenerateRequest, current_user: CurrentUser):
     guide = await create_guide_service(
         user_id=current_user.id,
         medical_record_id=request.medical_record_id,
@@ -61,11 +74,15 @@ async def generate_guide_api(request: GuideGenerateRequest, current_user: User =
         },
         queue="llm",
     )
-    return {"success": True, "data": {"guide_id": str(guide.id), "status": "processing"}, "message": "가이드 생성 요청 완료"}
+    return {
+        "success": True,
+        "data": {"guide_id": str(guide.id), "status": "processing"},
+        "message": "가이드 생성 요청 완료",
+    }
 
 
 @router.post("/feedbacks")
-async def create_feedback_api(request: FeedbackCreateRequest, current_user: User = Depends(get_request_user)):
+async def create_feedback_api(request: FeedbackCreateRequest, current_user: CurrentUser):
     feedback = await create_feedback_service(
         user_id=current_user.id,
         guide_id=request.guide_id,

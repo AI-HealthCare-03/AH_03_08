@@ -44,7 +44,9 @@ class MedicalRecord(models.Model):
 class Guide(models.Model):
     id = fields.CharField(max_length=36, primary_key=True)
     user = fields.ForeignKeyField("models.User", related_name="guides", on_delete=fields.CASCADE)
-    record = fields.ForeignKeyField("models.MedicalRecord", related_name="guides", on_delete=fields.CASCADE, source_field="medical_record_id")
+    record = fields.ForeignKeyField(
+        "models.MedicalRecord", related_name="guides", on_delete=fields.CASCADE, source_field="medical_record_id"
+    )
     status = fields.CharField(max_length=20, default="processing")
     medication_guide = fields.TextField(null=True)
     lifestyle_guide = fields.TextField(null=True)
@@ -78,6 +80,7 @@ class ChatSession(models.Model):
 
     class Meta:
         table = "chat_sessions"
+
 
 class ChatMessage(models.Model):
     id = fields.BigIntField(primary_key=True)

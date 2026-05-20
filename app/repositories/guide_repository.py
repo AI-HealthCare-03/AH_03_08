@@ -1,5 +1,6 @@
-﻿from app.models.feedbacks import Feedback
+from app.models.feedbacks import Feedback
 from app.models.guides import Guide
+
 
 async def create_guide(user_id: int, medical_record_id: str):
     return await Guide.create(
@@ -10,11 +11,14 @@ async def create_guide(user_id: int, medical_record_id: str):
         llm_temperature=0.3,
     )
 
+
 async def get_guides_by_user(user_id: int):
     return await Guide.filter(user_id=user_id).all()
 
+
 async def get_guide_by_id(guide_id: str, user_id: int):
     return await Guide.get_or_none(id=guide_id, user_id=user_id)
+
 
 async def update_guide_content(guide_id: str, medication_guide: str, lifestyle_guide: str):
     guide = await Guide.get(id=guide_id)
@@ -23,8 +27,10 @@ async def update_guide_content(guide_id: str, medication_guide: str, lifestyle_g
     await guide.save()
     return guide
 
+
 async def create_feedback(user_id: int, guide_id: str, rating: int, comment: str = None):
     return await Feedback.create(user_id=user_id, guide_id=guide_id, rating=rating, comment=comment, status="active")
+
 
 async def get_all_feedbacks():
     return await Feedback.all()
