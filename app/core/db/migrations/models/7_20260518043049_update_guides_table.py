@@ -5,19 +5,13 @@ RUN_IN_TRANSACTION = True
 
 async def upgrade(db: BaseDBAsyncClient) -> str:
     return """
-        ALTER TABLE `guides` ADD `status` VARCHAR(20) NOT NULL DEFAULT 'processing';
         ALTER TABLE `guides` ADD `prompt_version` VARCHAR(20) NOT NULL DEFAULT 'v1.0';
-        ALTER TABLE `guides` ADD `condition_interactions` JSON;
-        ALTER TABLE `guides` ADD `allergy_warnings` JSON;
         ALTER TABLE `guides` ADD `summary_text` LONGTEXT;"""
 
 
 async def downgrade(db: BaseDBAsyncClient) -> str:
     return """
-        ALTER TABLE `guides` DROP COLUMN `status`;
         ALTER TABLE `guides` DROP COLUMN `prompt_version`;
-        ALTER TABLE `guides` DROP COLUMN `condition_interactions`;
-        ALTER TABLE `guides` DROP COLUMN `allergy_warnings`;
         ALTER TABLE `guides` DROP COLUMN `summary_text`;"""
 
 

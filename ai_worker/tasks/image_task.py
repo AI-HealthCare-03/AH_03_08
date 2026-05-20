@@ -14,6 +14,12 @@ from torchvision import models, transforms
 # 로거 설정
 from ai_worker.core.logger import logger
 
+# Celery 앱 초기화
+celery_app = Celery(
+    "image_worker",
+    broker=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+)
+
 # -------------------------
 # 이미지 전처리
 # -------------------------
@@ -58,7 +64,6 @@ def preprocess_image(image_bytes: bytes) -> torch.Tensor:
     logger.info(f"이미지 전처리 완료 - tensor shape: {tensor.shape}")
 
     return tensor
-
 
 
 # -------------------------

@@ -19,7 +19,7 @@ class UserUpdateRequest(BaseModel):
         Field(None, description="Available Format: +8201011112222, 01011112222, 010-1111-2222"),
         optional_after_validator(validate_phone_number),
     ]
-    birthday: Annotated[
+    birth_date: Annotated[
         date | None,
         Field(None, description="Date Format: YYYY-MM-DD"),
         optional_after_validator(validate_birthday),
@@ -35,6 +35,6 @@ class UserInfoResponse(BaseSerializerModel):
     name: str
     email: str
     phone_number: str
-    birthday: date
+    birth_date: date
     gender: Gender
     created_at: datetime

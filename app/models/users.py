@@ -14,7 +14,7 @@ class User(models.Model):
     hashed_password = fields.CharField(max_length=128)
     name = fields.CharField(max_length=20)
     gender = fields.CharEnumField(enum_type=Gender)
-    birthday = fields.DateField()
+    birth_date = fields.DateField()
     phone_number = fields.CharField(max_length=11)
     is_active = fields.BooleanField(default=True)
     is_admin = fields.BooleanField(default=False)
