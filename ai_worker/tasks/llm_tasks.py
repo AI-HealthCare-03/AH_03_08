@@ -35,6 +35,15 @@ def _get_llm():
     )
 
 
+def _get_guide_llm():
+    return ChatOpenAI(
+        model=GUIDE_LLM_MODEL,
+        temperature=GUIDE_LLM_TEMPERATURE,
+        max_tokens=4096,
+        api_key=os.getenv("OPENAI_API_KEY", ""),
+    )
+
+
 def _get_llm_stream():
     return ChatOpenAI(
         model="gpt-4o-mini",
@@ -72,8 +81,21 @@ def _get_vectorstore():
 
 _tortoise_initialized = False
 
+GUIDE_TORTOISE_MODELS = [
+    "app.models.users",
+    "app.models.medical_records",
+    "app.models.guides",
+    "app.models.allergies",
+    "app.models.underlying_diseases",
+]
 
-async def _init_tortoise():
+CHAT_TORTOISE_MODELS = ["ai_worker.models"]
+
+GUIDE_LLM_MODEL = "gpt-4o-mini"
+GUIDE_LLM_TEMPERATURE = 0.3
+
+
+async def _init_tortoise(model_modules: list[str] | None = None):
     global _tortoise_initialized
     if _tortoise_initialized:
         return
@@ -85,7 +107,7 @@ async def _init_tortoise():
     db_name = os.getenv("DB_NAME", "ai_health")
     await Tortoise.init(
         db_url=f"mysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}",
-        modules={"models": ["ai_worker.models"]},
+        modules={"models": model_modules or GUIDE_TORTOISE_MODELS},
     )
     _tortoise_initialized = True
 
@@ -123,26 +145,31 @@ def generate_guide_task(self, guide_id: str, record_id: str, user_id: int):
 
 
 async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
-    await _init_tortoise()
-    from ai_worker.models import Guide, MedicalRecord, User
+    await _init_tortoise(GUIDE_TORTOISE_MODELS)
+    from app.models.guides import Guide
+    from app.models.medical_records import MedicalRecord
+    from app.models.users import User
 
-    guide = await Guide.get_or_none(id=guide_id)
+    guide = await Guide.get_or_none(id=guide_id, user_id=user_id)
     if not guide:
+        logger.warning(f"[generate_guide] guide not found: {guide_id}")
         return
 
     await Guide.filter(id=guide_id).update(status="processing")
 
     try:
-        record = await MedicalRecord.get_or_none(id=record_id)
+        record = await MedicalRecord.get_or_none(id=record_id, user_id=user_id)
         if not record or not record.parsed_data:
             raise ValueError(f"OCR result not found: {record_id}")
+        if record.status not in ("COMPLETED", "DONE", "done"):
+            raise ValueError(f"Medical record not ready: {record_id} (status={record.status})")
 
         medications = record.parsed_data.get("medications", [])
         user = await User.get_or_none(id=user_id)
-        user_health = _build_user_health(user)
+        user_health = await _build_user_health(user)
         rag_context = _rag_search_text(medications)
 
-        response = _get_llm().invoke([
+        response = _get_guide_llm().invoke([
             SystemMessage(content=GUIDE_SYSTEM),
             HumanMessage(content=build_guide_user_prompt(medications, user_health, rag_context)),
         ])
@@ -155,9 +182,14 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
             summary_text=parsed.get("summary", ""),
             allergy_warnings=parsed.get("allergy_warnings", []),
             condition_interactions=parsed.get("condition_interactions", []),
+            llm_model=GUIDE_LLM_MODEL,
+            llm_temperature=GUIDE_LLM_TEMPERATURE,
         )
 
-        _redis.publish(f"guide:done:{user_id}", json.dumps({"guide_id": guide_id, "status": "done"}))
+        _redis.publish(
+            f"guide:done:{user_id}",
+            json.dumps({"guide_id": guide_id, "status": "done"}, ensure_ascii=False),
+        )
         logger.info(f"[generate_guide] done guide_id={guide_id}")
 
     except Exception as exc:
@@ -180,12 +212,12 @@ def process_chat_message_task(self, session_id: int, message_id: int, user_id: i
 
 
 async def _process_chat(task, session_id: int, message_id: int, user_id: int, user_message: str):
-    await _init_tortoise()
+    await _init_tortoise(CHAT_TORTOISE_MODELS)
     from ai_worker.models import ChatMessage, User
 
     try:
         user = await User.get_or_none(id=user_id)
-        user_health = _build_user_health(user)
+        user_health = _build_user_health_sync(user)
 
         if _is_off_topic(user_message):
             answer = "MediLog 복약 도우미입니다. 의약품 복용, 건강 관리, 약물 상호작용에 관한 질문만 답변드릴 수 있어요."
@@ -253,22 +285,47 @@ def generate_daily_tip_scheduled():
     generate_daily_tip_task.apply_async(kwargs={"tip_id": tip_id, "user_id": 0}, queue="llm")
 
 
-def _build_user_health(user) -> dict:
+def _build_user_health_sync(user) -> dict:
     if not user:
         return {}
+    from datetime import date
+
     age = None
     if hasattr(user, "birthday") and user.birthday:
-        from datetime import date
         today = date.today()
-        age = today.year - user.birthday.year - ((today.month, today.day) < (user.birthday.month, user.birthday.day))
+        age = today.year - user.birthday.year - (
+            (today.month, today.day) < (user.birthday.month, user.birthday.day)
+        )
+
+    gender = getattr(user, "gender", None)
+    if hasattr(gender, "value"):
+        gender = gender.value
+
     return {
         "age": age,
-        "gender": getattr(user, "gender", None),
+        "gender": gender,
         "height_cm": getattr(user, "height_cm", None),
         "weight_kg": getattr(user, "weight_kg", None),
         "allergies": [],
         "conditions": [],
     }
+
+
+async def _build_user_health(user) -> dict:
+    if not user:
+        return {}
+    from app.models.allergies import Allergy
+    from app.models.underlying_diseases import UnderlyingDisease
+
+    health = _build_user_health_sync(user)
+    allergies = await Allergy.filter(user_id=user.id).all()
+    conditions = await UnderlyingDisease.filter(user_id=user.id).all()
+    health["allergies"] = [
+        {"name": a.allergy_name, "severity": a.severity or "unknown"}
+        for a in allergies
+    ]
+    health["conditions"] = [{"name": c.underlying_disease_name} for c in conditions]
+    return health
 
 
 def _rag_search_text(medications: list) -> str:
@@ -352,3 +409,29 @@ def _parse_json(raw: str) -> dict:
         return json.loads(clean)
     except json.JSONDecodeError:
         return {"medication_guide": raw, "lifestyle_guide": "", "summary": "", "allergy_warnings": [], "condition_interactions": []}
+
+
+# llm_task.py 통합 — 하위 호환용 별칭
+generate_guide = generate_guide_task
+
+
+@celery_app.task(name="ai_worker.tasks.llm_task.generate_guide")
+def generate_guide_legacy(
+    guide_id: str,
+    record_id: str | None = None,
+    user_id: int | None = None,
+    **kwargs,
+):
+    """Deprecated task name; delegates to generate_guide_task."""
+    if record_id is None:
+        medical_record_data = kwargs.get("medical_record_data") or {}
+        record_id = medical_record_data.get("medical_record_id")
+    if user_id is None:
+        user_info = kwargs.get("user_info") or {}
+        user_id = user_info.get("user_id")
+    if not record_id or user_id is None:
+        raise ValueError("record_id and user_id are required")
+    return generate_guide_task.apply_async(
+        kwargs={"guide_id": guide_id, "record_id": str(record_id), "user_id": int(user_id)},
+        queue="llm",
+    )

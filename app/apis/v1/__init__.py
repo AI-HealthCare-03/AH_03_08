@@ -5,7 +5,8 @@ from app.apis.v1.image_routers import image_router
 from app.apis.v1.user_routers import user_router
 from app.apis.v1.health_routers import health_router
 from app.apis.v1.ai_routers import ai_router
-from app.apis.v1.llm_routers import chat_router, guide_router, record_router
+from app.apis.v1.guide_routers import router as guide_router
+from app.apis.v1.llm_routers import chat_router, record_router
 
 v1_routers = APIRouter(prefix="/api/v1")
 v1_routers.include_router(auth_router)

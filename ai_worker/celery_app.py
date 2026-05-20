@@ -27,6 +27,7 @@ celery_app.conf.update(
     result_expires=3600,
     task_routes={
         "ai_worker.tasks.llm_tasks.*": {"queue": "llm"},
+        "ai_worker.tasks.llm_task.generate_guide": {"queue": "llm"},
         "ai_worker.tasks.tts_tasks.*": {"queue": "tts"},
         "ai_worker.tasks.image_tasks.*": {"queue": "image"},
     },

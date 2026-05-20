@@ -27,6 +27,7 @@ app = [
     "aerich>=0.9.2",
     "asyncmy>=0.2.11",
     "bcrypt<=4.0.1",
+    "celery>=5.6.3",
     "fastapi[standard]>=0.128.0",
     "httpx>=0.28.1",
     "orjson>=3.11.5",

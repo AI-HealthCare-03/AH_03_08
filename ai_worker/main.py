@@ -8,7 +8,8 @@ app = Celery(
 )
 
 app.conf.task_routes = {
-    'ai_worker.tasks.llm_task.*': {'queue': 'llm'},
+    'ai_worker.tasks.llm_tasks.*': {'queue': 'llm'},
+    'ai_worker.tasks.llm_task.generate_guide': {'queue': 'llm'},
 }
 
 app.autodiscover_tasks(['ai_worker.tasks'])
