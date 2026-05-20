@@ -1,6 +1,3 @@
-from datetime import datetime
-
-from app.core import config
 from app.models.llm import (
     AssetType,
     ChatMessage,
@@ -8,10 +5,10 @@ from app.models.llm import (
     Guide,
     GuideAsset,
     GuideStatus,
-    MedicalRecord,
     RecordStatus,
     RecordType,
 )
+from app.models.medical_records import MedicalRecord
 
 
 class MedicalRecordRepository:

@@ -14,13 +14,12 @@ class MedicalRecordCreateRequest(BaseModel):
 
 
 class MedicalRecordResponse(BaseSerializerModel):
-    id: UUID  # str → UUID
+    id: UUID
     ocr_raw_text: str | None
     parsed_data: dict | None
     status: str
     record_type: int
     created_at: datetime
-
 
 class MedicationCreateRequest(BaseModel):
     medical_record_id: str

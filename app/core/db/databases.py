@@ -8,6 +8,22 @@ TORTOISE_APP_MODELS = [
     "aerich.models",
     "app.models.users",
     "app.models.llm",
+    "app.models.medical_records",
+    "app.models.guides",
+    "app.models.allergies",
+    "app.models.underlying_diseases",
+    "app.models.medications",
+    "app.models.calendar_events",
+    "app.models.notifications",
+    "app.models.guide_assets",
+    "app.models.feedbacks",
+    "app.models.feedback_tags",
+    "app.models.chat_sessions",
+    "app.models.chat_messages",
+    "app.models.access_logs",
+    "app.models.audit_logs",
+    "app.models.error_logs",
+    "app.models.model_metrics",
 ]
 TORTOISE_ORM = {
     "connections": {
