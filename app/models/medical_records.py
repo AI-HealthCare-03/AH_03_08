@@ -6,10 +6,11 @@ class MedicalRecord(models.Model):
     user = fields.ForeignKeyField("models.User", related_name="medical_records")
     record_type = fields.CharField(max_length=20)
     status = fields.CharField(max_length=20, default="PENDING")
+    ocr_raw_text = fields.TextField(null=True)
     parsed_data = fields.JSONField(null=True)
     file_url = fields.CharField(max_length=500, null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
-
+    
     class Meta:
         table = "medical_records"
