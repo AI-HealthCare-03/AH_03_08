@@ -8,7 +8,7 @@ LLM Celery Tasks
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import date, datetime
 
 import redis
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -24,6 +24,9 @@ from ai_worker.prompts.llm_prompts import (
 logger = logging.getLogger(__name__)
 
 _redis = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"), decode_responses=True)
+
+GUIDE_LLM_MODEL = "gpt-4o-mini"
+GUIDE_LLM_TEMPERATURE = 0.3
 
 
 def _get_llm():
@@ -91,9 +94,6 @@ GUIDE_TORTOISE_MODELS = [
 ]
 
 CHAT_TORTOISE_MODELS = ["ai_worker.models"]
-
-GUIDE_LLM_MODEL = "gpt-4o-mini"
-GUIDE_LLM_TEMPERATURE = 0.3
 
 
 async def _init_tortoise(model_modules: list[str] | None = None):
@@ -169,8 +169,46 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
             raise ValueError(f"Medical record not ready: {record_id} (status={record.status})")
 
         medications = record.parsed_data.get("medications", [])
+
+        from app.models.allergies import Allergy
+        from app.models.underlying_diseases import UnderlyingDisease
+
         user = await User.get_or_none(id=user_id)
-        user_health = await _build_user_health(user)
+        if not user:
+            user_health = {
+                "age": None,
+                "gender": None,
+                "height_cm": None,
+                "weight_kg": None,
+                "allergies": [],
+                "conditions": [],
+            }
+        else:
+            age = None
+            if user.birthday:
+                today = date.today()
+                age = today.year - user.birthday.year - (
+                    (today.month, today.day) < (user.birthday.month, user.birthday.day)
+                )
+            gender = user.gender
+            if hasattr(gender, "value"):
+                gender = gender.value
+
+            allergy_rows = await Allergy.filter(user_id=user_id).all()
+            disease_rows = await UnderlyingDisease.filter(user_id=user_id).all()
+
+            user_health = {
+                "age": age,
+                "gender": gender,
+                "height_cm": user.height_cm,
+                "weight_kg": user.weight_kg,
+                "allergies": [
+                    {"name": row.allergy_name, "severity": row.severity or "unknown"}
+                    for row in allergy_rows
+                ],
+                "conditions": [{"name": row.underlying_disease_name} for row in disease_rows],
+            }
+
         rag_context = _rag_search_text(medications)
 
         response = _get_guide_llm().invoke(
@@ -301,39 +339,23 @@ def generate_daily_tip_scheduled():
 def _build_user_health_sync(user) -> dict:
     if not user:
         return {}
-    from datetime import date
-
     age = None
-    if hasattr(user, "birthday") and user.birthday:
+    if user.birthday:
         today = date.today()
         age = today.year - user.birthday.year - ((today.month, today.day) < (user.birthday.month, user.birthday.day))
 
-    gender = getattr(user, "gender", None)
+    gender = user.gender
     if hasattr(gender, "value"):
         gender = gender.value
 
     return {
         "age": age,
         "gender": gender,
-        "height_cm": getattr(user, "height_cm", None),
-        "weight_kg": getattr(user, "weight_kg", None),
+        "height_cm": user.height_cm,
+        "weight_kg": user.weight_kg,
         "allergies": [],
         "conditions": [],
     }
-
-
-async def _build_user_health(user) -> dict:
-    if not user:
-        return {}
-    from app.models.allergies import Allergy
-    from app.models.underlying_diseases import UnderlyingDisease
-
-    health = _build_user_health_sync(user)
-    allergies = await Allergy.filter(user_id=user.id).all()
-    conditions = await UnderlyingDisease.filter(user_id=user.id).all()
-    health["allergies"] = [{"name": a.allergy_name, "severity": a.severity or "unknown"} for a in allergies]
-    health["conditions"] = [{"name": c.underlying_disease_name} for c in conditions]
-    return health
 
 
 def _rag_search_text(medications: list) -> str:
