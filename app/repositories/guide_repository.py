@@ -1,7 +1,12 @@
-﻿from app.models.guide import Guide, Feedback
+from app.models.guide import Guide, Feedback
 
 async def create_guide(user_id: str, medical_record_id: str):
-    guide = await Guide.create(user_id=user_id, medical_record_id=medical_record_id, llm_model="gpt-4o-mini", llm_temperature=0.3)
+    guide = await Guide.create(
+        user_id=user_id,
+        medical_record_id=medical_record_id,
+        llm_model='gpt-4o-mini',
+        llm_temperature=0.3
+    )
     return guide
 
 async def get_guides_by_user(user_id: str):
@@ -18,7 +23,13 @@ async def update_guide_content(guide_id: str, medication_guide: str, lifestyle_g
     return guide
 
 async def create_feedback(user_id: str, guide_id: str, rating: int, comment: str = None):
-    return await Feedback.create(user_id=user_id, guide_id=guide_id, rating=rating, comment=comment, status="active")
+    return await Feedback.create(
+        user_id=user_id,
+        guide_id=guide_id,
+        rating=rating,
+        comment=comment,
+        status='active'
+    )
 
 async def get_all_feedbacks():
     return await Feedback.all()
