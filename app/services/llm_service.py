@@ -1,3 +1,6 @@
+import os
+
+from celery import Celery
 from fastapi.exceptions import HTTPException
 from starlette import status
 from tortoise.transactions import in_transaction
@@ -10,9 +13,6 @@ from app.repositories.llm_repository import (
     GuideRepository,
     MedicalRecordRepository,
 )
-
-from celery import Celery
-import os
 
 _celery = Celery(broker=os.getenv("REDIS_URL", "redis://redis:6379/0"))
 
@@ -130,7 +130,7 @@ class GuideService:
                 kwargs={"asset_id": asset.id, "guide_id": guide_id},
                 queue="image",
             )
-        
+
         # TTS
         _celery.send_task(
             "ai_worker.tasks.tts_tasks.generate_tts_task",

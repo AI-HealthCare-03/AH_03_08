@@ -1,4 +1,5 @@
-from app.models.guide import Guide, Feedback
+from app.models.guide import Feedback, Guide
+
 
 async def create_guide(user_id: str, medical_record_id: str):
     guide = await Guide.create(

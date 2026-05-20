@@ -11,8 +11,8 @@ import os
 from datetime import datetime
 
 import redis
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_openai import ChatOpenAI
 
 from ai_worker.celery_app import celery_app
 from ai_worker.prompts.llm_prompts import (
@@ -53,8 +53,8 @@ def _get_vectorstore():
     global _embeddings, _vectorstore
     if _vectorstore is None:
         try:
-            from langchain_community.embeddings import HuggingFaceEmbeddings
             from langchain_chroma import Chroma
+            from langchain_community.embeddings import HuggingFaceEmbeddings
             _embeddings = HuggingFaceEmbeddings(
                 model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
                 model_kwargs={"device": "cpu"},
@@ -163,7 +163,7 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
     except Exception as exc:
         await Guide.filter(id=guide_id).update(status="failed")
         logger.error(f"[generate_guide] failed: {exc}", exc_info=True)
-        raise task.retry(exc=exc)
+        raise task.retry(exc=exc) from exc
 
 
 @celery_app.task(
@@ -227,7 +227,7 @@ async def _process_chat(task, session_id: int, message_id: int, user_id: int, us
             json.dumps({"error": str(exc), "message_id": message_id, "done": True}),
         )
         logger.error(f"[chat] failed: {exc}", exc_info=True)
-        raise task.retry(exc=exc)
+        raise task.retry(exc=exc) from exc
 
 
 @celery_app.task(bind=True, name="ai_worker.tasks.llm_tasks.generate_daily_tip_task", max_retries=2)
@@ -243,7 +243,7 @@ def generate_daily_tip_task(self, tip_id: str, user_id: int):
         logger.info(f"[daily_tip] done tip_id={tip_id}")
     except Exception as exc:
         logger.error(f"[daily_tip] failed: {exc}", exc_info=True)
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc
 
 
 @celery_app.task(name="ai_worker.tasks.llm_tasks.generate_daily_tip_scheduled")

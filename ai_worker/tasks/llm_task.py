@@ -1,7 +1,9 @@
-﻿import os
-import json
+﻿import json
+import os
+
 from celery import shared_task
 from openai import OpenAI
+
 from ai_worker.prompts.llm_prompts import GUIDE_SYSTEM, build_guide_user_prompt
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
