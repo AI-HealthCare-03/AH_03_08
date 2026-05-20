@@ -1,4 +1,7 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> origin/feature/tts-s3-upload
 from celery import Celery
 
 from ai_worker.core.config import Config
@@ -9,7 +12,7 @@ celery_app = Celery(
     "ai_worker",
     broker=config.CELERY_BROKER_URL,
     backend=config.CELERY_RESULT_BACKEND,
-    include=["ai_worker.tasks.ai_tasks", "ai_worker.tasks.ocr_task"],
+    include=["ai_worker.tasks.ai_tasks", "ai_worker.tasks.ocr_task", "ai_worker.tasks.tts_task"],
 )
 
 celery_app.conf.update(
@@ -24,6 +27,7 @@ celery_app.conf.update(
     timezone="Asia/Seoul",
     enable_utc=True,
 )
+<<<<<<< HEAD
 =======
 # ai_worker/main.py
 
@@ -35,3 +39,5 @@ from ai_worker.tasks.tts_task import celery_app
 if __name__ == "__main__":
     celery_app.worker_main()
 >>>>>>> origin/feature/tts-celery-task
+=======
+>>>>>>> origin/feature/tts-s3-upload
