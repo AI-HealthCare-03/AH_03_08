@@ -14,15 +14,12 @@ from torchvision import models, transforms
 # 로거 설정
 from ai_worker.core.logger import logger
 
-<<<<<<< HEAD
-=======
 # Celery 앱 초기화
 celery_app = Celery(
     "image_worker",
     broker=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
 )
 
->>>>>>> origin/feature/image-celery
 # -------------------------
 # 이미지 전처리
 # -------------------------
@@ -218,8 +215,6 @@ def get_drug_info(kcode: str) -> dict:
         "di_etc_otc_code": info.get("di_etc_otc_code"),
         "di_edi_code": info.get("di_edi_code"),
     }
-<<<<<<< HEAD
-=======
 
 
 # -------------------------
@@ -292,4 +287,3 @@ def classify_pill(self, analysis_id: str, image_bytes: bytes, record_id: str, us
     except Exception as exc:
         logger.error(f"낱알약 분류 실패 - analysis_id: {analysis_id}, error: {exc}")
         raise self.retry(exc=exc, countdown=10) from exc
->>>>>>> origin/feature/image-celery
