@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Annotated
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -14,12 +15,12 @@ from app.models.llm import AssetType, GuideStatus, RecordStatus, RecordType
 class RecordCreateRequest(BaseModel):
     """처방전/약봉투 레코드 생성 요청"""
     record_type: RecordType
-    file_url: Annotated[str, Field(max_length=500)]
+    file_url: Annotated[str | None, Field(None, max_length=500)]
 
 
 class RecordResponse(BaseSerializerModel):
     """레코드 응답 — ORM 객체 직렬화"""
-    id: int
+    id: UUID
     record_type: RecordType
     status: RecordStatus
     file_url: str | None
@@ -39,12 +40,12 @@ class RecordListResponse(BaseModel):
 
 class GuideGenerateRequest(BaseModel):
     """가이드 생성 요청 — OCR 완료된 record_id 전달"""
-    record_id: int
+    record_id: UUID
 
 
 class GuideGenerateResponse(BaseModel):
     """가이드 생성 응답 — 즉시 202 반환, LLM은 백그라운드에서 처리"""
-    guide_id: int
+    guide_id: UUID
     status: GuideStatus   # 항상 PENDING으로 시작
 
 
@@ -63,7 +64,7 @@ class ConditionInteraction(BaseModel):
 
 class GuideDetailResponse(BaseSerializerModel):
     """가이드 상세 응답"""
-    id: int
+    id: UUID
     status: GuideStatus
     medication_guide: str | None
     lifestyle_guide: str | None
@@ -76,7 +77,7 @@ class GuideDetailResponse(BaseSerializerModel):
 
 class GuideListItem(BaseSerializerModel):
     """가이드 목록 항목"""
-    id: int
+    id: UUID
     status: GuideStatus
     created_at: datetime
 
@@ -99,13 +100,13 @@ class AssetCreateRequest(BaseModel):
 
 class AssetCreateResponse(BaseModel):
     """에셋 생성 응답 — 즉시 202 반환, Worker가 백그라운드에서 생성"""
-    asset_id: int
+    asset_id: UUID
     status: RecordStatus   # 항상 PENDING으로 시작
 
 
 class AssetDetailResponse(BaseSerializerModel):
     """에셋 상세 응답"""
-    id: int
+    id: UUID
     asset_type: AssetType
     file_url: str | None   # 생성 완료 후 S3 URL 저장
     status: RecordStatus
