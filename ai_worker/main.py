@@ -1,5 +1,6 @@
-﻿from celery import Celery
-import os
+﻿import os
+
+from celery import Celery
 
 app = Celery(
     'ai_worker',

@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 from app.dtos.base import BaseSerializerModel
 from app.models.llm import AssetType, GuideStatus, RecordStatus, RecordType
 
-
 # ════════════════════════════════════════
 # MedicalRecord DTOs
 # ════════════════════════════════════════

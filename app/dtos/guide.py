@@ -1,7 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional
-from uuid import UUID
 
+from pydantic import BaseModel
 
 # =====================
 # 요청 형식 (Request)
@@ -23,7 +21,7 @@ class FeedbackCreateRequest(BaseModel):
     """
     guide_id: str
     rating: int
-    comment: Optional[str] = None  # 없어도 됨
+    comment: str | None = None  # 없어도 됨
 
 
 # =====================
@@ -36,11 +34,11 @@ class GuideResponse(BaseModel):
     """
     id: str
     medical_record_id: str
-    medication_guide: Optional[str] = None
-    lifestyle_guide: Optional[str] = None
-    llm_model: Optional[str] = None
-    llm_temperature: Optional[float] = None
-    created_at: Optional[str] = None
+    medication_guide: str | None = None
+    lifestyle_guide: str | None = None
+    llm_model: str | None = None
+    llm_temperature: float | None = None
+    created_at: str | None = None
 
 
 class FeedbackResponse(BaseModel):
@@ -50,6 +48,6 @@ class FeedbackResponse(BaseModel):
     id: str
     guide_id: str
     rating: int
-    comment: Optional[str] = None
-    status: Optional[str] = None
-    created_at: Optional[str] = None
+    comment: str | None = None
+    status: str | None = None
+    created_at: str | None = None

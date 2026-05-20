@@ -1,14 +1,15 @@
-﻿from fastapi import APIRouter, HTTPException, Depends
-from app.dtos.guide import GuideGenerateRequest, FeedbackCreateRequest
-from app.services.guide import (
-    get_guides,
-    get_guide,
-    create_guide_service,
-    create_feedback_service,
-    get_feedbacks,
-)
+﻿from fastapi import APIRouter, Depends, HTTPException
+
 from app.dependencies.security import get_request_user
+from app.dtos.guide import FeedbackCreateRequest, GuideGenerateRequest
 from app.models.users import User
+from app.services.guide import (
+    create_feedback_service,
+    create_guide_service,
+    get_feedbacks,
+    get_guide,
+    get_guides,
+)
 
 router = APIRouter(prefix="/guides", tags=["guides"])
 
