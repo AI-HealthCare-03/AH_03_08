@@ -25,11 +25,14 @@ logger = logging.getLogger(__name__)
 
 _redis = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"), decode_responses=True)
 
+# 동일 입력에 대한 일관된 출력 (이전 0.3 설정 제거)
+_LLM_TEMPERATURE = 0
+
 
 def _get_llm():
     return ChatOpenAI(
         model="gpt-4o-mini",
-        temperature=0,
+        temperature=_LLM_TEMPERATURE,
         max_tokens=4096,
         api_key=os.getenv("OPENAI_API_KEY", ""),
     )
@@ -38,7 +41,7 @@ def _get_llm():
 def _get_llm_stream():
     return ChatOpenAI(
         model="gpt-4o-mini",
-        temperature=0,
+        temperature=_LLM_TEMPERATURE,
         max_tokens=2048,
         streaming=True,
         api_key=os.getenv("OPENAI_API_KEY", ""),

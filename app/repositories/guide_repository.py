@@ -1,7 +1,7 @@
 ﻿from app.models.guide import Guide, Feedback
 
 async def create_guide(user_id: str, medical_record_id: str):
-    guide = await Guide.create(user_id=user_id, medical_record_id=medical_record_id, llm_model="gpt-4o-mini", llm_temperature=0.3)
+    guide = await Guide.create(user_id=user_id, medical_record_id=medical_record_id, llm_model="gpt-4o-mini", llm_temperature=0.0)
     return guide
 
 async def get_guides_by_user(user_id: str):
