@@ -29,6 +29,40 @@ GUIDE_LLM_MODEL = "gpt-4o-mini"
 GUIDE_LLM_TEMPERATURE = 0.3
 
 
+def _medications_for_prompt(parsed_data: dict | list | None) -> list[dict]:
+    """parsed_data(JSON)에서 약 목록을 꺼내 build_guide_user_prompt / RAG용 형식으로 맞춘다."""
+    if not parsed_data:
+        return []
+    if isinstance(parsed_data, list):
+        raw_list = parsed_data
+    else:
+        raw_list = parsed_data.get("medications") or []
+    if not isinstance(raw_list, list):
+        return []
+
+    out: list[dict] = []
+    for item in raw_list:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("drug_name") or item.get("name")
+        dosage = item.get("dosage")
+        freq = item.get("frequency")
+        duration = item.get("duration")
+        if duration is None and item.get("days") is not None:
+            duration = f"{item['days']}일분"
+
+        out.append(
+            {
+                "drug_name": name or "알 수 없음",
+                "dosage": "-" if dosage is None else str(dosage),
+                "frequency": "-" if freq is None else str(freq),
+                "duration": "-" if duration is None else str(duration),
+                "instructions": item.get("instructions") or "-",
+            }
+        )
+    return out
+
+
 def _get_llm():
     return ChatOpenAI(
         model="gpt-4o-mini",
@@ -154,6 +188,8 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
     from app.models.medical_records import MedicalRecord
     from app.models.users import User
 
+    medical_record_id = record_id
+
     guide = await Guide.get_or_none(id=guide_id, user_id=user_id)
     if not guide:
         logger.warning(f"[generate_guide] guide not found: {guide_id}")
@@ -162,13 +198,13 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
     await Guide.filter(id=guide_id).update(status="processing")
 
     try:
-        record = await MedicalRecord.get_or_none(id=record_id, user_id=user_id)
+        record = await MedicalRecord.get_or_none(id=medical_record_id, user_id=user_id)
         if not record or not record.parsed_data:
-            raise ValueError(f"OCR result not found: {record_id}")
+            raise ValueError(f"OCR result not found: {medical_record_id}")
         if record.status not in ("COMPLETED", "DONE", "done"):
-            raise ValueError(f"Medical record not ready: {record_id} (status={record.status})")
+            raise ValueError(f"Medical record not ready: {medical_record_id} (status={record.status})")
 
-        medications = record.parsed_data.get("medications", [])
+        medications = _medications_for_prompt(record.parsed_data)
 
         from app.models.allergies import Allergy
         from app.models.underlying_diseases import UnderlyingDisease
