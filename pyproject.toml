@@ -23,6 +23,8 @@ ai = [
     "torchvision",
     "torchaudio",
     "sentence-transformers>=5.2.0",
+    "httpx>=0.28.1",
+    "boto3>=1.0.0",
     # LLM
     "anthropic>=0.51.0",
     "langchain>=0.3.25",
@@ -30,8 +32,8 @@ ai = [
     "langchain-chroma>=0.2.4",
     "langchain-community>=0.3.23",
     "langchain-core>=0.3.59",
-    "chromadb>=0.6.3",
     "langchain-openai>=0.3.0",
+    "chromadb>=0.6.3",
     "celery>=5.4.0",
     "tortoise-orm>=0.25.3",
     "asyncmy>=0.2.11",
@@ -39,14 +41,15 @@ ai = [
     "Pillow>=10.0.0",
     "openai>=1.0.0",
 ]
-
 app = [
     "aerich>=0.9.2",
     "asyncmy>=0.2.11",
-    "celery>=5.4.0",    
+    "celery>=5.0.0",
+    "email-validator>=2.0.0",
     "bcrypt<=4.0.1",
     "fastapi[standard]>=0.128.0",
     "httpx>=0.28.1",
+    "openai>=1.0.0",
     "orjson>=3.11.5",
     "passlib[bcrypt]>=1.7.4",
     "pyjwt>=2.10.1",
