@@ -5,7 +5,7 @@ class Feedback(models.Model):
     id = fields.UUIDField(primary_key=True)
     guide = fields.ForeignKeyField("models.Guide", related_name="feedbacks")
     user = fields.ForeignKeyField("models.User", related_name="feedbacks")
-    rating = fields.IntField()  # 1~5
+    rating = fields.IntField()  # 0: 아쉬워요, 1: 도움됐어요 (DTO 기준)
     comment = fields.TextField(null=True)
     status = fields.CharField(max_length=20, default="ACTIVE")
     deactive_at = fields.DatetimeField(null=True)

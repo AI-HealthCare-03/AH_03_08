@@ -1,5 +1,8 @@
 from typing import Annotated
 
+import os
+
+from celery import Celery
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.dependencies.security import get_request_user
@@ -12,6 +15,9 @@ from app.services.guide import (
     get_guide,
     get_guides,
 )
+
+# 워커(ai_worker) 코드는 로드하지 않고, Redis 브로커에만 태스크 이름을 넣는다.
+_celery = Celery(broker=os.getenv("REDIS_URL", "redis://redis:6379/0"))
 
 router = APIRouter(prefix="/guides", tags=["guides"])
 
@@ -77,12 +83,11 @@ async def generate_guide_api(request: GuideGenerateRequest, current_user: Curren
         user_id=current_user.id,
         medical_record_id=request.medical_record_id,
     )
-    from ai_worker.tasks.llm_tasks import generate_guide_task
-
-    generate_guide_task.apply_async(
+    _celery.send_task(
+        "ai_worker.tasks.llm_tasks.generate_guide_task",
         kwargs={
             "guide_id": str(guide.id),
-            "record_id": request.medical_record_id,
+            "record_id": str(request.medical_record_id),
             "user_id": current_user.id,
         },
         queue="llm",

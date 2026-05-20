@@ -22,7 +22,12 @@ GUIDE_SYSTEM = """당신은 MediLog의 전문 복약 안내 AI입니다.
 }"""
 
 
-def build_guide_user_prompt(medications: list, user_health: dict, rag_context: str) -> str:
+def build_guide_user_prompt(
+    medications: list,
+    user_health: dict,
+    rag_context: str,
+    feedback_addon: str = "",
+) -> str:
     med_lines = []
     for i, m in enumerate(medications, 1):
         med_lines.append(
@@ -52,6 +57,7 @@ def build_guide_user_prompt(medications: list, user_health: dict, rag_context: s
 
 ## 의약품 참고 문서 (RAG)
 {rag_context or "검색된 참고 문서 없음"}
+{feedback_addon}
 
 위 정보를 바탕으로 개인화된 복약 가이드를 JSON 형식으로 작성해주세요."""
 

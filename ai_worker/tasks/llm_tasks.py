@@ -123,6 +123,7 @@ GUIDE_TORTOISE_MODELS = [
     "app.models.users",
     "app.models.medical_records",
     "app.models.guides",
+    "app.models.feedbacks",
     "app.models.allergies",
     "app.models.underlying_diseases",
 ]
@@ -248,10 +249,14 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
 
         rag_context = _rag_search_text(medications)
 
+        from app.services.feedback_prompt_insights import build_feedback_addon_for_llm
+
+        feedback_addon = await build_feedback_addon_for_llm(str(guide.id), guide.prompt_version)
+
         response = _get_guide_llm().invoke(
             [
                 SystemMessage(content=GUIDE_SYSTEM),
-                HumanMessage(content=build_guide_user_prompt(medications, user_health, rag_context)),
+                HumanMessage(content=build_guide_user_prompt(medications, user_health, rag_context, feedback_addon)),
             ]
         )
         parsed = _parse_json(response.content)
