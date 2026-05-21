@@ -31,12 +31,12 @@ class AuthService:
         async with in_transaction():
             user = await self.user_repo.create_user(
                 email=data.email,
-                hashed_password=hash_password(data.password),  # 해시화된 비밀번호를 사용
+                hashed_password=hash_password(data.password),
                 name=data.name,
                 phone_number=normalized_phone_number,
                 gender=data.gender,
-                birthday=data.birth_date,
-            )
+                birth_date=data.birth_date,
+)
 
             return user
 
