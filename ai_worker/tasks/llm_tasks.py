@@ -158,7 +158,7 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
             status="done",
             medication_guide=parsed.get("medication_guide", ""),
             lifestyle_guide=parsed.get("lifestyle_guide", ""),
-            summary_text=parsed.get("summary", ""),
+            summary=parsed.get("summary", ""),
             allergy_warnings=parsed.get("allergy_warnings", []),
             condition_interactions=parsed.get("condition_interactions", []),
         )
