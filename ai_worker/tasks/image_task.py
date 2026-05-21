@@ -130,9 +130,11 @@ def predict(model: nn.Module, tensor: torch.Tensor) -> tuple[int, float]:
 
     # Top-5 로그 기록 (관리자 모니터링용)
     top5 = torch.topk(probabilities, k=5, dim=1)
-    top5_log = [(idx.item(), round(conf.item(), 4)) for idx, conf in zip(top5.indices[0], top5.values[0], strict=False)]
+    _top5_log = [
+        (idx.item(), round(conf.item(), 4)) for idx, conf in zip(top5.indices[0], top5.values[0], strict=False)
+    ]
     logger.info(f"모델 추론 완료 - class_idx: {class_idx}, confidence: {confidence_score:.4f}")
-    logger.info(f"Top-5 추론 결과 (관리자용): {top5_log}")  # 이 줄 추가
+    logger.info(f"Top-5 추론 결과 (관리자용): {_top5_log}")
 
     return class_idx, confidence_score
 

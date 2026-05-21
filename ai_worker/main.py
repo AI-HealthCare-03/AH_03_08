@@ -1,25 +1,18 @@
+import os
+
 from celery import Celery
 
-from ai_worker.core.config import Config
-
-config = Config()
-
-celery_app = Celery(
+app = Celery(
     "ai_worker",
-    broker=config.CELERY_BROKER_URL,
-    backend=config.CELERY_RESULT_BACKEND,
-    include=["ai_worker.tasks.ai_tasks", "ai_worker.tasks.ocr_task"],
+    broker=os.getenv("REDIS_URL", "redis://redis:6379/0"),
+    backend=os.getenv("REDIS_URL", "redis://redis:6379/0"),
 )
 
-celery_app.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
-    task_soft_time_limit=300,
-    task_time_limit=360,
-    result_expires=86400,
-    worker_prefetch_multiplier=1,
-    task_acks_late=True,
-    timezone="Asia/Seoul",
-    enable_utc=True,
-)
+app.conf.task_routes = {
+    "ai_worker.tasks.llm_task.*": {"queue": "llm"},
+}
+
+app.autodiscover_tasks(["ai_worker.tasks"])
+
+if __name__ == "__main__":
+    app.start()

@@ -23,7 +23,7 @@ class Config(BaseSettings):
 
     # TIMEZONE: zoneinfo.ZoneInfo = field(default_factory=lambda: zoneinfo.ZoneInfo("Asia/Seoul"))
     @property
-    def TIMEZONE(self) -> zoneinfo.ZoneInfo:
+    def TIMEZONE(self) -> zoneinfo.ZoneInfo:  # noqa: N802
         return zoneinfo.ZoneInfo("Asia/Seoul")
 
     TEMPLATE_DIR: str = os.path.join(Path(__file__).resolve().parent.parent, "templates")
@@ -48,3 +48,7 @@ class Config(BaseSettings):
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
     CLOVA_OCR_URL: str = ""
     CLOVA_OCR_SECRET: str = ""
+
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
+    UPLOAD_DIR: str = "/tmp/uploads"
