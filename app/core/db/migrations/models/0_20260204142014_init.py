@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `hashed_password` VARCHAR(128) NOT NULL,
     `name` VARCHAR(20) NOT NULL,
     `gender` VARCHAR(6) NOT NULL COMMENT 'MALE: MALE\nFEMALE: FEMALE',
-    `birth_day` DATE NOT NULL,
+    `birth_date` DATE NOT NULL,
     `phone_number` VARCHAR(11) NOT NULL,
     `is_active` BOOL NOT NULL DEFAULT 1,
     `is_admin` BOOL NOT NULL DEFAULT 0,
