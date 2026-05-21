@@ -1,12 +1,4 @@
-from fastapi import APIRouter
+# 라우터 등록은 app.apis.v1 에서만 한다.
+from app.apis.v1 import v1_routers
 
-from app.apis.v1.auth_routers import auth_router
-from app.apis.v1.llm_routers import chat_router, guide_router, record_router
-from app.apis.v1.user_routers import user_router
-
-v1_routers = APIRouter(prefix="/api/v1")
-v1_routers.include_router(auth_router)
-v1_routers.include_router(user_router)
-v1_routers.include_router(record_router)
-v1_routers.include_router(guide_router)
-v1_routers.include_router(chat_router)
+__all__ = ["v1_routers"]
