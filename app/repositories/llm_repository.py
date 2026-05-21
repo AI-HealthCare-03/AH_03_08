@@ -18,7 +18,7 @@ class MedicalRecordRepository:
     async def create(self, user_id: int, record_type: RecordType, file_url: str | None = None) -> MedicalRecord:
         return await self._model.create(
             user_id=user_id,
-            record_type=record_type,
+            record_type=str(record_type.value),
             file_url=file_url,
         )
 
