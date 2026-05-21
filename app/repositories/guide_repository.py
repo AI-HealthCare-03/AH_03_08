@@ -7,6 +7,8 @@ async def create_guide(user_id: int, record_id: str) -> Guide:
         user_id=user_id,
         record_id=record_id,
         status="processing",
+        allergy_warnings=[],
+        condition_interactions=[],
         llm_model="gpt-4o-mini",
         llm_temperature=0.0,
     )

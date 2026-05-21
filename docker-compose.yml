@@ -106,6 +106,7 @@ services:
     restart: always
     mem_limit: 4G
     volumes:
+      - ./ai_worker:/app/ai_worker
       - chroma_data:/data/chromadb
     networks:
       - ws

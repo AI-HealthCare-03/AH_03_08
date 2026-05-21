@@ -3,7 +3,7 @@ from tortoise import fields, models
 
 class User(models.Model):
     id = fields.BigIntField(primary_key=True)
-    gender = fields.CharField(max_length=10)
+    gender = fields.CharField(max_length=6)
     birth_date = fields.DateField()
     height_cm = fields.FloatField(null=True)
     weight_kg = fields.FloatField(null=True)
