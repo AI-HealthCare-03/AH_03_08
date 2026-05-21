@@ -94,7 +94,7 @@ def load_model() -> nn.Module:
     # 체크포인트 형식으로 저장된 모델 로드
     # (epoch, model, optimizer 키를 포함한 형식)
     checkpoint = torch.load(model_path, map_location="cpu")
-    model.load_state_dict(checkpoint["model"]) # 가중치만 추출
+    model.load_state_dict(checkpoint["model"])  # 가중치만 추출
     model.eval()  # 추론 모드
 
     logger.info("ResNet152 모델 로드 완료")
@@ -127,7 +127,6 @@ def predict(model: nn.Module, tensor: torch.Tensor) -> tuple[int, float]:
 
     class_idx = predicted.item()
     confidence_score = confidence.item()
-
 
     # Top-5 로그 기록 (관리자 모니터링용)
     top5 = torch.topk(probabilities, k=5, dim=1)

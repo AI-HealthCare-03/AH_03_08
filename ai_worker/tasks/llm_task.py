@@ -1,7 +1,9 @@
-﻿import os
+import os
+
 from openai import AsyncOpenAI
 
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 
 async def generate_guide_with_llm(medical_record_data: dict, user_info: dict) -> dict:
     system_prompt = """당신은 전문 의료 상담 AI입니다.
@@ -20,17 +22,9 @@ async def generate_guide_with_llm(medical_record_data: dict, user_info: dict) ->
 
     response = await client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        temperature=0.3
+        messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
+        temperature=0.3,
     )
 
     result = response.choices[0].message.content
-    return {
-        "medication_guide": result,
-        "lifestyle_guide": result,
-        "llm_model": "gpt-4o-mini",
-        "llm_temperature": 0.3
-    }
+    return {"medication_guide": result, "lifestyle_guide": result, "llm_model": "gpt-4o-mini", "llm_temperature": 0.3}
