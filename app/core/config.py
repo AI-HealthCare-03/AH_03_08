@@ -20,10 +20,12 @@ class Config(BaseSettings):
 
     ENV: Env = Env.LOCAL
     SECRET_KEY: str = f"default-secret-key{uuid.uuid4().hex}"
+
     # TIMEZONE: zoneinfo.ZoneInfo = field(default_factory=lambda: zoneinfo.ZoneInfo("Asia/Seoul"))
     @property
     def TIMEZONE(self) -> zoneinfo.ZoneInfo:
         return zoneinfo.ZoneInfo("Asia/Seoul")
+
     TEMPLATE_DIR: str = os.path.join(Path(__file__).resolve().parent.parent, "templates")
 
     DB_HOST: str = "localhost"

@@ -30,12 +30,8 @@ def build_guide_user_prompt(medications: list, user_health: dict, rag_context: s
             f"| 복용법: {m.get('frequency', '-')} | 기간: {m.get('duration', '-')}"
         )
 
-    allergies = ", ".join(
-        f"{a['name']}({a['severity']})" for a in user_health.get("allergies", [])
-    ) or "없음"
-    conditions = ", ".join(
-        c["name"] for c in user_health.get("conditions", [])
-    ) or "없음"
+    allergies = ", ".join(f"{a['name']}({a['severity']})" for a in user_health.get("allergies", [])) or "없음"
+    conditions = ", ".join(c["name"] for c in user_health.get("conditions", [])) or "없음"
 
     gender = user_health.get("gender", "")
     if gender == "MALE":

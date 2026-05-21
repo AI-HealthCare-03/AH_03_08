@@ -55,6 +55,7 @@ def _get_vectorstore():
         try:
             from langchain_chroma import Chroma
             from langchain_community.embeddings import HuggingFaceEmbeddings
+
             _embeddings = HuggingFaceEmbeddings(
                 model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
                 model_kwargs={"device": "cpu"},
@@ -78,6 +79,7 @@ async def _init_tortoise():
     if _tortoise_initialized:
         return
     from tortoise import Tortoise
+
     db_host = os.getenv("DB_HOST", "mysql")
     db_port = int(os.getenv("DB_PORT", "3306"))
     db_user = os.getenv("DB_USER", "ozcoding")
@@ -92,6 +94,7 @@ async def _init_tortoise():
 
 def _run_async(coro):
     import asyncio
+
     global _tortoise_initialized
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -103,6 +106,7 @@ def _run_async(coro):
     finally:
         try:
             from tortoise import Tortoise
+
             loop.run_until_complete(Tortoise.close_connections())
         except Exception:
             pass
@@ -142,10 +146,12 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
         user_health = _build_user_health(user)
         rag_context = _rag_search_text(medications)
 
-        response = _get_llm().invoke([
-            SystemMessage(content=GUIDE_SYSTEM),
-            HumanMessage(content=build_guide_user_prompt(medications, user_health, rag_context)),
-        ])
+        response = _get_llm().invoke(
+            [
+                SystemMessage(content=GUIDE_SYSTEM),
+                HumanMessage(content=build_guide_user_prompt(medications, user_health, rag_context)),
+            ]
+        )
         parsed = _parse_json(response.content)
 
         await Guide.filter(id=guide_id).update(
@@ -188,7 +194,9 @@ async def _process_chat(task, session_id: int, message_id: int, user_id: int, us
         user_health = _build_user_health(user)
 
         if _is_off_topic(user_message):
-            answer = "MediLog 복약 도우미입니다. 의약품 복용, 건강 관리, 약물 상호작용에 관한 질문만 답변드릴 수 있어요."
+            answer = (
+                "MediLog 복약 도우미입니다. 의약품 복용, 건강 관리, 약물 상호작용에 관한 질문만 답변드릴 수 있어요."
+            )
             _save_and_publish(session_id, message_id, user_message, answer)
             await ChatMessage.filter(id=message_id).update(content=answer, status="DONE")
             return
@@ -234,10 +242,14 @@ async def _process_chat(task, session_id: int, message_id: int, user_id: int, us
 def generate_daily_tip_task(self, tip_id: str, user_id: int):
     logger.info(f"[daily_tip] tip_id={tip_id}")
     try:
-        response = _get_llm().invoke([
-            SystemMessage(content="Write today health tip in JSON format only: {title, subtitle, body, highlight, category, color_theme}"),
-            HumanMessage(content=f"Today is {datetime.now().strftime('%Y-%m-%d')}. Write a health tip."),
-        ])
+        response = _get_llm().invoke(
+            [
+                SystemMessage(
+                    content="Write today health tip in JSON format only: {title, subtitle, body, highlight, category, color_theme}"
+                ),
+                HumanMessage(content=f"Today is {datetime.now().strftime('%Y-%m-%d')}. Write a health tip."),
+            ]
+        )
         tip_data = _parse_json(response.content)
         _redis.set(f"daily_tip:{tip_id}", json.dumps(tip_data, ensure_ascii=False), ex=86400)
         logger.info(f"[daily_tip] done tip_id={tip_id}")
@@ -249,6 +261,7 @@ def generate_daily_tip_task(self, tip_id: str, user_id: int):
 @celery_app.task(name="ai_worker.tasks.llm_tasks.generate_daily_tip_scheduled")
 def generate_daily_tip_scheduled():
     import uuid
+
     tip_id = str(uuid.uuid4())
     generate_daily_tip_task.apply_async(kwargs={"tip_id": tip_id, "user_id": 0}, queue="llm")
 
@@ -259,6 +272,7 @@ def _build_user_health(user) -> dict:
     age = None
     if hasattr(user, "birthday") and user.birthday:
         from datetime import date
+
         today = date.today()
         age = today.year - user.birthday.year - ((today.month, today.day) < (user.birthday.month, user.birthday.day))
     return {
@@ -280,7 +294,7 @@ def _rag_search_text(medications: list) -> str:
             return ""
         query = " ".join(m.get("drug_name", "") for m in medications)
         docs = vs.similarity_search(query, k=5)
-        return "\n\n".join(f"[{i+1}] {d.page_content}" for i, d in enumerate(docs))
+        return "\n\n".join(f"[{i + 1}] {d.page_content}" for i, d in enumerate(docs))
     except Exception as e:
         logger.warning(f"RAG search failed: {e}")
         return ""
@@ -300,8 +314,25 @@ def _rag_search_docs(query: str) -> tuple:
 
 
 def _is_off_topic(message: str) -> bool:
-    off_topics = ["stock", "crypto", "weather", "sports", "game", "politics", "entertainment",
-                  "주식", "코인", "투자", "날씨", "스포츠", "게임", "정치", "연예", "영화", "쇼핑"]
+    off_topics = [
+        "stock",
+        "crypto",
+        "weather",
+        "sports",
+        "game",
+        "politics",
+        "entertainment",
+        "주식",
+        "코인",
+        "투자",
+        "날씨",
+        "스포츠",
+        "게임",
+        "정치",
+        "연예",
+        "영화",
+        "쇼핑",
+    ]
     return any(kw in message for kw in off_topics)
 
 
@@ -321,10 +352,12 @@ def _get_history(session_id: int) -> list[dict]:
     history = []
     for i in range(0, len(raw) - 1, 2):
         try:
-            history.append({
-                "user": json.loads(raw[i])["content"],
-                "assistant": json.loads(raw[i + 1])["content"],
-            })
+            history.append(
+                {
+                    "user": json.loads(raw[i])["content"],
+                    "assistant": json.loads(raw[i + 1])["content"],
+                }
+            )
         except (json.JSONDecodeError, KeyError):
             continue
     return history
@@ -351,4 +384,10 @@ def _parse_json(raw: str) -> dict:
     try:
         return json.loads(clean)
     except json.JSONDecodeError:
-        return {"medication_guide": raw, "lifestyle_guide": "", "summary": "", "allergy_warnings": [], "condition_interactions": []}
+        return {
+            "medication_guide": raw,
+            "lifestyle_guide": "",
+            "summary": "",
+            "allergy_warnings": [],
+            "condition_interactions": [],
+        }

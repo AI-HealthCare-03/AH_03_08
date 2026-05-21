@@ -12,4 +12,3 @@ v1_routers.include_router(user_router)
 v1_routers.include_router(records_router)
 v1_routers.include_router(guide_router)
 v1_routers.include_router(chats_router)
-

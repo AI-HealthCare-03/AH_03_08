@@ -1,1 +1,1 @@
-﻿from app.core.db import databases
+from app.core.db import databases
