@@ -23,7 +23,7 @@ class Config(BaseSettings):
 
     # TIMEZONE: zoneinfo.ZoneInfo = field(default_factory=lambda: zoneinfo.ZoneInfo("Asia/Seoul"))
     @property
-    def TIMEZONE(self) -> zoneinfo.ZoneInfo: # noqa: N802
+    def TIMEZONE(self) -> zoneinfo.ZoneInfo:  # noqa: N802
         return zoneinfo.ZoneInfo("Asia/Seoul")
 
     TEMPLATE_DIR: str = os.path.join(Path(__file__).resolve().parent.parent, "templates")
