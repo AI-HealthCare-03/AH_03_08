@@ -16,7 +16,7 @@ class AssetType(StrEnum):
 
 # Request DTO: 클라이언트가 보내는 데이터
 class GuideAssetCreateRequest(BaseModel):
-    asset_type: AssetType  # "tts" or "card_image"
+    asset_type: str  # "tts_medication", "tts_lifestyle", "card_image"
 
 
 # Response DTO: 서버가 돌려주는 데이터
