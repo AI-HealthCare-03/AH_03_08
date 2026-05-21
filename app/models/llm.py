@@ -28,20 +28,6 @@ class AssetType(StrEnum):
     CARD_IMAGE = "CARD_IMAGE"
 
 
-class MedicalRecord(models.Model):
-    id = fields.UUIDField(primary_key=True)
-    user = fields.ForeignKeyField("models.User", related_name="records", on_delete=fields.CASCADE)
-    record_type = fields.CharField(max_length=20, default="0")
-    status = fields.CharField(max_length=20, default="PENDING")
-    ocr_raw_text = fields.TextField(null=True)
-    parsed_data = fields.JSONField(null=True)
-    file_url = fields.CharField(max_length=500, null=True)
-    created_at = fields.DatetimeField(auto_now_add=True)
-    updated_at = fields.DatetimeField(auto_now=True)
-
-    class Meta:
-        table = "medical_records"
-
 class Guide(models.Model):
     id = fields.UUIDField(primary_key=True)
     user = fields.ForeignKeyField("models.User", related_name="guides", on_delete=fields.CASCADE)
@@ -79,6 +65,7 @@ class ChatSession(models.Model):
 
     class Meta:
         table = "chat_sessions"
+
 
 class ChatMessage(models.Model):
     id = fields.BigIntField(primary_key=True, generated=True)
