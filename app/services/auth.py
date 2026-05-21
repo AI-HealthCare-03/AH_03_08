@@ -36,7 +36,7 @@ class AuthService:
                 phone_number=normalized_phone_number,
                 gender=data.gender,
                 birth_date=data.birth_date,
-)
+            )
 
             return user
 
