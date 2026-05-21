@@ -91,8 +91,10 @@ def load_model() -> nn.Module:
     model = models.resnet152(weights=None)
     model.fc = nn.Linear(model.fc.in_features, 1000)  # 1000개 클래스
 
-    # 학습된 가중치 로드
-    model.load_state_dict(torch.load(model_path, map_location="cpu"))
+    # 체크포인트 형식으로 저장된 모델 로드
+    # (epoch, model, optimizer 키를 포함한 형식)
+    checkpoint = torch.load(model_path, map_location="cpu")
+    model.load_state_dict(checkpoint["model"]) # 가중치만 추출
     model.eval()  # 추론 모드
 
     logger.info("ResNet152 모델 로드 완료")
