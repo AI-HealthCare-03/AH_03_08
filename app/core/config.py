@@ -1,6 +1,7 @@
 import os
 import uuid
 import zoneinfo
+
 # from dataclasses import field
 from enum import StrEnum
 from pathlib import Path
@@ -19,10 +20,12 @@ class Config(BaseSettings):
 
     ENV: Env = Env.LOCAL
     SECRET_KEY: str = f"default-secret-key{uuid.uuid4().hex}"
+
     # TIMEZONE: zoneinfo.ZoneInfo = field(default_factory=lambda: zoneinfo.ZoneInfo("Asia/Seoul"))
     @property
     def TIMEZONE(self) -> zoneinfo.ZoneInfo:
         return zoneinfo.ZoneInfo("Asia/Seoul")
+
     TEMPLATE_DIR: str = os.path.join(Path(__file__).resolve().parent.parent, "templates")
 
     DB_HOST: str = "localhost"
@@ -45,3 +48,7 @@ class Config(BaseSettings):
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
     CLOVA_OCR_URL: str = ""
     CLOVA_OCR_SECRET: str = ""
+
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
+    UPLOAD_DIR: str = "/tmp/uploads"
