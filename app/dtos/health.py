@@ -21,6 +21,7 @@ class MedicalRecordResponse(BaseSerializerModel):
     record_type: int
     created_at: datetime
 
+
 class MedicationCreateRequest(BaseModel):
     medical_record_id: str
     drug_name: str

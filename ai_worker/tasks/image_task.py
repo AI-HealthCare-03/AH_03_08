@@ -126,7 +126,6 @@ def predict(model: nn.Module, tensor: torch.Tensor) -> tuple[int, float]:
     class_idx = predicted.item()
     confidence_score = confidence.item()
 
-
     # Top-5 로그 기록 (관리자 모니터링용)
     top5 = torch.topk(probabilities, k=5, dim=1)
     top5_log = [(idx.item(), round(conf.item(), 4)) for idx, conf in zip(top5.indices[0], top5.values[0], strict=False)]
