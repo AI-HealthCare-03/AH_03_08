@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.dependencies.security import get_request_user
@@ -15,7 +17,7 @@ router = APIRouter(prefix="/guides", tags=["guides"])
 
 
 @router.get("")
-async def get_guides_api(current_user: User = Depends(get_request_user)):
+async def get_guides_api(current_user: Annotated[User, Depends(get_request_user)]):
     guides = await get_guides(user_id=str(current_user.id))
     return {
         "success": True,
@@ -25,7 +27,7 @@ async def get_guides_api(current_user: User = Depends(get_request_user)):
 
 
 @router.get("/feedbacks/list")
-async def get_feedbacks_api(current_user: User = Depends(get_request_user)):
+async def get_feedbacks_api(current_user: Annotated[User, Depends(get_request_user)]):
     feedbacks = await get_feedbacks()
     return {
         "success": True,
@@ -35,7 +37,7 @@ async def get_feedbacks_api(current_user: User = Depends(get_request_user)):
 
 
 @router.get("/{guide_id}")
-async def get_guide_api(guide_id: str, current_user: User = Depends(get_request_user)):
+async def get_guide_api(guide_id: str, current_user: Annotated[User, Depends(get_request_user)]):
     guide = await get_guide(guide_id=guide_id, user_id=str(current_user.id))
     if not guide:
         raise HTTPException(status_code=404, detail="가이드를 찾을 수 없습니다.")
@@ -53,10 +55,9 @@ async def get_guide_api(guide_id: str, current_user: User = Depends(get_request_
 
 
 @router.post("/generate", status_code=202)
-async def generate_guide_api(request: GuideGenerateRequest, current_user: User = Depends(get_request_user)):
+async def generate_guide_api(request: GuideGenerateRequest, current_user: Annotated[User, Depends(get_request_user)]):
     guide = await create_guide_service(user_id=str(current_user.id), medical_record_id=request.medical_record_id)
     from ai_worker.tasks.llm_task import generate_guide
-
     generate_guide.delay(
         guide_id=str(guide.id),
         medical_record_data={"medical_record_id": request.medical_record_id},
@@ -70,7 +71,7 @@ async def generate_guide_api(request: GuideGenerateRequest, current_user: User =
 
 
 @router.post("/feedbacks")
-async def create_feedback_api(request: FeedbackCreateRequest, current_user: User = Depends(get_request_user)):
+async def create_feedback_api(request: FeedbackCreateRequest, current_user: Annotated[User, Depends(get_request_user)]):
     feedback = await create_feedback_service(
         user_id=str(current_user.id), guide_id=request.guide_id, rating=request.rating, comment=request.comment
     )
