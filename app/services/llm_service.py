@@ -20,6 +20,7 @@ _celery = Celery(broker=os.getenv("REDIS_URL", "redis://redis:6379/0"))
 # MedicalRecordService
 # ════════════════════════════════════════
 
+
 class MedicalRecordService:
     def __init__(self):
         self.repo = MedicalRecordRepository()
@@ -48,6 +49,7 @@ class MedicalRecordService:
 # ════════════════════════════════════════
 # GuideService
 # ════════════════════════════════════════
+
 
 class GuideService:
     def __init__(self):
@@ -84,7 +86,7 @@ class GuideService:
             "ai_worker.tasks.llm_tasks.generate_guide_task",
             kwargs={"guide_id": str(guide.id), "record_id": str(record_id), "user_id": user_id},
             queue="llm",
-)
+        )
 
         return guide
 
@@ -116,6 +118,7 @@ class GuideService:
         # 에셋 타입에 따라 다른 Worker Task 발행
         if asset_type == AssetType.TTS:
             from ai_worker.tasks.tts_tasks import generate_tts_task
+
             generate_tts_task.apply_async(
                 kwargs={
                     "asset_id": asset.id,
@@ -126,6 +129,7 @@ class GuideService:
             )
         else:
             from ai_worker.tasks.image_tasks import generate_card_image_task
+
             generate_card_image_task.apply_async(
                 kwargs={"asset_id": asset.id, "guide_id": guide_id},
                 queue="image",
@@ -134,16 +138,20 @@ class GuideService:
         # TTS
         _celery.send_task(
             "ai_worker.tasks.tts_tasks.generate_tts_task",
-            kwargs={"asset_id": str(asset.id), "guide_id": str(guide_id), "text": guide.summary or guide.medication_guide},
+            kwargs={
+                "asset_id": str(asset.id),
+                "guide_id": str(guide_id),
+                "text": guide.summary or guide.medication_guide,
+            },
             queue="tts",
-)
+        )
 
-# 카드뉴스
+        # 카드뉴스
         _celery.send_task(
             "ai_worker.tasks.image_tasks.generate_card_image_task",
             kwargs={"asset_id": str(asset.id), "guide_id": str(guide_id)},
             queue="image",
-)
+        )
 
         return asset
 
@@ -168,6 +176,7 @@ class GuideService:
 # ════════════════════════════════════════
 # ChatService
 # ════════════════════════════════════════
+
 
 class ChatService:
     def __init__(self):
@@ -236,7 +245,7 @@ class ChatService:
                 "user_id": user_id,
                 "user_message": message,
             },
-        queue="llm",
-)
+            queue="llm",
+        )
 
         return assistant_msg
