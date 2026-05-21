@@ -58,6 +58,7 @@ async def get_guide_api(guide_id: str, current_user: Annotated[User, Depends(get
 async def generate_guide_api(request: GuideGenerateRequest, current_user: Annotated[User, Depends(get_request_user)]):
     guide = await create_guide_service(user_id=str(current_user.id), medical_record_id=request.medical_record_id)
     from ai_worker.tasks.llm_task import generate_guide
+
     generate_guide.delay(
         guide_id=str(guide.id),
         medical_record_data={"medical_record_id": request.medical_record_id},

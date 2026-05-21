@@ -12,9 +12,11 @@ class AssetType(StrEnum):
     tts_lifestyle = "tts_lifestyle"
     card_image = "card_image"
 
+
 # Request DTO: 클라이언트가 보내는 데이터
 class GuideAssetCreateRequest(BaseModel):
     asset_type: AssetType
+
 
 # Response DTO: 서버가 돌려주는 데이터
 # API 명세서: { "asset_id": uuid, "status": str }
