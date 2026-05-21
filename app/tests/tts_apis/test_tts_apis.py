@@ -70,7 +70,7 @@ class TestCreateGuideAssetAPI(TestCase):
                     json={"asset_type": "invalid_type"},
                 )
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     async def test_create_unauthorized(self):
         """JWT 인증 없이 요청 시 401 반환 테스트"""
