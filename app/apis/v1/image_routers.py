@@ -4,7 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 # 서드파티 라이브러리
-from fastapi import APIRouter, Depends, Form, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from fastapi.responses import JSONResponse as Response
 
 # 로컬 모듈
@@ -23,6 +23,7 @@ image_router = APIRouter(prefix="/images", tags=["images"])
 )
 async def analyze_image(
     record_id: Annotated[str, Form()],
+    image: Annotated[UploadFile, File()],
     image_service: Annotated[ImageService, Depends(ImageService)],
     current_user: Annotated[User, Depends(get_request_user)],
 ) -> Response:
@@ -40,10 +41,12 @@ async def analyze_image(
         - 파일 업로드는 POST /api/v1/records/upload에서 처리
         - Celery Task 등록 후 즉시 202 반환 (비동기 처리)
     """
+    image_bytes = await image.read()
     result = await image_service.analyze_image(
         record_id=record_id,
         user_id=str(current_user.id),
-    )
+        image_bytes=image_bytes,
+)
     return Response(
         content=result.model_dump(),
         status_code=status.HTTP_202_ACCEPTED,
