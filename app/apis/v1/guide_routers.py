@@ -11,12 +11,10 @@ from app.models.users import User
 from app.repositories.guide_repository import create_guide
 from app.services import guide as guide_service
 
-# ai_worker는 import하지 않음. 브로커(Redis)에 태스크 이름만 등록한다.
 celery_app = Celery(broker=os.getenv("REDIS_URL", "redis://redis:6379/0"))
 GENERATE_GUIDE_TASK = "ai_worker.tasks.llm_tasks.generate_guide_task"
 
 router = APIRouter(prefix="/guides", tags=["guides"])
-
 CurrentUser = Annotated[User, Depends(get_request_user)]
 
 
@@ -26,30 +24,21 @@ def _ok(data, message: str) -> dict:
 
 @router.post("/generate", status_code=status.HTTP_202_ACCEPTED)
 async def generate_guide_api(request: GuideGenerateRequest, current_user: CurrentUser):
-    record = await MedicalRecord.get_or_none(
-        id=request.medical_record_id,
-        user_id=current_user.id,
-    )
+    record = await MedicalRecord.get_or_none(id=request.record_id, user_id=current_user.id)
     if not record:
         raise HTTPException(status_code=404, detail="진료기록을 찾을 수 없습니다.")
 
-    guide = await create_guide(
-        user_id=current_user.id,
-        medical_record_id=request.medical_record_id,
-    )
+    guide = await create_guide(user_id=current_user.id, record_id=request.record_id)
     celery_app.send_task(
         GENERATE_GUIDE_TASK,
         kwargs={
             "guide_id": str(guide.id),
-            "record_id": str(request.medical_record_id),
+            "record_id": str(request.record_id),
             "user_id": current_user.id,
         },
         queue="llm",
     )
-    return _ok(
-        {"guide_id": str(guide.id), "status": guide.status},
-        "가이드 생성 요청 완료",
-    )
+    return _ok({"guide_id": str(guide.id), "status": guide.status}, "가이드 생성 요청 완료")
 
 
 @router.get("")

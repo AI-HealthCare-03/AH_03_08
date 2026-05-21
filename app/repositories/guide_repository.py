@@ -2,10 +2,10 @@ from app.models.feedbacks import Feedback
 from app.models.guides import Guide
 
 
-async def create_guide(user_id: int, medical_record_id: str) -> Guide:
+async def create_guide(user_id: int, record_id: str) -> Guide:
     return await Guide.create(
         user_id=user_id,
-        medical_record_id=medical_record_id,
+        record_id=record_id,
         status="processing",
         llm_model="gpt-4o-mini",
         llm_temperature=0.0,

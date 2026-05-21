@@ -4,7 +4,7 @@ from tortoise import fields, models
 class Guide(models.Model):
     id = fields.UUIDField(pk=True)
     user = fields.ForeignKeyField("models.User", related_name="guides")
-    medical_record = fields.ForeignKeyField("models.MedicalRecord", related_name="guides")
+    record = fields.ForeignKeyField("models.MedicalRecord", related_name="guides", source_field="record_id")
     status = fields.CharField(max_length=20, default="processing")  # processing / done / failed
     medication_guide = fields.TextField(null=True)  # 복약 안내
     lifestyle_guide = fields.TextField(null=True)  # 생활습관 안내

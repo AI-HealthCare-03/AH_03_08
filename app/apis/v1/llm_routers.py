@@ -9,6 +9,8 @@ from app.dtos.llm import (
     ChatMessageListResponse,
     ChatMessageResponse,
     ChatMessageSendRequest,
+    ChatSessionListResponse,
+    ChatSessionResponse,
     RecordCreateRequest,
     RecordListResponse,
     RecordResponse,
@@ -167,7 +169,6 @@ async def websocket_chat_stream(websocket: WebSocket, session_id: int):
     await websocket.accept()
 
     import redis.asyncio as aioredis
-
     from app.core import config
 
     redis_url = getattr(config, "REDIS_URL", "redis://redis:6379/0")
