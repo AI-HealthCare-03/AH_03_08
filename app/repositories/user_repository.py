@@ -38,7 +38,7 @@ class UserRepository:
             name=name,
             phone_number=phone_number,
             gender=gender,
-            birthday=birthday,
+            birth_date=birthday,
             is_active=is_active,
             is_admin=is_admin,
         )
