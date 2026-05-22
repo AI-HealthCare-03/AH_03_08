@@ -9,6 +9,7 @@ from app.dtos.guide import FeedbackCreateRequest, GuideGenerateRequest
 from app.models.medical_records import MedicalRecord
 from app.models.users import User
 from app.repositories.guide_repository import create_guide
+from app.services import feedback_service
 from app.services import guide as guide_service
 
 # ai_worker 직접 import 금지 — Redis 큐로만 작업 위임
@@ -45,13 +46,13 @@ async def generate_guide_api(request: GuideGenerateRequest, current_user: Curren
 
 @guide_router.get("/feedbacks/list")
 async def list_feedbacks_api(current_user: CurrentUser):
-    items = await guide_service.list_my_feedbacks(user_id=current_user.id)
+    items = await feedback_service.list_my_feedbacks(user_id=current_user.id)
     return _ok({"total": len(items), "items": items}, "피드백 목록 조회 성공")
 
 
 @guide_router.post("/feedbacks")
 async def create_feedback_api(request: FeedbackCreateRequest, current_user: CurrentUser):
-    data = await guide_service.submit_feedback(
+    data = await feedback_service.submit_feedback(
         user_id=current_user.id,
         guide_id=request.guide_id,
         rating=request.rating,
