@@ -277,7 +277,7 @@ def get_drug_info(kcode: str) -> dict:
 
 
 @celery_app.task(bind=True, max_retries=3)
-def classify_pill(self, analysis_id: str, image_bytes: bytes, record_id: str, user_id: str) -> dict:
+def classify_pill(self, image_bytes: bytes, record_id: str, user_id: str) -> dict:
     """
     낱알약 이미지를 분류하는 Celery Task.
 
