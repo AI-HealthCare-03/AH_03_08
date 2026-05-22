@@ -46,6 +46,7 @@ class ImageService:
                 "user_id": user_id,
                 "image_bytes": image_bytes,  # 이미지 데이터 전달
             },
+            queue="image",
         )
         return ImageAnalyzeResponse(
             analysis_id=analysis_id,
