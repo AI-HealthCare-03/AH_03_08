@@ -1,10 +1,9 @@
-import os
-
 from celery import Celery
 from fastapi.exceptions import HTTPException
 from starlette import status
 from tortoise.transactions import in_transaction
 
+from app.core import config
 from app.models.llm import AssetType, GuideStatus, RecordStatus, RecordType
 from app.repositories.llm_repository import (
     ChatMessageRepository,
@@ -14,7 +13,7 @@ from app.repositories.llm_repository import (
     MedicalRecordRepository,
 )
 
-_celery = Celery(broker=os.getenv("REDIS_URL", "redis://redis:6379/0"))
+_celery = Celery(broker=config.CELERY_BROKER_URL, backend=config.CELERY_RESULT_BACKEND)
 
 # ════════════════════════════════════════
 # MedicalRecordService
