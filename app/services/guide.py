@@ -1,4 +1,4 @@
-﻿from fastapi import HTTPException, status
+from fastapi import HTTPException, status
 
 from app.repositories.guide_repository import (
     get_guide_by_id,
