@@ -25,5 +25,6 @@ def setup_logger(
 
     return _logger
 
+
 # logger 인스턴스 생성
 logger = setup_logger()

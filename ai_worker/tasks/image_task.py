@@ -23,19 +23,23 @@ celery_app = Celery(
 # DB 초기화
 _tortoise_initialized = False
 
+
 async def _init_tortoise():
     global _tortoise_initialized
     if _tortoise_initialized:
         return
     from tortoise import Tortoise
+
     await Tortoise.init(
         db_url=f"mysql://{os.getenv('DB_USER', 'ozcoding')}:{os.getenv('DB_PASSWORD', 'pw1234')}@{os.getenv('DB_HOST', 'mysql')}:{os.getenv('DB_PORT', '3306')}/{os.getenv('DB_NAME', 'ai_health')}",
         modules={"models": ["ai_worker.models"]},
     )
     _tortoise_initialized = True
 
+
 def _run_async(coro):
     import asyncio
+
     global _tortoise_initialized
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -45,19 +49,23 @@ def _run_async(coro):
     finally:
         try:
             from tortoise import Tortoise
+
             loop.run_until_complete(Tortoise.close_connections())
         except Exception:
             pass
         loop.close()
         asyncio.set_event_loop(None)
 
+
 async def _save_image_result(record_id: str, drug_info: dict):
     await _init_tortoise()
     from ai_worker.models import MedicalRecord
+
     await MedicalRecord.filter(id=record_id).update(
         parsed_data=drug_info,
         status="DONE",
     )
+
 
 # -------------------------
 # 이미지 전처리
