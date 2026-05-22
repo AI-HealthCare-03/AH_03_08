@@ -34,11 +34,12 @@ class TestAnalyzeImageAPI(TestCase):
                     "/api/v1/images/analyze",
                     headers=headers,
                     data={"record_id": "00000000-0000-0000-0000-000000000001"},
+                    files={"image": ("test.png", b"fake-image-data", "image/png")},  # image 파일 추가
                 )
 
         assert response.status_code == status.HTTP_202_ACCEPTED
         data = response.json()
-        assert "analysis_id" in data
+        assert "record_id" in data  # analysis_id → record_id
         assert data["status"] == "processing"
         mock_task.assert_called_once()
 
@@ -77,18 +78,19 @@ class TestGetAnalysisResultAPI(TestCase):
                     "/api/v1/images/analyze",
                     headers=headers,
                     data={"record_id": "00000000-0000-0000-0000-000000000001"},
+                    files={"image": ("test.png", b"fake-image-data", "image/png")},  # image 파일 추가
                 )
-                analysis_id = analyze_resp.json()["analysis_id"]
+                record_id = analyze_resp.json()["record_id"]  # analysis_id → record_id
 
                 # 결과 조회
                 response = await client.get(
-                    f"/api/v1/images/{analysis_id}",
+                    f"/api/v1/images/{record_id}",  # analysis_id → record_id
                     headers=headers,
                 )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["analysis_id"] == analysis_id
+        assert data["record_id"] == record_id  # analysis_id → record_id
         assert data["status"] == "processing"
 
     async def test_get_result_unauthorized(self):
