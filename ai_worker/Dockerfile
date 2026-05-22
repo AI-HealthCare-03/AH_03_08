@@ -9,4 +9,4 @@ RUN uv sync --group ai --no-dev --frozen
 
 COPY ./ai_worker ./ai_worker
 
-CMD ["uv", "run", "python", "-m", "celery", "-A", "ai_worker.main", "worker", "--loglevel=info", "-Q", "llm"]
+CMD ["uv", "run", "python", "-m", "celery", "-A", "ai_worker.main", "worker", "--loglevel=info", "-Q", "llm, image"]
