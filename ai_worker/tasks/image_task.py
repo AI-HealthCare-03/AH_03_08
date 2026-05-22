@@ -285,7 +285,6 @@ def classify_pill(self, image_bytes: bytes, record_id: str, user_id: str) -> dic
     - 이미지 전처리 → 모델 추론 → K코드 변환 → 약품 정보 조회 → DB 저장
 
     Args:
-        analysis_id: 분류 작업 고유 ID
         image_bytes: 사용자가 업로드한 이미지 파일 (bytes)
         record_id: MEDICAL_RECORDS 테이블의 record_id (FK)
         user_id: 요청한 사용자 ID
@@ -298,7 +297,7 @@ def classify_pill(self, image_bytes: bytes, record_id: str, user_id: str) -> dic
         - Threshold 0.7 미만 시 분류 불가 처리
     """
     try:
-        logger.info(f"낱알약 분류 시작 - analysis_id: {analysis_id}, record_id: {record_id}")
+        logger.info(f"낱알약 분류 시작 - record_id: {record_id}")
 
         # 1. 이미지 전처리
         tensor = preprocess_image(image_bytes)
@@ -327,12 +326,11 @@ def classify_pill(self, image_bytes: bytes, record_id: str, user_id: str) -> dic
         _run_async(_save_image_result(record_id, drug_info))
         logger.info(f"DB 저장 완료 - record_id: {record_id}")
 
-        logger.info(f"낱알약 분류 완료 - analysis_id: {analysis_id}, kcode: {kcode}")
+        logger.info(f"낱알약 분류 완료 - kcode: {kcode}")
 
         return {
             "success": True,
             "data": {
-                "analysis_id": analysis_id,
                 "kcode": kcode,
                 "drug_info": drug_info,
             },
@@ -340,5 +338,5 @@ def classify_pill(self, image_bytes: bytes, record_id: str, user_id: str) -> dic
         }
 
     except Exception as exc:
-        logger.error(f"낱알약 분류 실패 - analysis_id: {analysis_id}, error: {exc}")
+        logger.error(f"낱알약 분류 실패 - record_id: {record_id}, error: {exc}")
         raise self.retry(exc=exc, countdown=10) from exc
