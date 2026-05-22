@@ -1,4 +1,3 @@
-from app.models.feedbacks import Feedback
 from app.models.guides import Guide
 
 
@@ -18,17 +17,3 @@ async def get_guides_by_user(user_id: int) -> list[Guide]:
 
 async def get_guide_by_id(guide_id: str, user_id: int) -> Guide | None:
     return await Guide.get_or_none(id=guide_id, user_id=user_id)
-
-
-async def create_feedback(user_id: int, guide_id: str, rating: int, comment: str | None = None) -> Feedback:
-    return await Feedback.create(
-        user_id=user_id,
-        guide_id=guide_id,
-        rating=rating,
-        comment=comment,
-        status="ACTIVE",
-    )
-
-
-async def get_feedbacks_by_user(user_id: int) -> list[Feedback]:
-    return await Feedback.filter(user_id=user_id).order_by("-created_at").all()
