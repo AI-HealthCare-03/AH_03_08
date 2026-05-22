@@ -251,12 +251,15 @@ def get_drug_info(kcode: str) -> dict:
 
     return {
         "drug_name": info.get("dl_name"),
+        "dl_company": info.get("dl_company"),
         "dl_material": info.get("dl_material"),
         "drug_shape": info.get("drug_shape"),
         "color_class1": info.get("color_class1"),
         "di_class_no": info.get("di_class_no"),
         "di_etc_otc_code": info.get("di_etc_otc_code"),
-        "di_edi_code": info.get("di_edi_code"),
+        "chart": info.get("chart"),
+        "print_front": info.get("print_front"),
+        "print_back": info.get("print_back"),
     }
 
 
