@@ -17,12 +17,14 @@ dependencies = [
 [dependency-groups]
 ai = [
     "scikit-learn>=1.8.0",
-    "torch",
-    "torchvision",
+    "torch==2.6.0",
+    "torchvision==0.21.0",
     "torchaudio",
     "sentence-transformers>=5.2.0",
     "httpx>=0.28.1",
     "boto3>=1.0.0",
+    "tortoise-orm",
+    "asyncmy>=0.2.11",
     # LLM
     "anthropic>=0.51.0",
     "langchain>=0.3.25",

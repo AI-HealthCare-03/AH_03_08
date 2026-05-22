@@ -34,11 +34,12 @@ class TestAnalyzeImageAPI(TestCase):
                     "/api/v1/images/analyze",
                     headers=headers,
                     data={"record_id": "00000000-0000-0000-0000-000000000001"},
+                    files={"image": ("test.png", b"fake-image-data", "image/png")},
                 )
 
         assert response.status_code == status.HTTP_202_ACCEPTED
         data = response.json()
-        assert "analysis_id" in data
+        assert "record_id" in data
         assert data["status"] == "processing"
         mock_task.assert_called_once()
 
@@ -72,24 +73,36 @@ class TestGetAnalysisResultAPI(TestCase):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
 
-                # 분석 요청 먼저
+                # 테스트용 MedicalRecord 먼저 생성
+                from app.models.medical_records import MedicalRecord
+                from app.models.users import User
+
+                user = await User.get(email="image_test@example.com")
+                record = await MedicalRecord.create(
+                    user=user,  # user_id=user.id → user=user 로 변경
+                    record_type=2,
+                    status="PENDING",
+                )
+
+                # 분석 요청
                 analyze_resp = await client.post(
                     "/api/v1/images/analyze",
                     headers=headers,
-                    data={"record_id": "00000000-0000-0000-0000-000000000001"},
+                    data={"record_id": str(record.id)},
+                    files={"image": ("test.png", b"fake-image-data", "image/png")},
                 )
-                analysis_id = analyze_resp.json()["analysis_id"]
+                record_id = analyze_resp.json()["record_id"]
 
                 # 결과 조회
                 response = await client.get(
-                    f"/api/v1/images/{analysis_id}",
+                    f"/api/v1/images/{record_id}",
                     headers=headers,
                 )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["analysis_id"] == analysis_id
-        assert data["status"] == "processing"
+        assert data["record_id"] == record_id
+        assert data["status"] == "PENDING"
 
     async def test_get_result_unauthorized(self):
         """JWT 인증 없이 결과 조회 시 401 반환 테스트"""
