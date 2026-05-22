@@ -78,7 +78,7 @@ class TestGetAnalysisResultAPI(TestCase):
                 from app.models.users import User
                 user = await User.get(email="image_test@example.com")
                 record = await MedicalRecord.create(
-                    user_id=user.id,
+                    user=user,  # user_id=user.id → user=user 로 변경
                     record_type=2,
                     status="PENDING",
                 )
