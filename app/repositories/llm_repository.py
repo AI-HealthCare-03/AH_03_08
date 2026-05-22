@@ -1,11 +1,11 @@
 from datetime import datetime
 
 from app.core import config
+from app.models.guides import Guide
 from app.models.llm import (
     AssetType,
     ChatMessage,
     ChatSession,
-    Guide,
     GuideAsset,
     GuideStatus,
     RecordStatus,
@@ -28,8 +28,8 @@ class MedicalRecordRepository:
     async def get_by_id(self, record_id: int, user_id: int) -> MedicalRecord | None:
         return await self._model.get_or_none(id=record_id, user_id=user_id)
 
-    async def get_completed_by_id(self, record_id: int, user_id: int) -> MedicalRecord | None:
-        return await self._model.get_or_none(id=record_id, user_id=user_id, status=RecordStatus.DONE)
+    async def get_completed_by_id(self, record_id, user_id: int) -> MedicalRecord | None:
+        return await self._model.get_or_none(id=record_id, user_id=user_id, status="COMPLETED")
 
     async def get_list_by_user(self, user_id: int, page: int, limit: int) -> tuple[int, list[MedicalRecord]]:
         qs = self._model.filter(user_id=user_id).order_by("-created_at")
@@ -49,8 +49,8 @@ class GuideRepository:
     def __init__(self):
         self._model = Guide
 
-    async def create(self, user_id: int, record_id: int) -> Guide:
-        return await self._model.create(user_id=user_id, record_id=record_id)
+    async def create(self, user_id: int, record_id) -> Guide:
+        return await self._model.create(user_id=user_id, medical_record_id=record_id)
 
     async def get_by_id(self, guide_id: int, user_id: int) -> Guide | None:
         return await self._model.get_or_none(id=guide_id, user_id=user_id)
