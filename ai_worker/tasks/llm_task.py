@@ -6,6 +6,7 @@ from openai import OpenAI
 
 from ai_worker.prompts.llm_prompts import GUIDE_SYSTEM, build_guide_user_prompt
 
+
 @shared_task(name="ai_worker.tasks.llm_task.generate_guide")
 def generate_guide(guide_id: str, medications: list, user_health: dict, rag_context: str = "") -> dict:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
