@@ -46,7 +46,7 @@ async def analyze_image(
         record_id=record_id,
         user_id=str(current_user.id),
         image_bytes=image_bytes,
-)
+    )
     return Response(
         content=result.model_dump(),
         status_code=status.HTTP_202_ACCEPTED,

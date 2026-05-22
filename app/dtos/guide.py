@@ -1,58 +1,14 @@
-from pydantic import BaseModel
-
-# =====================
-# 요청 형식 (Request)
-# =====================
+from pydantic import BaseModel, Field
 
 
 class GuideGenerateRequest(BaseModel):
-    """
-    가이드 생성 요청 형식
-    프론트에서 이 형식으로 보내줘야 해
-    """
+    """가이드 생성 요청 — 본인 진료기록 UUID만 허용."""
 
-    medical_record_id: str  # 어떤 진료기록으로 가이드 만들지
+    record_id: str
 
 
 class FeedbackCreateRequest(BaseModel):
-    """
-    피드백 제출 요청 형식
-    rating: 0(아쉬워요) or 1(도움됐어요)
-    comment: 선택 입력
-    """
-
     guide_id: str
-    rating: int
-    comment: str | None = None  # 없어도 됨
-
-
-# =====================
-# 응답 형식 (Response)
-# =====================
-
-
-class GuideResponse(BaseModel):
-    """
-    가이드 조회 응답 형식
-    """
-
-    id: str
-    medical_record_id: str
-    medication_guide: str | None = None
-    lifestyle_guide: str | None = None
-    llm_model: str | None = None
-    llm_temperature: float | None = None
-    created_at: str | None = None
-
-
-class FeedbackResponse(BaseModel):
-    """
-    피드백 조회 응답 형식
-    """
-
-    id: str
-    guide_id: str
-    rating: int
+    rating: int = Field(ge=0, le=1)  # 0: 부정, 1: 긍정 (ERD FEEDBACKS.rating)
+    tag_ids: list[str] = Field(default_factory=list)  # FEEDBACK_TAGS uuid → FEEDBACK_TAG_SELECTIONS 저장 예정
     comment: str | None = None
-    status: str | None = None
-    created_at: str | None = None
