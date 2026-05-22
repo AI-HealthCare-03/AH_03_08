@@ -24,3 +24,6 @@ def setup_logger(
     _logger.propagate = False  # root logger로 중복 전달 방지
 
     return _logger
+
+# logger 인스턴스 생성
+logger = setup_logger()
