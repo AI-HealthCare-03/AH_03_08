@@ -30,14 +30,16 @@ export function RecordUploadForm() {
   const { mutate: generateGuide, isPending: isGenerating } = useGenerateGuide()
 
   useEffect(() => {
-    if (!previewFile?.type.startsWith('image/')) { setPreviewUrl(null); return }
+    if (!previewFile?.type.startsWith('image/')) return
     const url = URL.createObjectURL(previewFile)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPreviewUrl(url)
     return () => URL.revokeObjectURL(url)
   }, [previewFile])
 
   useEffect(() => {
     if (record?.status === 'completed' && record.parsed_data) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEditedData((prev) => prev ?? (record.parsed_data as ParsedData))
     }
   }, [record?.status, record?.parsed_data])
@@ -51,6 +53,7 @@ export function RecordUploadForm() {
     setSelectedType(type)
     resetRecord()
     setPreviewFile(null)
+    setPreviewUrl(null)
   }
 
   function doUpload(file: File, type: RecordType) {
@@ -85,6 +88,7 @@ export function RecordUploadForm() {
   async function handleFileSelect(file: File) {
     if (!selectedType) { toast.error('먼저 기록 종류를 선택해주세요.'); return }
     setPreviewFile(file)
+    if (!file.type.startsWith('image/')) setPreviewUrl(null)
     resetRecord()
     await checkResolution(file)
     doUpload(file, selectedType)
@@ -93,6 +97,7 @@ export function RecordUploadForm() {
   async function handleChangeFile(file: File) {
     if (!selectedType) return
     setPreviewFile(file)
+    if (!file.type.startsWith('image/')) setPreviewUrl(null)
     resetRecord()
     await checkResolution(file)
     doUpload(file, selectedType)
