@@ -23,7 +23,7 @@ ai = [
     "sentence-transformers>=5.2.0",
     "httpx>=0.28.1",
     "boto3>=1.0.0",
-    "tortoise-orm[asyncmy]",
+    "tortoise-orm",
     # LLM
     "anthropic>=0.51.0",
     "langchain>=0.3.25",
