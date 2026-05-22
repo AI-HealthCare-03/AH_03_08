@@ -42,6 +42,7 @@ dependencies = [
 [package.dev-dependencies]
 ai = [
     { name = "anthropic" },
+    { name = "asyncmy" },
     { name = "boto3" },
     { name = "celery" },
     { name = "chromadb" },
@@ -100,6 +101,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 ai = [
     { name = "anthropic", specifier = ">=0.51.0" },
+    { name = "asyncmy", specifier = ">=0.2.11" },
     { name = "boto3", specifier = ">=1.0.0" },
     { name = "celery", specifier = ">=5.4.0" },
     { name = "chromadb", specifier = ">=0.6.3" },
