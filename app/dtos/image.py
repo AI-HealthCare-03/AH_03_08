@@ -1,19 +1,15 @@
 # app/dtos/image.py
-
-# 서드파티 라이브러리
 from pydantic import BaseModel
-
 
 # Response DTO: 분석 요청 후 즉시 반환되는 데이터 (202 Accepted)
 class ImageAnalyzeResponse(BaseModel):
-    analysis_id: str  # 생성된 분석 작업 ID
+    record_id: str  # analysis_id → record_id로 변경
     status: str  # "processing" (Celery 작업 등록 완료)
 
-
-# Response DTO: 결과 조회 응답 (GET /api/v1/images/{analysis_id})
+# Response DTO: 결과 조회 응답 (GET /api/v1/images/{record_id})
 class DrugInfoResponse(BaseModel):
-    analysis_id: str
-    status: str  # "processing" or "completed"
+    record_id: str  # analysis_id → record_id로 변경
+    status: str  # "processing" or "done"
     drug_name: str | None = None
     dl_material: str | None = None
     drug_shape: str | None = None
