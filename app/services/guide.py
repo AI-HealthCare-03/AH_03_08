@@ -1,27 +1,41 @@
+﻿from fastapi import HTTPException, status
+
 from app.repositories.guide_repository import (
-    create_feedback,
-    create_guide,
-    get_all_feedbacks,
     get_guide_by_id,
     get_guides_by_user,
 )
 
 
-async def get_guides(user_id: str):
-    return await get_guides_by_user(user_id=user_id)
+def _guide_item(guide) -> dict:
+    return {
+        "id": str(guide.id),
+        "record_id": str(guide.record_id),
+        "status": guide.status,
+        "medication_guide": guide.medication_guide,
+        "lifestyle_guide": guide.lifestyle_guide,
+        "summary_text": guide.summary_text,
+        "allergy_warnings": guide.allergy_warnings,
+        "condition_interactions": guide.condition_interactions,
+        "llm_model": guide.llm_model,
+        "llm_temperature": guide.llm_temperature,
+        "created_at": guide.created_at.isoformat() if guide.created_at else None,
+    }
 
 
-async def get_guide(guide_id: str, user_id: str):
-    return await get_guide_by_id(guide_id=guide_id, user_id=user_id)
+async def list_my_guides(user_id: int) -> list[dict]:
+    guides = await get_guides_by_user(user_id)
+    return [_guide_item(g) for g in guides]
 
 
-async def create_guide_service(user_id: str, medical_record_id: str):
-    return await create_guide(user_id=user_id, medical_record_id=medical_record_id)
+async def get_my_guide(guide_id: str, user_id: int) -> dict:
+    guide = await get_guide_by_id(guide_id, user_id)
+    if not guide:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="가이드를 찾을 수 없습니다.")
+    return _guide_item(guide)
 
 
-async def create_feedback_service(user_id: str, guide_id: str, rating: int, comment: str = None):
-    return await create_feedback(user_id=user_id, guide_id=guide_id, rating=rating, comment=comment)
-
-
-async def get_feedbacks():
-    return await get_all_feedbacks()
+async def get_my_guide_status(guide_id: str, user_id: int) -> dict:
+    guide = await get_guide_by_id(guide_id, user_id)
+    if not guide:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="가이드를 찾을 수 없습니다.")
+    return {"guide_id": str(guide.id), "status": guide.status}
