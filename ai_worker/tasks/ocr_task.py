@@ -11,6 +11,7 @@ from ai_worker.schemas.record_schemas import OcrTaskResult, ParsedRecord
 
 logger = logging.getLogger(__name__)
 _config = Config()  # type: ignore[call-arg]
+_client = OpenAI(api_key=_config.OPENAI_API_KEY)
 
 _PARSE_SYSTEM_PROMPT = (
     "당신은 의약품 처방전 및 약봉투 OCR 텍스트를 분석하는 전문가입니다. "
@@ -54,8 +55,7 @@ async def _run_ocr(file_path: str) -> str:
 
 
 def _parse_with_openai(raw_text: str) -> ParsedRecord:
-    client = OpenAI(api_key=_config.OPENAI_API_KEY)
-    response = client.beta.chat.completions.parse(
+    response = _client.beta.chat.completions.parse(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": _PARSE_SYSTEM_PROMPT},
