@@ -25,10 +25,10 @@ class MedicalRecordRepository:
             file_url=file_url,
         )
 
-    async def get_by_id(self, record_id: int, user_id: int) -> MedicalRecord | None:
+    async def get_by_id(self, record_id: str, user_id: int) -> MedicalRecord | None:
         return await self._model.get_or_none(id=record_id, user_id=user_id)
 
-    async def get_completed_by_id(self, record_id, user_id: int) -> MedicalRecord | None:
+    async def get_completed_by_id(self, record_id: str, user_id: int) -> MedicalRecord | None:
         return await self._model.get_or_none(id=record_id, user_id=user_id, status="COMPLETED")
 
     async def get_list_by_user(self, user_id: int, page: int, limit: int) -> tuple[int, list[MedicalRecord]]:
@@ -37,7 +37,7 @@ class MedicalRecordRepository:
         items = await qs.offset((page - 1) * limit).limit(limit)
         return total, items
 
-    async def update_parsed_data(self, record_id: int, parsed_data: dict) -> None:
+    async def update_parsed_data(self, record_id: str, parsed_data: dict) -> None:
         await self._model.filter(id=record_id).update(
             parsed_data=parsed_data,
             status=RecordStatus.DONE,
@@ -49,7 +49,7 @@ class GuideRepository:
     def __init__(self):
         self._model = Guide
 
-    async def create(self, user_id: int, record_id) -> Guide:
+    async def create(self, user_id: int, record_id: str) -> Guide:
         return await self._model.create(user_id=user_id, medical_record_id=record_id)
 
     async def get_by_id(self, guide_id: int, user_id: int) -> Guide | None:
