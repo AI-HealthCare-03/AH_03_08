@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
-BACKEND_URL = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+BROKER_URL = os.getenv("CELERY_BROKER_URL")
+BACKEND_URL = os.getenv("CELERY_RESULT_BACKEND")
 
 celery_app = Celery(
     "medilog_ai",
