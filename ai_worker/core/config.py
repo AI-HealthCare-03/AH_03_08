@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Config(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="allow")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     TIMEZONE: zoneinfo.ZoneInfo = field(default_factory=lambda: zoneinfo.ZoneInfo("Asia/Seoul"))
 
@@ -18,7 +18,7 @@ class Config(BaseSettings):
 
     DB_HOST: str = "localhost"
     DB_PORT: int = 3306
-    DB_USER: str = "root"
+    DB_USER: str = "ozcoding"
     DB_PASSWORD: str = ""
     DB_NAME: str = "ai_health"
 
