@@ -10,7 +10,7 @@ celery_app = Celery(
     backend=REDIS_URL,
     include=[
         "ai_worker.tasks.llm_tasks",
-        "ai_worker.tasks.tts_tasks",
+        "ai_worker.tasks.tts_task",
         "ai_worker.tasks.image_tasks",
     ],
 )
@@ -27,7 +27,7 @@ celery_app.conf.update(
     result_expires=3600,
     task_routes={
         "ai_worker.tasks.llm_tasks.*": {"queue": "llm"},
-        "ai_worker.tasks.tts_tasks.*": {"queue": "tts"},
+        "ai_worker.tasks.tts_task.*": {"queue": "tts"},
         "ai_worker.tasks.image_tasks.*": {"queue": "image"},
     },
     beat_schedule={

@@ -1,19 +1,16 @@
 # app/services/tts.py
 
 # 표준 라이브러리
-import os
 import uuid
 
 # 서드파티 라이브러리
-from celery import Celery
 from fastapi.exceptions import HTTPException
 from starlette import status
 
 # 로컬 모듈
+from app.core.config import config
 from app.dtos.tts import AssetType, GuideAssetCreateResponse
-
-# Celery 앱 초기화 (Redis 브로커 연결)
-celery_app = Celery(broker=os.getenv("REDIS_URL", "redis://redis:6379/0"))
+from ai_worker.celery_app import celery_app
 
 
 class TtsService:
@@ -26,9 +23,6 @@ class TtsService:
     ) -> GuideAssetCreateResponse:
         """
         가이드 에셋 생성 요청을 처리하고 Celery Task를 등록한다.
-
-        REQ-GUIDE-002 연동: GUIDES 테이블의 요약본 텍스트를
-        CLOVA TTS로 변환 후 S3에 저장한다. (asset_type=tts)
 
         Args:
             guide_id: GUIDES 테이블의 guide_id
@@ -56,12 +50,12 @@ class TtsService:
         # send_task() → task 이름(문자열)으로 Redis에 등록
         # app과 ai_worker가 별도 컨테이너라 직접 import 불가
         celery_app.send_task(
-            "ai_worker.tasks.tts_task.convert_text_to_speech",
+            "ai_worker.tasks.tts_task.generate_tts_task",
             kwargs={
+                "asset_id": asset_id,
                 "guide_id": guide_id,
-                "summary_text": summary_text,
+                "text": summary_text,
                 "user_id": user_id,
-                "asset_type": asset_type,
             },
         )
 

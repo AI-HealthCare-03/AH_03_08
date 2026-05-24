@@ -27,7 +27,7 @@ async def _get_auth_headers(client: AsyncClient) -> dict:
 class TestCreateGuideAssetAPI(TestCase):
     async def test_create_tts_medication_success(self):
         """tts_medication 타입 TTS 생성 요청 테스트"""
-        with patch("app.services.tts.celery_app.send_task") as mock_task:
+        with patch("ai_worker.celery_app.celery_app.send_task") as mock_task:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
                 response = await client.post(
@@ -44,7 +44,7 @@ class TestCreateGuideAssetAPI(TestCase):
 
     async def test_create_tts_lifestyle_success(self):
         """tts_lifestyle 타입 TTS 생성 요청 테스트"""
-        with patch("app.services.tts.celery_app.send_task") as mock_task:
+        with patch("ai_worker.celery_app.celery_app.send_task") as mock_task:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
                 response = await client.post(
@@ -61,7 +61,7 @@ class TestCreateGuideAssetAPI(TestCase):
 
     async def test_create_invalid_asset_type(self):
         """잘못된 asset_type 요청 시 400 반환 테스트"""
-        with patch("app.services.tts.celery_app.send_task"):
+        with patch("ai_worker.celery_app.celery_app.send_task"):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
                 response = await client.post(
