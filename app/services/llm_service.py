@@ -1,9 +1,8 @@
-from celery import Celery
 from fastapi.exceptions import HTTPException
 from starlette import status
 from tortoise.transactions import in_transaction
 
-from app.core import config
+from ai_worker.celery_app import celery_app
 from app.models.llm import AssetType, GuideStatus, RecordStatus, RecordType
 from app.repositories.llm_repository import (
     ChatMessageRepository,
@@ -12,8 +11,6 @@ from app.repositories.llm_repository import (
     GuideRepository,
     MedicalRecordRepository,
 )
-
-_celery = Celery(broker=config.CELERY_BROKER_URL, backend=config.CELERY_RESULT_BACKEND)
 
 # ════════════════════════════════════════
 # MedicalRecordService
@@ -32,7 +29,7 @@ class MedicalRecordService:
         )
         return record
 
-    async def get_record(self, record_id: int, user_id: int):
+    async def get_record(self, record_id: str, user_id: int):
         record = await self.repo.get_by_id(record_id, user_id)
         if not record:
             raise HTTPException(
@@ -56,7 +53,7 @@ class GuideService:
         self.record_repo = MedicalRecordRepository()
         self.asset_repo = GuideAssetRepository()
 
-    async def generate_guide(self, user_id: int, record_id: int):
+    async def generate_guide(self, user_id: int, record_id: str):
         # OCR 완료된 레코드인지 확인
         record = await self.record_repo.get_completed_by_id(record_id, user_id)
         if not record:
@@ -81,7 +78,7 @@ class GuideService:
         #     },
         #     queue="llm",
         # )
-        _celery.send_task(
+        celery_app.send_task(
             "ai_worker.tasks.llm_tasks.generate_guide_task",
             kwargs={"guide_id": str(guide.id), "record_id": str(record_id), "user_id": user_id},
             queue="llm",
@@ -114,43 +111,22 @@ class GuideService:
 
         asset = await self.asset_repo.create(guide_id=guide_id, asset_type=asset_type)
 
-        # 에셋 타입에 따라 다른 Worker Task 발행
         if asset_type == AssetType.TTS:
-            from ai_worker.tasks.tts_tasks import generate_tts_task
-
-            generate_tts_task.apply_async(
+            celery_app.send_task(
+                "ai_worker.tasks.tts_tasks.generate_tts_task",
                 kwargs={
-                    "asset_id": asset.id,
-                    "guide_id": guide_id,
+                    "asset_id": str(asset.id),
+                    "guide_id": str(guide_id),
                     "text": guide.summary or guide.medication_guide,
                 },
                 queue="tts",
             )
         else:
-            from ai_worker.tasks.image_tasks import generate_card_image_task
-
-            generate_card_image_task.apply_async(
-                kwargs={"asset_id": asset.id, "guide_id": guide_id},
+            celery_app.send_task(
+                "ai_worker.tasks.image_tasks.generate_card_image_task",
+                kwargs={"asset_id": str(asset.id), "guide_id": str(guide_id)},
                 queue="image",
             )
-
-        # TTS
-        _celery.send_task(
-            "ai_worker.tasks.tts_tasks.generate_tts_task",
-            kwargs={
-                "asset_id": str(asset.id),
-                "guide_id": str(guide_id),
-                "text": guide.summary or guide.medication_guide,
-            },
-            queue="tts",
-        )
-
-        # 카드뉴스
-        _celery.send_task(
-            "ai_worker.tasks.image_tasks.generate_card_image_task",
-            kwargs={"asset_id": str(asset.id), "guide_id": str(guide_id)},
-            queue="image",
-        )
 
         return asset
 
@@ -236,7 +212,7 @@ class ChatService:
             )
 
         # Celery Task 발행 — LLM Worker가 스트리밍 응답 처리
-        _celery.send_task(
+        celery_app.send_task(
             "ai_worker.tasks.llm_tasks.process_chat_message_task",
             kwargs={
                 "session_id": session_id,
