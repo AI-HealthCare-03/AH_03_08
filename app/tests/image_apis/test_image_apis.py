@@ -27,7 +27,7 @@ async def _get_auth_headers(client: AsyncClient) -> dict:
 class TestAnalyzeImageAPI(TestCase):
     async def test_analyze_success(self):
         """정상적인 낱알약 분류 요청 테스트"""
-        with patch("app.services.image.celery_app.send_task") as mock_task:
+        with patch("ai_worker.celery_app.celery_app.send_task") as mock_task:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
                 response = await client.post(
@@ -69,22 +69,20 @@ class TestAnalyzeImageAPI(TestCase):
 class TestGetAnalysisResultAPI(TestCase):
     async def test_get_result_success(self):
         """분석 결과 조회 테스트"""
-        with patch("app.services.image.celery_app.send_task"):
+        with patch("ai_worker.celery_app.celery_app.send_task"):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
 
-                # 테스트용 MedicalRecord 먼저 생성
                 from app.models.medical_records import MedicalRecord
                 from app.models.users import User
 
                 user = await User.get(email="image_test@example.com")
                 record = await MedicalRecord.create(
-                    user=user,  # user_id=user.id → user=user 로 변경
+                    user=user,
                     record_type=2,
                     status="PENDING",
                 )
 
-                # 분석 요청
                 analyze_resp = await client.post(
                     "/api/v1/images/analyze",
                     headers=headers,
@@ -93,7 +91,6 @@ class TestGetAnalysisResultAPI(TestCase):
                 )
                 record_id = analyze_resp.json()["record_id"]
 
-                # 결과 조회
                 response = await client.get(
                     f"/api/v1/images/{record_id}",
                     headers=headers,
