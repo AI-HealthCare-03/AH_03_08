@@ -86,10 +86,7 @@ class GoogleAuthService:
             access_token = token_data.get("access_token")
 
             if not access_token:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="구글 인증에 실패했습니다."
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="구글 인증에 실패했습니다.")
 
             user_response = await client.get(
                 self.GOOGLE_USERINFO_URL,
@@ -105,10 +102,7 @@ class GoogleAuthService:
         name = user_info.get("name", "")
 
         if not google_id or not email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="구글 유저 정보를 가져올 수 없습니다."
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="구글 유저 정보를 가져올 수 없습니다.")
 
         user = await self.user_repo.get_user_by_oauth("google", google_id)
 
