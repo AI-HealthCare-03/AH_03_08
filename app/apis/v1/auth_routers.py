@@ -3,10 +3,9 @@ from typing import Annotated
 from fastapi import APIRouter, Cookie, Depends, HTTPException, status
 from fastapi.responses import JSONResponse as Response
 
-from app.core import config
-from app.core.config import Env
-from app.dtos.auth import LoginRequest, LoginResponse, SignUpRequest, TokenRefreshResponse
-from app.services.auth import AuthService
+from app.core.config import Env, config
+from app.dtos.auth import GoogleLoginRequest, LoginRequest, LoginResponse, SignUpRequest, TokenRefreshResponse
+from app.services.auth import AuthService, GoogleAuthService
 from app.services.jwt import JwtService
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
@@ -53,3 +52,25 @@ async def token_refresh(
     return Response(
         content=TokenRefreshResponse(access_token=str(access_token)).model_dump(), status_code=status.HTTP_200_OK
     )
+
+
+@auth_router.post("/google", response_model=LoginResponse, status_code=status.HTTP_200_OK)
+async def google_login(
+    request: GoogleLoginRequest,
+) -> Response:
+    """구글 소셜 로그인 - 인가 코드로 로그인/자동 회원가입"""
+    google_service = GoogleAuthService()
+    user = await google_service.social_login(request.code)
+    tokens = await google_service.login(user)
+    resp = Response(
+        content=LoginResponse(access_token=str(tokens["access_token"])).model_dump(), status_code=status.HTTP_200_OK
+    )
+    resp.set_cookie(
+        key="refresh_token",
+        value=str(tokens["refresh_token"]),
+        httponly=True,
+        secure=True if config.ENV == Env.PROD else False,
+        domain=config.COOKIE_DOMAIN or None,
+        expires=tokens["access_token"].payload["exp"],
+    )
+    return resp
