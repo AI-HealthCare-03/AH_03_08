@@ -4,13 +4,15 @@
 import uuid
 
 # 서드파티 라이브러리
+from celery import Celery
 from fastapi.exceptions import HTTPException
 from starlette import status
 
 # 로컬 모듈
 from app.core.config import config
 from app.dtos.tts import AssetType, GuideAssetCreateResponse
-from ai_worker.celery_app import celery_app
+
+celery_app = Celery(broker=config.CELERY_BROKER_URL, backend=config.CELERY_RESULT_BACKEND)
 
 
 class TtsService:
@@ -37,18 +39,14 @@ class TtsService:
             - 개인정보 보호: 의료 데이터(summary_text) 로그 직접 출력 금지
             - app과 ai_worker가 별도 컨테이너라 send_task()로 Redis에 등록
         """
-        # asset_type 검증
         if asset_type not in (AssetType.tts_medication, AssetType.tts_lifestyle):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="지원하지 않는 asset_type입니다.",
             )
 
-        # 고유한 asset_id 생성
         asset_id = str(uuid.uuid4())
 
-        # send_task() → task 이름(문자열)으로 Redis에 등록
-        # app과 ai_worker가 별도 컨테이너라 직접 import 불가
         celery_app.send_task(
             "ai_worker.tasks.tts_task.generate_tts_task",
             kwargs={
@@ -59,7 +57,6 @@ class TtsService:
             },
         )
 
-        # API 명세서: { "asset_id": uuid, "status": "processing" }
         return GuideAssetCreateResponse(
             asset_id=asset_id,
             status="processing",
