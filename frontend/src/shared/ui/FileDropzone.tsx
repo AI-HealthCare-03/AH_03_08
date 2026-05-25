@@ -44,7 +44,7 @@ export function FileDropzone({
       onDragLeave={() => setIsDragging(false)}
       onDrop={handleDrop}
       className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 transition-colors cursor-pointer
-        ${isDragging ? 'border-primary bg-primary/5' : 'border-gray-200 bg-gray-50'}`}
+        ${isDragging ? 'border-primary bg-primary/5' : 'border-gray-200 bg-[#F5F5F4]'}`}
       onClick={() => inputRef.current?.click()}
     >
       <input

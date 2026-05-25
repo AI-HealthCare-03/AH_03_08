@@ -53,7 +53,7 @@ export function HomePage() {
         description="건강 기록을 기반으로 맞춤 가이드를 제공합니다."
       />
 
-      <div className="px-4 md:px-6 pb-8 flex flex-col gap-6">
+      <div className="pb-4 flex flex-col gap-6">
         {/* 웰컴 배너 */}
         <div
           className="rounded-2xl px-5 py-4"
