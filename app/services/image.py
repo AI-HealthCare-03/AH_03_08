@@ -1,8 +1,9 @@
-# app/services/image.py
+from celery import Celery
 
-# 로컬 모듈
-from ai_worker.celery_app import celery_app
+from app.core.config import config
 from app.dtos.image import ImageAnalyzeResponse
+
+celery_app = Celery(broker=config.CELERY_BROKER_URL, backend=config.CELERY_RESULT_BACKEND)
 
 
 class ImageService:
