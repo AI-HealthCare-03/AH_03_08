@@ -86,7 +86,12 @@ class GoogleAuthService:
             access_token = token_data.get("access_token")
 
             if not access_token:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="구글 인증에 실패했습니다.")
+                import logging
+                logging.error(f"구글 토큰 오류: {token_data}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"구글 인증에 실패했습니다. {token_data.get('error', '')}: {token_data.get('error_description', '')}"
+                )
 
             user_response = await client.get(
                 self.GOOGLE_USERINFO_URL,
