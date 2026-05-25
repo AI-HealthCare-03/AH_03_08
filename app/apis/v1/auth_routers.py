@@ -54,7 +54,6 @@ async def token_refresh(
     )
 
 
-    
 @auth_router.post("/google", response_model=LoginResponse, status_code=status.HTTP_200_OK)
 async def google_login(
     request: GoogleLoginRequest,
@@ -64,8 +63,7 @@ async def google_login(
     user = await google_service.social_login(request.code)
     tokens = await google_service.login(user)
     resp = Response(
-        content=LoginResponse(access_token=str(tokens["access_token"])).model_dump(),
-        status_code=status.HTTP_200_OK
+        content=LoginResponse(access_token=str(tokens["access_token"])).model_dump(), status_code=status.HTTP_200_OK
     )
     resp.set_cookie(
         key="refresh_token",
