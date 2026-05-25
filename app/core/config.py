@@ -56,7 +56,6 @@ class Config(BaseSettings):
 # Google OAuth  
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: str = "http://localhost:3000/auth/google/callback"
-
+    GOOGLE_REDIRECT_URI: str = ""
 
 config = Config()
