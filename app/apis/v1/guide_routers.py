@@ -13,8 +13,10 @@ from app.services import feedback_service
 from app.services import guide as guide_service
 
 # ai_worker 직접 import 금지 — Redis 큐로만 작업 위임
-celery_app = Celery(broker=os.getenv("REDIS_URL", "redis://redis:6379/0"))
-GENERATE_GUIDE_TASK = "ai_worker.tasks.llm_tasks.generate_guide_task"
+celery_app = Celery(
+    broker=os.getenv("CELERY_BROKER_URL", os.getenv("REDIS_URL", "redis://redis:6379/1")),
+)
+GENERATE_GUIDE_TASK = "ai_worker.task.llm_tasks.generate_guide_task"
 
 guide_router = APIRouter(prefix="/guides", tags=["guides"])
 CurrentUser = Annotated[User, Depends(get_request_user)]
