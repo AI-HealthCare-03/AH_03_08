@@ -34,4 +34,5 @@ class UploadRecordUseCase:
         _celery.send_task(
             "ai_worker.tasks.ocr_task.process_ocr",
             args=[str(record_id), file_path],
+            queue="image",
         )
