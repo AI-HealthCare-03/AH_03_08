@@ -1,6 +1,7 @@
 # app/dtos/image.py
 from pydantic import BaseModel
 
+
 class DrugInfoResponse(BaseModel):
     record_id: str
     status: str
