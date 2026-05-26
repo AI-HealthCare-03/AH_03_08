@@ -29,7 +29,7 @@ class ImageService:
             - app과 ai_worker가 별도 컨테이너라 send_task()로 Redis에 등록
         """
         celery_app.send_task(
-            "ai_worker.tasks.image_task.classify_pill",
+            "ai_worker.task.image_task.classify_pill",
             kwargs={
                 "record_id": record_id,
                 "user_id": user_id,
