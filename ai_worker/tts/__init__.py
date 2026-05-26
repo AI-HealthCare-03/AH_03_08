@@ -11,3 +11,4 @@ def get_tts_provider(config: Config) -> TTSProvider:
         aws_secret_key=config.AWS_SECRET_KEY,
         aws_region=config.AWS_REGION,
     )
+
