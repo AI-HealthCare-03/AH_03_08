@@ -77,6 +77,7 @@ def get_stream_message_use_case(
 async def _build_guide_context(session_id: UUID) -> str:
     from app.models.chat_sessions import ChatSession as ChatSessionORM
     from app.models.guides import Guide
+
     session = await ChatSessionORM.get_or_none(id=session_id)
     if not session or not session.guide_id:
         return ""
