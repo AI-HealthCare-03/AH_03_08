@@ -12,7 +12,7 @@ _client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 async def _load_user_health_by_id(user_id: int) -> dict:
     from ai_worker.models import User
-    from ai_worker.task.llm_tasks import _init_tortoise
+    from ai_worker.tasks.llm_tasks import _init_tortoise
 
     await _init_tortoise()
     user = await User.get_or_none(id=user_id)
@@ -28,7 +28,7 @@ def generate_guide(
     user_id: int | None = None,
 ) -> dict:
     if (not user_health) and user_id is not None:
-        from ai_worker.task.llm_tasks import _run_async
+        from ai_worker.tasks.llm_tasks import _run_async
 
         user_health = _run_async(_load_user_health_by_id(user_id))
     user_health = user_health or {"allergies": [], "conditions": []}
