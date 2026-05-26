@@ -29,3 +29,7 @@ class LoginResponse(BaseModel):
 
 
 class TokenRefreshResponse(LoginResponse): ...
+
+
+class GoogleLoginRequest(BaseModel):
+    code: str  # Google OAuth 인가 코드

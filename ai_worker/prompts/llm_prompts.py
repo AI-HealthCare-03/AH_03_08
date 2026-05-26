@@ -27,7 +27,7 @@ def build_guide_user_prompt(medications: list, user_health: dict, rag_context: s
     for i, m in enumerate(medications, 1):
         med_lines.append(
             f"{i}. {m.get('drug_name', '알 수 없음')} | 용량: {m.get('dosage', '-')} "
-            f"| 복용법: {m.get('frequency', '-')} | 기간: {m.get('duration', '-')}"
+            f"| 일 투여횟수: {m.get('frequency', '-')} | 기간: {m.get('duration', '-')}"
         )
 
     allergies = ", ".join(f"{a['name']}({a['severity']})" for a in user_health.get("allergies", [])) or "없음"

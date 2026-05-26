@@ -60,5 +60,10 @@ class Config(BaseSettings):
 
     UPLOAD_DIR: str = "/tmp/uploads"
 
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = ""
+
 
 config = Config()

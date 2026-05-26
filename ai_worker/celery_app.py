@@ -1,14 +1,19 @@
 import os
 
 from celery import Celery
+from dotenv import load_dotenv
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+load_dotenv()
+
+BROKER_URL = os.getenv("CELERY_BROKER_URL")
+BACKEND_URL = os.getenv("CELERY_RESULT_BACKEND")
 
 celery_app = Celery(
     "medilog_ai",
-    broker=REDIS_URL,
-    backend=REDIS_URL,
+    broker=BROKER_URL,
+    backend=BACKEND_URL,
     include=[
+        "ai_worker.tasks.ocr_task",
         "ai_worker.tasks.llm_tasks",
         "ai_worker.tasks.tts_task",
         "ai_worker.tasks.image_tasks",
@@ -26,6 +31,7 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     result_expires=3600,
     task_routes={
+        "ai_worker.tasks.ocr_task.*": {"queue": "image"},
         "ai_worker.tasks.llm_tasks.*": {"queue": "llm"},
         "ai_worker.tasks.tts_task.*": {"queue": "tts"},
         "ai_worker.tasks.image_tasks.*": {"queue": "image"},

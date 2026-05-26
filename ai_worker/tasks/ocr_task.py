@@ -2,16 +2,16 @@ import asyncio
 import logging
 
 import asyncmy
-from celery import Task
+from celery import Task, shared_task
 from openai import OpenAI
 
 from ai_worker.core.config import Config
-from ai_worker.main import celery_app
 from ai_worker.ocr import get_ocr_provider
 from ai_worker.schemas.record_schemas import OcrTaskResult, ParsedRecord
 
 logger = logging.getLogger(__name__)
 _config = Config()  # type: ignore[call-arg]
+_client = OpenAI(api_key=_config.OPENAI_API_KEY)
 
 _PARSE_SYSTEM_PROMPT = (
     "당신은 의약품 처방전 및 약봉투 OCR 텍스트를 분석하는 전문가입니다. "
@@ -29,7 +29,7 @@ class OcrTask(Task):
         super().on_failure(exc, task_id, args, kwargs, einfo)
 
 
-@celery_app.task(
+@shared_task(
     base=OcrTask,
     bind=True,
     name="ai_worker.tasks.ocr_task.process_ocr",
@@ -43,8 +43,8 @@ def process_ocr(self, record_id: str, file_path: str) -> dict:
         logger.info(f"[OCR Task] 완료 record_id={record_id}")
         return OcrTaskResult(record_id=record_id, parsed_data=parsed.model_dump()).model_dump()
     except Exception as exc:
-        logger.warning(f"[OCR Task] 재시도 {self.request.retries + 1}/3: {exc}")
-        raise self.retry(exc=exc, countdown=30 * (2**self.request.retries)) from exc
+        logger.warning(f"[OCR Task] 재시도 {self.request.retries + 1}/3: {exc}", exc_info=True)
+        raise self.retry(exc=exc, countdown=5 * (2**self.request.retries)) from exc
 
 
 async def _run_ocr(file_path: str) -> str:
@@ -55,8 +55,7 @@ async def _run_ocr(file_path: str) -> str:
 
 
 def _parse_with_openai(raw_text: str) -> ParsedRecord:
-    client = OpenAI(api_key=_config.OPENAI_API_KEY)
-    response = client.beta.chat.completions.parse(
+    response = _client.beta.chat.completions.parse(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": _PARSE_SYSTEM_PROMPT},
