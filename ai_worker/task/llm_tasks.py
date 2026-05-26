@@ -20,6 +20,7 @@ from ai_worker.prompts.llm_prompts import (
     build_chat_system_prompt,
     build_guide_user_prompt,
 )
+from ai_worker.rag.chroma_store import search_docs_with_scores, search_text_for_medications
 from ai_worker.user_health import load_user_health
 
 logger = logging.getLogger(__name__)
@@ -44,32 +45,6 @@ def _get_llm_stream():
         streaming=True,
         api_key=os.getenv("OPENAI_API_KEY", ""),
     )
-
-
-_embeddings = None
-_vectorstore = None
-
-
-def _get_vectorstore():
-    global _embeddings, _vectorstore
-    if _vectorstore is None:
-        try:
-            from langchain_chroma import Chroma
-            from langchain_community.embeddings import HuggingFaceEmbeddings
-
-            _embeddings = HuggingFaceEmbeddings(
-                model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-                model_kwargs={"device": "cpu"},
-                encode_kwargs={"normalize_embeddings": True},
-            )
-            _vectorstore = Chroma(
-                collection_name="medical_knowledge",
-                embedding_function=_embeddings,
-                persist_directory=os.getenv("CHROMA_PERSIST_DIR", "/data/chromadb"),
-            )
-        except Exception as e:
-            logger.warning(f"ChromaDB init failed: {e}")
-    return _vectorstore
 
 
 _tortoise_initialized = False
@@ -145,7 +120,7 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
         medications = record.parsed_data.get("medications", [])
         user = await User.get_or_none(id=user_id)
         user_health = await load_user_health(user_id, user)
-        rag_context = _rag_search_text(medications)
+        rag_context = search_text_for_medications(medications)
 
         response = _get_llm().invoke(
             [
@@ -202,7 +177,7 @@ async def _process_chat(task, session_id: int, message_id: int, user_id: int, us
             await ChatMessage.filter(id=message_id).update(content=answer, status="DONE")
             return
 
-        rag_docs, rag_used = _rag_search_docs(user_message)
+        rag_docs, rag_used = search_docs_with_scores(user_message)
         history = _get_history(session_id)
 
         messages = [SystemMessage(content=build_chat_system_prompt(user_health, rag_docs))]
@@ -221,7 +196,7 @@ async def _process_chat(task, session_id: int, message_id: int, user_id: int, us
             )
 
         if not rag_used:
-            full_response += "\n\n*No reference documents - based on LLM knowledge*"
+            full_response += "\n\n*참고 문서 없음 — AI 일반 지식 기반 답변입니다.*"
 
         warning = _drug_interaction_check(user_message, user_health)
         if warning:
@@ -265,34 +240,6 @@ def generate_daily_tip_scheduled():
 
     tip_id = str(uuid.uuid4())
     generate_daily_tip_task.apply_async(kwargs={"tip_id": tip_id, "user_id": 0}, queue="llm")
-
-
-def _rag_search_text(medications: list) -> str:
-    if not medications:
-        return ""
-    try:
-        vs = _get_vectorstore()
-        if not vs:
-            return ""
-        query = " ".join(m.get("drug_name", "") for m in medications)
-        docs = vs.similarity_search(query, k=5)
-        return "\n\n".join(f"[{i + 1}] {d.page_content}" for i, d in enumerate(docs))
-    except Exception as e:
-        logger.warning(f"RAG search failed: {e}")
-        return ""
-
-
-def _rag_search_docs(query: str) -> tuple:
-    try:
-        vs = _get_vectorstore()
-        if not vs:
-            return [], False
-        results = vs.similarity_search_with_relevance_scores(query, k=3)
-        filtered = [doc for doc, score in results if score >= 0.6]
-        return filtered, bool(filtered)
-    except Exception as e:
-        logger.warning(f"RAG search failed: {e}")
-        return [], False
 
 
 def _is_off_topic(message: str) -> bool:
