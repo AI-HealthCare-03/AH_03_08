@@ -25,21 +25,21 @@ _PARSE_SYSTEM_PROMPT = (
 )
 
 
-_DISEASE_CODE_RE = re.compile(r'^[A-Z]\d{2}(\.\d{1,2})?$')
+_DISEASE_CODE_RE = re.compile(r"^[A-Z]\d{2}(\.\d{1,2})?$")
 
 
 def _normalize_disease_code(code: str | None) -> str | None:
     if not code:
         return None
-    s = code.replace(' ', '').strip()
+    s = code.replace(" ", "").strip()
     if not s or not s[0].isalpha():
         return None
     normalized = s[0].upper()
     for ch in s[1:]:
-        if ch in ('o', 'O'):
-            normalized += '0'
-        elif ch in ('l', 'I', '|'):
-            normalized += '1'
+        if ch in ("o", "O"):
+            normalized += "0"
+        elif ch in ("l", "I", "|"):
+            normalized += "1"
         else:
             normalized += ch
     if _DISEASE_CODE_RE.fullmatch(normalized):
