@@ -20,10 +20,7 @@ async def _init_tortoise():
     from tortoise import Tortoise
 
     await Tortoise.init(
-        db_url=(
-            f"mysql://{config.DB_USER}:{config.DB_PASSWORD}"
-            f"@{config.DB_HOST}:{config.DB_PORT}/{config.DB_NAME}"
-        ),
+        db_url=(f"mysql://{config.DB_USER}:{config.DB_PASSWORD}@{config.DB_HOST}:{config.DB_PORT}/{config.DB_NAME}"),
         modules={"models": ["ai_worker.models"]},
     )
     _tortoise_initialized = True
@@ -41,6 +38,7 @@ def _run_async(coro):
     finally:
         try:
             from tortoise import Tortoise
+
             loop.run_until_complete(Tortoise.close_connections())
         except Exception:
             pass
