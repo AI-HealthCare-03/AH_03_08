@@ -38,5 +38,10 @@ class Config(BaseSettings):
     AWS_REGION: str = "ap-northeast-2"
     S3_BUCKET_NAME: str = ""
 
+    # Pill 모델
+    PILL_MODEL_PATH: str = ""
+    PILL_LABEL_PATH: str = ""
+    PILL_DATA_PATH: str = ""
+
 
 config = Config()

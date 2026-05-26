@@ -32,7 +32,7 @@ class UploadRecordUseCase:
 
     def _dispatch_ocr(self, record_id: uuid.UUID, file_path: str) -> None:
         _celery.send_task(
-            "ai_worker.tasks.ocr_task.process_ocr",
+            "ai_worker.task.ocr_task.process_ocr",
             args=[str(record_id), file_path],
             queue="image",
         )

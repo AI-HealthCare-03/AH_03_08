@@ -15,8 +15,9 @@ celery_app = Celery(
     include=[
         "ai_worker.tasks.ocr_task",
         "ai_worker.tasks.llm_tasks",
+        "ai_worker.tasks.tts_tasks",
         "ai_worker.tasks.tts_task",
-        "ai_worker.tasks.image_tasks",
+        "ai_worker.tasks.image_task",
     ],
 )
 
@@ -33,8 +34,9 @@ celery_app.conf.update(
     task_routes={
         "ai_worker.tasks.ocr_task.*": {"queue": "image"},
         "ai_worker.tasks.llm_tasks.*": {"queue": "llm"},
+        "ai_worker.tasks.tts_tasks.*": {"queue": "tts"},
         "ai_worker.tasks.tts_task.*": {"queue": "tts"},
-        "ai_worker.tasks.image_tasks.*": {"queue": "image"},
+        "ai_worker.tasks.image_task.*": {"queue": "image"},
     },
     beat_schedule={
         "daily-tip-every-morning": {
