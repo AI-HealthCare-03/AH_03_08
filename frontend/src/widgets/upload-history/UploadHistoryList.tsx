@@ -10,6 +10,12 @@ const TYPE_ICON: Record<string, string> = {
   pill_photo: 'camera',
 }
 
+const TYPE_BADGE: Record<string, { bg: string; color: string }> = {
+  prescription: { bg: '#EFF6FF', color: '#1D4ED8' },
+  medicine_bag: { bg: '#FFF7ED', color: '#C2410C' },
+  pill_photo:   { bg: '#F0FDF4', color: '#15803D' },
+}
+
 export function UploadHistoryList() {
   const { data: records, isLoading } = useMedicalRecords()
   const navigate = useNavigate()
@@ -39,22 +45,58 @@ export function UploadHistoryList() {
         return (
           <li
             key={record.id}
-            className="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm"
+            className="flex items-start gap-3 rounded-xl bg-white p-4 shadow-sm"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 mt-0.5">
               <RecordIcon name={TYPE_ICON[record.record_type]} />
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-800 truncate">
-                {meta.label} · {record.file_name}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {new Date(record.created_at).toLocaleDateString('ko-KR')}
-              </p>
+              {/* 타입 뱃지 + 병원/약국명 */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className="shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold"
+                  style={TYPE_BADGE[record.record_type]}
+                >
+                  {meta.label}
+                </span>
+                {(() => {
+                  const name = record.record_type === 'medicine_bag'
+                    ? record.parsed_data?.pharmacy
+                    : record.parsed_data?.hospital
+                  return name
+                    ? <span className="truncate text-sm font-medium text-gray-800">{name}</span>
+                    : null
+                })()}
+              </div>
+
+              {/* 부가 정보 */}
+              <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                {record.parsed_data?.issued_at && (
+                  <span className="text-xs text-gray-400">
+                    처방일 {new Date(record.parsed_data.issued_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                  </span>
+                )}
+                {record.parsed_data?.disease_code && (
+                  <span className="rounded px-1.5 py-0.5 text-xs font-medium"
+                    style={{ background: '#D1FAE5', color: '#065F46' }}>
+                    {record.parsed_data.disease_code}
+                  </span>
+                )}
+                {(record.parsed_data?.medications?.length ?? 0) > 0 && (
+                  <span className="text-xs text-gray-400">
+                    약 {record.parsed_data!.medications!.length}종
+                  </span>
+                )}
+                {!record.parsed_data?.issued_at && !record.parsed_data?.hospital && !record.parsed_data?.pharmacy && (
+                  <span className="text-xs text-gray-400">
+                    {new Date(record.created_at).toLocaleDateString('ko-KR')}
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-col items-end gap-2 shrink-0">
               <StatusBadge status={record.status} />
               {record.status === 'completed' && record.guide_id && (
                 <Button
