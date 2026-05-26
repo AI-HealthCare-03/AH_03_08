@@ -78,4 +78,3 @@ class OpenAITTSProvider(TTSProvider):
         )
 
         return f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{file_key}"
-
