@@ -20,7 +20,7 @@ class Config(BaseSettings):
     )
 
     ENV: Env = Env.LOCAL
-    SECRET_KEY: str  # 기본값 제거 — 반드시 .env에서 주입
+    SECRET_KEY: str = f"default-secret-key{uuid.uuid4().hex}"
 
     @property
     def TIMEZONE(self) -> zoneinfo.ZoneInfo:  # noqa: N802
