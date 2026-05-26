@@ -115,6 +115,7 @@ async function fetchPillResult(id: string) {
 }
 
 export function usePillResult(id: string | null) {
+  const qc = useQueryClient()
   return useQuery({
     queryKey: ['pill-result', id],
     queryFn: () => fetchPillResult(id!),
@@ -122,6 +123,10 @@ export function usePillResult(id: string | null) {
     refetchInterval: (query) => {
       const status = query.state.data?.status
       if (status === 'PENDING' || status === 'PROCESSING') return 2000
+      if (status === 'DONE') {
+        qc.invalidateQueries({ queryKey: ['medical-records'] })
+        return false
+      }
       return false
     },
   })

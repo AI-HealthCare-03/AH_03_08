@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { RecordTypeSelector } from './RecordTypeSelector'
@@ -18,6 +19,7 @@ import type { RecordType } from '@/shared/types'
 
 export function RecordUploadForm() {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const [selectedType, setSelectedType] = useState<RecordType | null>(null)
   const [previewFile, setPreviewFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -49,6 +51,7 @@ export function RecordUploadForm() {
   useEffect(() => {
     if (pillResult?.status === 'DONE') {
       toast.success('낱알약 분석이 완료되었습니다!')
+      qc.invalidateQueries({ queryKey: ['medical-records'] })
     }
   }, [pillResult?.status])
 
@@ -130,7 +133,7 @@ export function RecordUploadForm() {
     )
   }
 
-  const isProcessing = record?.status === 'pending' || record?.status === 'processing'
+  const isProcessing = (record?.status === 'pending' || record?.status === 'processing') && selectedType !== 'pill_photo'
   const isCompleted = record?.status === 'completed'
   const isFailed = record?.status === 'failed'
   const hint = selectedType
