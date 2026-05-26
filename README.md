@@ -28,15 +28,15 @@ FastAPI API 서버, LLM 워커, AI 이미지 워커, TTS 워커를 통합한 서
 ├── ai_worker/                  # AI 모델 추론 및 학습 관련 코드 (Worker)
 │   ├── core/                   # 워커 설정 및 로거
 │   ├── prompts/                # LLM 프롬프트 정의
-│   ├── tasks/                  # 실제 처리할 작업 정의
-│   │   ├── llm_tasks.py        # LLM 가이드 생성, 챗봇, 데일리 TIP 태스크
-│   │   ├── image_task.py       # 낱알약 이미지 분류 태스크 (ResNet152)
-│   │   ├── image_tasks.py      # 카드뉴스 이미지 생성 태스크
-│   │   ├── tts_task.py         # TTS 변환 및 S3 업로드 태스크
-│   │   └── tts_tasks.py        # TTS 보조 태스크
-│   ├── celery_app.py           # Celery 앱 초기화
+│   ├── task/                   # Celery 태스크 (팀 규칙: task 단수, tasks 폴더 사용 안 함)
+│   │   ├── llm_tasks.py        # LLM 가이드 생성, 챗봇, 데일리 TIP
+│   │   ├── image_task.py       # 낱알약 이미지 분류 (ResNet152)
+│   │   ├── tts_task.py         # TTS 변환 및 S3 업로드
+│   │   ├── ocr_task.py         # OCR 처리
+│   │   └── ai_tasks.py         # 건강 데이터 분석
+│   ├── celery_app.py           # Celery 앱 (워커 기동: -A ai_worker.celery_app)
 │   ├── models.py               # AI 워커 내부 모델 정의
-│   └── main.py                 # 워커 진입점
+│   └── main.py                 # celery_app re-export (CLI 호환용)
 ├── app/                        # FastAPI 서버 코드
 │   ├── apis/                   # API 라우터 (v1 버전 관리)
 │   │   └── v1/

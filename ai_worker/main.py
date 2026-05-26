@@ -1,21 +1,7 @@
-import os
+"""Celery CLI 진입점 — docker-compose와 동일하게 celery_app만 사용."""
 
-from celery import Celery
-from dotenv import load_dotenv
+from ai_worker.celery_app import celery_app
 
-load_dotenv()
+app = celery_app
 
-app = Celery(
-    "ai_worker",
-    broker=os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/1"),
-    backend=os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/2"),
-)
-
-app.conf.task_routes = {
-    "ai_worker.task.llm_task.*": {"queue": "llm"},
-}
-
-app.autodiscover_tasks(["ai_worker.task"])
-
-if __name__ == "__main__":
-    app.start()
+__all__ = ["app", "celery_app"]

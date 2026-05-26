@@ -22,6 +22,7 @@ async def create_feedback_api(request: FeedbackCreateRequest, current_user: Curr
         guide_id=request.guide_id,
         rating=request.rating,
         comment=request.comment,
+        tag_ids=request.tag_ids,
     )
     return _ok(data, "피드백 제출 완료")
 

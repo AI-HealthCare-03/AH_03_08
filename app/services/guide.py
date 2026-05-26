@@ -10,6 +10,7 @@ def _guide_item(guide) -> dict:
     return {
         "id": str(guide.id),
         "record_id": str(guide.record_id),
+        "title": guide.title,
         "status": guide.status,
         "medication_guide": guide.medication_guide,
         "lifestyle_guide": guide.lifestyle_guide,

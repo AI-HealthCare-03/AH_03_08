@@ -12,7 +12,7 @@ config = Config()
 
 @celery_app.task(
     bind=True,
-    name="ai_worker.tasks.tts_task.generate_tts_task",
+    name="ai_worker.task.tts_task.generate_tts_task",
     max_retries=3,
 )
 def generate_tts_task(self, asset_id: str, guide_id: str, text: str, user_id: str) -> dict:

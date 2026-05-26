@@ -1,11 +1,18 @@
 from app.models.feedbacks import Feedback
 
 
-async def create_feedback(user_id: int, guide_id: str, rating: int, comment: str | None = None) -> Feedback:
+async def create_feedback(
+    user_id: int,
+    guide_id: str,
+    rating: int,
+    comment: str | None = None,
+    tag_ids: list[str] | None = None,
+) -> Feedback:
     return await Feedback.create(
         user_id=user_id,
         guide_id=guide_id,
         rating=rating,
+        tag_ids=tag_ids or [],
         comment=comment,
         status="ACTIVE",
     )

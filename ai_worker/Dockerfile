@@ -13,4 +13,4 @@ COPY ./ai_worker ./ai_worker
 COPY ./data/rag ./data/rag
 COPY ./scripts/ingest_chroma_knowledge.py ./scripts/ingest_chroma_knowledge.py
 
-CMD ["uv", "run", "python", "-m", "celery", "-A", "ai_worker.main", "worker", "--loglevel=info", "-Q", "llm,image"]
+CMD ["uv", "run", "python", "-m", "celery", "-A", "ai_worker.celery_app", "worker", "--loglevel=info", "-Q", "llm,image"]

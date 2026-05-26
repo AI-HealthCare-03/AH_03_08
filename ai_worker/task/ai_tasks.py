@@ -4,7 +4,7 @@
 # from celery import Task
 # from tortoise import Tortoise
 
-# from ai_worker.main import celery_app
+# from ai_worker.celery_app import celery_app
 # from ai_worker.schemas.ai import AnalysisRequest, AnalysisResult
 
 # logger = logging.getLogger(__name__)
@@ -96,7 +96,7 @@ import logging
 import asyncmy
 from celery import Task
 
-from ai_worker.main import celery_app
+from ai_worker.celery_app import celery_app
 from ai_worker.schemas.ai import AnalysisRequest, AnalysisResult
 
 logger = logging.getLogger(__name__)
