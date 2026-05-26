@@ -56,7 +56,7 @@ class TtsService:
         # send_task() → task 이름(문자열)으로 Redis에 등록
         # app과 ai_worker가 별도 컨테이너라 직접 import 불가
         celery_app.send_task(
-            "ai_worker.tasks.tts_task.convert_text_to_speech",
+            "ai_worker.task.tts_task.convert_text_to_speech",
             kwargs={
                 "guide_id": guide_id,
                 "summary_text": summary_text,
