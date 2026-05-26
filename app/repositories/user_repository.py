@@ -65,3 +65,26 @@ class UserRepository:
             user.updated_at = datetime.now(config.TIMEZONE)
             update_fields.append(UPDATED_AT_FIELD)
             await user.save(update_fields=update_fields)
+
+    async def get_user_by_oauth(self, oauth_provider: str, oauth_id: str) -> User | None:
+        return await self._model.get_or_none(oauth_provider=oauth_provider, oauth_id=oauth_id)
+
+    async def create_oauth_user(
+        self,
+        email: str,
+        name: str,
+        oauth_provider: str,
+        oauth_id: str,
+    ) -> User:
+        return await self._model.create(
+            email=email,
+            hashed_password="",
+            name=name,
+            phone_number="",
+            gender="MALE",
+            birth_date="2000-01-01",
+            oauth_provider=oauth_provider,
+            oauth_id=oauth_id,
+            is_active=True,
+            is_admin=False,
+        )

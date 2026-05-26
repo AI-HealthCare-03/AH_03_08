@@ -1,13 +1,39 @@
 import { z } from 'zod'
 import type { RecordType } from '@/shared/types'
 
+const medicationSchema = z.object({
+  name: z.string(),
+  dosage: z.string().nullish(),
+  frequency: z.string().nullish(),
+  days: z.number().nullish(),
+  instructions: z.string().nullish(),
+})
+
+export type Medication = z.infer<typeof medicationSchema>
+
+export const parsedDataSchema = z.object({
+  patient_name: z.string().nullish(),
+  issued_at: z.string().nullish(),
+  hospital: z.string().nullish(),
+  pharmacy: z.string().nullish(),
+  doctor: z.string().nullish(),
+  pharmacist: z.string().nullish(),
+  medications: z.array(medicationSchema).default([]),
+})
+
+export type ParsedData = z.infer<typeof parsedDataSchema>
+
 export const medicalRecordSchema = z.object({
-  id: z.number(),
+  id: z.string(),
+  user_id: z.number().optional(),
   record_type: z.enum(['prescription', 'medicine_bag', 'pill_photo']),
   status: z.enum(['pending', 'processing', 'completed', 'failed']),
-  file_name: z.string(),
+  ocr_raw_text: z.string().nullish(),
+  parsed_data: parsedDataSchema.nullish(),
   created_at: z.string(),
-  guide_id: z.number().nullable(),
+  // 하위 호환 — 백엔드 미지원 필드
+  file_name: z.string().optional(),
+  guide_id: z.union([z.string(), z.number()]).nullable().optional(),
 })
 
 export type MedicalRecord = z.infer<typeof medicalRecordSchema>

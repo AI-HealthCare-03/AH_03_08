@@ -8,26 +8,26 @@ interface RecordTypeSelectorProps {
 
 export function RecordTypeSelector({ selected, onChange }: RecordTypeSelectorProps) {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
       {(Object.entries(RECORD_TYPE_META) as [RecordType, typeof RECORD_TYPE_META[RecordType]][]).map(
         ([type, meta]) => (
           <button
             key={type}
             type="button"
             onClick={() => onChange(type)}
-            className={`flex flex-col items-start gap-1.5 rounded-xl border-2 p-3 text-left transition-all ${
+            className={`flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-all ${
               selected === type
-                ? 'border-primary bg-primary/5'
+                ? 'border-primary bg-[#E8F5EE]'
                 : 'border-gray-100 bg-white hover:border-gray-200'
             }`}
           >
-            <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
               selected === type ? 'bg-primary/15' : 'bg-gray-100'
             }`}>
               <RecordTypeIcon name={meta.icon} active={selected === type} />
             </div>
             <div>
-              <p className={`text-sm font-medium ${selected === type ? 'text-primary' : 'text-gray-700'}`}>
+              <p className={`text-sm font-bold ${selected === type ? 'text-primary' : 'text-gray-900'}`}>
                 {meta.label}
               </p>
               <p className="text-xs text-gray-400 leading-tight mt-0.5">{meta.description}</p>
