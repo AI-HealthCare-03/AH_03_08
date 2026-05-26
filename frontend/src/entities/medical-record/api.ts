@@ -72,12 +72,14 @@ export function useMedicalRecords() {
   })
 }
 
-export function useRecord(id: string | null) {
+export function useRecord(id: string | null, recordType?: RecordType) {
   return useQuery({
     queryKey: KEYS.detail(id!),
     queryFn: () => fetchRecord(id!),
     enabled: !!id,
     refetchInterval: (query) => {
+      // pill_photo는 백그라운드 처리라 폴링 불필요
+      if (recordType === 'pill_photo') return false
       const status = query.state.data?.status
       if (status === 'pending' || status === 'processing') return 2000
       return false

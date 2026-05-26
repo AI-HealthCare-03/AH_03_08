@@ -25,7 +25,7 @@ export function RecordUploadForm() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { mutate: upload, isPending: isUploading } = useUploadRecord()
-  const { data: record } = useRecord(recordId)
+  const { data: record } = useRecord(recordId, selectedType ?? undefined)
   const { mutate: updateRecord, isPending: isUpdating } = useUpdateRecord()
   const { mutate: generateGuide, isPending: isGenerating } = useGenerateGuide()
 
@@ -201,14 +201,22 @@ export function RecordUploadForm() {
           <div className="mt-3 flex items-center gap-2 rounded-xl bg-primary/5 px-4 py-3">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent shrink-0" />
             <p className="text-sm text-primary">
-              {isUploading ? '파일 업로드 중...' : 'OCR 분석 중... 잠시만 기다려 주세요.'}
+              {isUploading
+                ? '파일 업로드 중...'
+                : selectedType === 'pill_photo'
+                ? '낱알약 분석 중... 잠시만 기다려 주세요.'
+                : 'OCR 분석 중... 잠시만 기다려 주세요.'}
             </p>
           </div>
         )}
 
         {isFailed && (
           <div className="mt-3 rounded-xl bg-red-50 px-4 py-3">
-            <p className="text-sm text-red-600">OCR 처리에 실패했습니다. 파일을 다시 업로드해주세요.</p>
+            <p className="text-sm text-red-600">
+              {selectedType === 'pill_photo'
+                ? '낱알약 분석에 실패했습니다. 파일을 다시 업로드해주세요.'
+                : 'OCR 처리에 실패했습니다. 파일을 다시 업로드해주세요.'}
+            </p>
           </div>
         )}
       </section>
