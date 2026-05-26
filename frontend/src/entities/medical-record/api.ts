@@ -108,3 +108,21 @@ export function useGenerateGuide() {
     mutationFn: generateGuide,
   })
 }
+
+async function fetchPillResult(id: string) {
+  const { data } = await apiClient.get(`/images/${id}`)
+  return data
+}
+
+export function usePillResult(id: string | null) {
+  return useQuery({
+    queryKey: ['pill-result', id],
+    queryFn: () => fetchPillResult(id!),
+    enabled: !!id,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      if (status === 'PENDING' || status === 'PROCESSING') return 2000
+      return false
+    },
+  })
+}
