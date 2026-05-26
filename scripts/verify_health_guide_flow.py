@@ -8,6 +8,7 @@ import httpx
 BASE = "http://127.0.0.1:8000/api/v1"
 EMAIL = f"health_verify_{uuid.uuid4().hex[:8]}@example.com"
 PASSWORD = "Password123!"
+PHONE = f"010{uuid.uuid4().int % 10**8:08d}"
 
 
 async def main() -> None:
@@ -21,7 +22,7 @@ async def main() -> None:
                 "name": "건강검증",
                 "gender": "FEMALE",
                 "birth_date": "1995-05-20",
-                "phone_number": "01099998888",
+                "phone_number": PHONE,
             },
         )
         print("signup", r.status_code)

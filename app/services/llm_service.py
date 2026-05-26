@@ -1,8 +1,10 @@
+import os
+
+from celery import Celery
 from fastapi.exceptions import HTTPException
 from starlette import status
 from tortoise.transactions import in_transaction
 
-from ai_worker.celery_app import celery_app
 from app.models.llm import AssetType, GuideStatus, RecordStatus, RecordType
 from app.repositories.llm_repository import (
     ChatMessageRepository,
@@ -10,6 +12,11 @@ from app.repositories.llm_repository import (
     GuideAssetRepository,
     GuideRepository,
     MedicalRecordRepository,
+)
+
+# ai_worker 직접 import 금지 — Redis 브로커로만 Celery 작업 위임
+celery_app = Celery(
+    broker=os.getenv("CELERY_BROKER_URL", os.getenv("REDIS_URL", "redis://redis:6379/1")),
 )
 
 # ════════════════════════════════════════
