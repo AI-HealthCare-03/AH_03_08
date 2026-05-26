@@ -20,6 +20,7 @@ from ai_worker.prompts.llm_prompts import (
     build_chat_system_prompt,
     build_guide_user_prompt,
 )
+from ai_worker.user_health import load_user_health
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +117,7 @@ def _run_async(coro):
 
 @celery_app.task(
     bind=True,
-    name="ai_worker.tasks.llm_tasks.generate_guide_task",
+    name="ai_worker.task.llm_tasks.generate_guide_task",
     max_retries=3,
     default_retry_delay=30,
     acks_late=True,
@@ -143,7 +144,7 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
 
         medications = record.parsed_data.get("medications", [])
         user = await User.get_or_none(id=user_id)
-        user_health = _build_user_health(user)
+        user_health = await load_user_health(user_id, user)
         rag_context = _rag_search_text(medications)
 
         response = _get_llm().invoke(
@@ -158,7 +159,7 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
             status="done",
             medication_guide=parsed.get("medication_guide", ""),
             lifestyle_guide=parsed.get("lifestyle_guide", ""),
-            summary_text=parsed.get("summary", ""),
+            summary=parsed.get("summary", ""),
             allergy_warnings=parsed.get("allergy_warnings", []),
             condition_interactions=parsed.get("condition_interactions", []),
         )
@@ -174,7 +175,7 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
 
 @celery_app.task(
     bind=True,
-    name="ai_worker.tasks.llm_tasks.process_chat_message_task",
+    name="ai_worker.task.llm_tasks.process_chat_message_task",
     max_retries=2,
     default_retry_delay=5,
     acks_late=True,
@@ -191,7 +192,7 @@ async def _process_chat(task, session_id: int, message_id: int, user_id: int, us
 
     try:
         user = await User.get_or_none(id=user_id)
-        user_health = _build_user_health(user)
+        user_health = await load_user_health(user_id, user)
 
         if _is_off_topic(user_message):
             answer = (
@@ -238,7 +239,7 @@ async def _process_chat(task, session_id: int, message_id: int, user_id: int, us
         raise task.retry(exc=exc) from exc
 
 
-@celery_app.task(bind=True, name="ai_worker.tasks.llm_tasks.generate_daily_tip_task", max_retries=2)
+@celery_app.task(bind=True, name="ai_worker.task.llm_tasks.generate_daily_tip_task", max_retries=2)
 def generate_daily_tip_task(self, tip_id: str, user_id: int):
     logger.info(f"[daily_tip] tip_id={tip_id}")
     try:
@@ -258,31 +259,12 @@ def generate_daily_tip_task(self, tip_id: str, user_id: int):
         raise self.retry(exc=exc) from exc
 
 
-@celery_app.task(name="ai_worker.tasks.llm_tasks.generate_daily_tip_scheduled")
+@celery_app.task(name="ai_worker.task.llm_tasks.generate_daily_tip_scheduled")
 def generate_daily_tip_scheduled():
     import uuid
 
     tip_id = str(uuid.uuid4())
     generate_daily_tip_task.apply_async(kwargs={"tip_id": tip_id, "user_id": 0}, queue="llm")
-
-
-def _build_user_health(user) -> dict:
-    if not user:
-        return {}
-    age = None
-    if hasattr(user, "birthday") and user.birthday:
-        from datetime import date
-
-        today = date.today()
-        age = today.year - user.birthday.year - ((today.month, today.day) < (user.birthday.month, user.birthday.day))
-    return {
-        "age": age,
-        "gender": getattr(user, "gender", None),
-        "height_cm": getattr(user, "height_cm", None),
-        "weight_kg": getattr(user, "weight_kg", None),
-        "allergies": [],
-        "conditions": [],
-    }
 
 
 def _rag_search_text(medications: list) -> str:

@@ -12,10 +12,10 @@ app = Celery(
 )
 
 app.conf.task_routes = {
-    "ai_worker.tasks.llm_task.*": {"queue": "llm"},
+    "ai_worker.task.llm_task.*": {"queue": "llm"},
 }
 
-app.autodiscover_tasks(["ai_worker.tasks"])
+app.autodiscover_tasks(["ai_worker.task"])
 
 if __name__ == "__main__":
     app.start()

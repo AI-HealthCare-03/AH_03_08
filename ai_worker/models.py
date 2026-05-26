@@ -3,8 +3,8 @@ from tortoise import fields, models
 
 class User(models.Model):
     id = fields.BigIntField(primary_key=True)
-    gender = fields.CharField(max_length=10)
-    birthday = fields.DateField(null=True)
+    gender = fields.CharField(max_length=6)
+    birth_date = fields.DateField()
     height_cm = fields.FloatField(null=True)
     weight_kg = fields.FloatField(null=True)
 
@@ -25,7 +25,7 @@ class MedicalRecord(models.Model):
 class Guide(models.Model):
     id = fields.CharField(max_length=36, primary_key=True)
     user = fields.ForeignKeyField("models.User", related_name="guides")
-    record = fields.ForeignKeyField("models.MedicalRecord", related_name="guides", source_field="medical_record_id")
+    record = fields.ForeignKeyField("models.MedicalRecord", related_name="guides", source_field="record_id")
     status = fields.CharField(max_length=20, default="processing")
     medication_guide = fields.TextField(null=True)
     lifestyle_guide = fields.TextField(null=True)
@@ -55,3 +55,23 @@ class ChatMessage(models.Model):
 
     class Meta:
         table = "chat_messages"
+
+
+class Allergy(models.Model):
+    id = fields.UUIDField(primary_key=True)
+    user = fields.ForeignKeyField("models.User", related_name="allergies")
+    allergy_name = fields.CharField(max_length=200)
+    severity = fields.CharField(max_length=50, null=True)
+
+    class Meta:
+        table = "allergies"
+
+
+class UnderlyingDisease(models.Model):
+    id = fields.UUIDField(primary_key=True)
+    user = fields.ForeignKeyField("models.User", related_name="underlying_diseases")
+    underlying_disease_name = fields.CharField(max_length=200)
+    severity = fields.CharField(max_length=50, null=True)
+
+    class Meta:
+        table = "underlying_diseases"
