@@ -31,8 +31,8 @@ class Config(BaseSettings):
     # DB
     DB_HOST: str = "localhost"
     DB_PORT: int = 3306
-    DB_USER: str = "ozcoding"   # root → ozcoding
-    DB_PASSWORD: str = ""       # pw1234 제거
+    DB_USER: str = "ozcoding"  # root → ozcoding
+    DB_PASSWORD: str = ""  # pw1234 제거
     DB_NAME: str = "ai_health"
     DB_CONNECT_TIMEOUT: int = 5
     DB_CONNECTION_POOL_MAXSIZE: int = 10
