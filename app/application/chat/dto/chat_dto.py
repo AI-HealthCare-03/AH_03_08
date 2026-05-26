@@ -16,4 +16,4 @@ class SendMessageCommand:
     content: str
     allergies: list[str] = field(default_factory=list)
     underlying_diseases: list[str] = field(default_factory=list)
-    medications: list[str] = field(default_factory=list)
+    guide_context: str = ""
