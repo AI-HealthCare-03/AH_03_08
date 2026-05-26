@@ -18,6 +18,8 @@ class SessionResponseSchema(BaseModel):
     title: str | None = None
     created_at: datetime
     last_active_at: datetime
+    last_message_content: str | None = None
+    last_message_role: str | None = None
 
 
 class SessionListResponseSchema(BaseModel):
@@ -38,3 +40,7 @@ class MessageResponseSchema(BaseModel):
     role: str
     content: str
     created_at: datetime
+
+
+class MessageListResponseSchema(BaseModel):
+    items: list[MessageResponseSchema]
