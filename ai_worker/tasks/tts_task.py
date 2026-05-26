@@ -50,4 +50,3 @@ def generate_tts_task(self, asset_id: str, guide_id: str, text: str, user_id: st
     except Exception as exc:
         logger.error(f"TTS 변환 실패 - guide_id: {guide_id}, error: {exc}")
         raise self.retry(exc=exc, countdown=10) from exc
-
