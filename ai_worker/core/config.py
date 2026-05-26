@@ -17,6 +17,10 @@ class Config(BaseSettings):
     CELERY_BROKER_URL: str = "redis://redis:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://redis:6379/2"
 
+    OCR_PROVIDER: str = "clova"
+    CLOVA_OCR_URL: str = ""
+    CLOVA_OCR_SECRET: str = ""
+
     # DB
     DB_HOST: str = "localhost"
     DB_PORT: int = 3306
