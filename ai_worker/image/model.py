@@ -62,8 +62,7 @@ def predict(model: nn.Module, tensor: torch.Tensor) -> tuple[int, float]:
 
     top5 = torch.topk(probabilities, k=5, dim=1)
     _top5_log = [
-        (idx.item(), round(conf.item(), 4))
-        for idx, conf in zip(top5.indices[0], top5.values[0], strict=False)
+        (idx.item(), round(conf.item(), 4)) for idx, conf in zip(top5.indices[0], top5.values[0], strict=False)
     ]
     logger.info(f"모델 추론 완료 - class_idx: {class_idx}, confidence: {confidence_score:.4f}")
     logger.info(f"Top-5 추론 결과 (관리자용): {_top5_log}")
