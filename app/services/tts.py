@@ -56,7 +56,6 @@ class TtsService:
                 "user_id": user_id,
             },
         )
-
         return GuideAssetCreateResponse(
             asset_id=asset_id,
             status="processing",
