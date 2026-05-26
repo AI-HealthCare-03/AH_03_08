@@ -10,6 +10,7 @@ import {
   useRecord,
   useUpdateRecord,
   useGenerateGuide,
+  usePillResult,
 } from '@/entities/medical-record/api'
 import { RECORD_TYPE_META } from '@/entities/medical-record/model'
 import type { ParsedData } from '@/entities/medical-record/model'
@@ -28,6 +29,7 @@ export function RecordUploadForm() {
   const { data: record } = useRecord(recordId, selectedType ?? undefined)
   const { mutate: updateRecord, isPending: isUpdating } = useUpdateRecord()
   const { mutate: generateGuide, isPending: isGenerating } = useGenerateGuide()
+  const { data: pillResult } = usePillResult(selectedType === 'pill_photo' ? recordId : null)
 
   useEffect(() => {
     if (!previewFile?.type.startsWith('image/')) return
@@ -43,6 +45,12 @@ export function RecordUploadForm() {
       setEditedData((prev) => prev ?? (record.parsed_data as ParsedData))
     }
   }, [record?.status, record?.parsed_data])
+
+  useEffect(() => {
+    if (pillResult?.status === 'DONE') {
+      toast.success('낱알약 분석이 완료되었습니다!')
+    }
+  }, [pillResult?.status])
 
   function resetRecord() {
     setRecordId(null)
