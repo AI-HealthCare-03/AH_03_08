@@ -17,8 +17,13 @@ function ProtectedRoute() {
   return isAuthenticated ? <Outlet /> : <Navigate to="/" replace />
 }
 
+function RootRoute() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
+  return isAuthenticated ? <Navigate to="/home" replace /> : <LandingPage />
+}
+
 export const router = createBrowserRouter([
-  { path: '/', element: <LandingPage /> },
+  { path: '/', element: <RootRoute /> },
   { path: '/auth/login', element: <LoginPage /> },
   { path: '/auth/register', element: <RegisterPage /> },
   {
@@ -31,6 +36,7 @@ export const router = createBrowserRouter([
           { path: '/medical-record', element: <MedicalRecordPage /> },
           { path: '/guide', element: <GuidePage /> },
           { path: '/chatbot', element: <ChatbotPage /> },
+          { path: '/chatbot/:sessionId', element: <ChatbotPage /> },
           { path: '/calendar', element: <CalendarPage /> },
           { path: '/notification', element: <NotificationPage /> },
           { path: '/my-page', element: <MyPage /> },
