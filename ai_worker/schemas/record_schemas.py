@@ -23,5 +23,7 @@ class ParsedRecord(BaseModel):
     patient_name: str | None = None
     issued_at: str | None = None
     hospital: str | None = None
+    pharmacy: str | None = None
+    doctor: str | None = None
     pharmacist: str | None = None
     medications: list[Medication] = []
