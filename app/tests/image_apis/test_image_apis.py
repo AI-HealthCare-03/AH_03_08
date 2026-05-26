@@ -27,7 +27,7 @@ async def _get_auth_headers(client: AsyncClient) -> dict:
 class TestAnalyzeImageAPI(TestCase):
     async def test_analyze_success(self):
         """정상적인 낱알약 분류 요청 테스트"""
-        with patch("ai_worker.celery_app.celery_app.send_task") as mock_task:
+        with patch("app.services.image.celery_app.send_task") as mock_task:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
                 response = await client.post(
@@ -69,7 +69,7 @@ class TestAnalyzeImageAPI(TestCase):
 class TestGetAnalysisResultAPI(TestCase):
     async def test_get_result_success(self):
         """분석 결과 조회 테스트"""
-        with patch("ai_worker.celery_app.celery_app.send_task"):
+        with patch("app.services.image.celery_app.send_task"):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
 
