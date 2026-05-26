@@ -1,7 +1,6 @@
 """Swagger 동일 플로우: 건강정보 등록 → 가이드 생성 → 상태/상세 확인."""
 
 import asyncio
-import time
 import uuid
 
 import httpx
