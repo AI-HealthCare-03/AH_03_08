@@ -41,7 +41,7 @@
 # @celery_app.task(
 #     base=AITask,
 #     bind=True,
-#     name="ai_worker.tasks.ai_tasks.analyze_health_data",
+#     name="ai_worker.task.ai_tasks.analyze_health_data",
 #     max_retries=3,
 # )
 # def analyze_health_data(self, request_data: dict) -> dict:
@@ -111,7 +111,7 @@ class AITask(Task):
 @celery_app.task(
     base=AITask,
     bind=True,
-    name="ai_worker.tasks.ai_tasks.analyze_health_data",
+    name="ai_worker.task.ai_tasks.analyze_health_data",
     max_retries=3,
 )
 def analyze_health_data(self, request_data: dict) -> dict:

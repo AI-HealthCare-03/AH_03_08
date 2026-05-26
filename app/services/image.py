@@ -35,7 +35,7 @@ class ImageService:
         """
         # Celery Task 등록
         celery_app.send_task(
-            "ai_worker.tasks.image_task.classify_pill",
+            "ai_worker.task.image_task.classify_pill",
             kwargs={
                 "record_id": record_id,
                 "user_id": user_id,

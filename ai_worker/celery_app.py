@@ -13,10 +13,10 @@ celery_app = Celery(
     broker=BROKER_URL,
     backend=BACKEND_URL,
     include=[
-        "ai_worker.tasks.ocr_task",
-        "ai_worker.tasks.llm_tasks",
-        "ai_worker.tasks.tts_tasks",
-        "ai_worker.tasks.image_tasks",
+        "ai_worker.task.ocr_task",
+        "ai_worker.task.llm_tasks",
+        "ai_worker.task.tts_tasks",
+        "ai_worker.task.image_tasks",
     ],
 )
 
@@ -31,14 +31,14 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     result_expires=3600,
     task_routes={
-        "ai_worker.tasks.ocr_task.*": {"queue": "image"},
-        "ai_worker.tasks.llm_tasks.*": {"queue": "llm"},
-        "ai_worker.tasks.tts_tasks.*": {"queue": "tts"},
-        "ai_worker.tasks.image_tasks.*": {"queue": "image"},
+        "ai_worker.task.ocr_task.*": {"queue": "image"},
+        "ai_worker.task.llm_tasks.*": {"queue": "llm"},
+        "ai_worker.task.tts_tasks.*": {"queue": "tts"},
+        "ai_worker.task.image_tasks.*": {"queue": "image"},
     },
     beat_schedule={
         "daily-tip-every-morning": {
-            "task": "ai_worker.tasks.llm_tasks.generate_daily_tip_scheduled",
+            "task": "ai_worker.task.llm_tasks.generate_daily_tip_scheduled",
             "schedule": 86400.0,
             "options": {"queue": "llm"},
         },

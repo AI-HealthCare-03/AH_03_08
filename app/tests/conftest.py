@@ -18,8 +18,10 @@ TEST_DB_TZ = "Asia/Seoul"
 
 
 def get_test_db_config() -> dict[str, Any]:
+    # .env 의 DB_HOST=mysql(Docker) 대신 테스트는 localhost MySQL 사용 (CI·로컬 docker compose)
+    test_host = "127.0.0.1"
     tortoise_config = generate_config(
-        db_url=f"mysql://{config.DB_USER}:{config.DB_PASSWORD}@{config.DB_HOST}:{config.DB_PORT}/test",
+        db_url=f"mysql://{config.DB_USER}:{config.DB_PASSWORD}@{test_host}:{config.DB_PORT}/test",
         app_modules={TEST_DB_LABEL: TORTOISE_APP_MODELS},
         connection_label=TEST_DB_LABEL,
         testing=True,
@@ -29,8 +31,19 @@ def get_test_db_config() -> dict[str, Any]:
     return tortoise_config
 
 
+def _session_needs_db(request: FixtureRequest) -> bool:
+    items = getattr(request.session, "items", [])
+    if not items:
+        return True
+    return not all(item.get_closest_marker("no_db") is not None for item in items)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def initialize(request: FixtureRequest) -> Generator[None, None]:
+    if not _session_needs_db(request):
+        yield
+        return
+
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     with patch("tortoise.contrib.test.getDBConfig", Mock(return_value=get_test_db_config())):

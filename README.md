@@ -332,5 +332,5 @@ chmod +x scripts/certbot.sh
 
 - **API 추가**: `app/apis/v1/` 아래에 새로운 라우터 파일을 생성하고 `app/apis/v1/__init__.py`에 등록하세요.
 - **DB 모델 추가**: `app/models/`에 Tortoise 모델을 정의하고 `app/core/db/databases.py`의 `TORTOISE_APP_MODELS` 리스트에 추가하세요.
-- **AI 로직 추가**: `ai_worker/tasks/`에 새로운 처리 로직을 작성하고 `ai_worker/celery_app.py`에서 태스크를 등록하세요.
+- **AI 로직 추가**: `ai_worker/task/`에 새로운 처리 로직을 작성하고 `ai_worker/celery_app.py`에서 태스크를 등록하세요.
 - **마이그레이션**: 모델 변경 후 `aerich migrate` 및 `aerich upgrade`로 DB를 업데이트하세요.

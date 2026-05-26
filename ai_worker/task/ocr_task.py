@@ -32,7 +32,7 @@ class OcrTask(Task):
 @shared_task(
     base=OcrTask,
     bind=True,
-    name="ai_worker.tasks.ocr_task.process_ocr",
+    name="ai_worker.task.ocr_task.process_ocr",
     max_retries=3,
 )
 def process_ocr(self, record_id: str, file_path: str) -> dict:
