@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { MobileHeader } from './MobileHeader'
+import { MobileBottomNav } from './MobileBottomNav'
 
 export function AppShell() {
   return (
@@ -9,9 +10,10 @@ export function AppShell() {
 
       <div className="flex flex-col flex-1 min-w-0">
         <MobileHeader />
-        <main className="flex-1 overflow-y-auto pt-14 px-6 pb-6 md:pt-8 md:px-10 md:pb-10">
+        <main className="flex-1 overflow-y-auto pt-14 px-6 pb-20 md:pt-8 md:px-10 md:pb-10">
           <Outlet />
         </main>
+        <MobileBottomNav />
       </div>
     </div>
   )

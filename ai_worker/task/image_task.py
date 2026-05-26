@@ -1,4 +1,4 @@
-# ai_worker/tasks/image_task.py
+# ai_worker/task/image_task.py
 
 # 로컬 모듈
 from ai_worker.celery_app import celery_app
@@ -58,7 +58,7 @@ async def _save_image_result(record_id: str, drug_info: dict):
 
 @celery_app.task(
     bind=True,
-    name="ai_worker.tasks.image_task.classify_pill",
+    name="ai_worker.task.image_task.classify_pill",
     max_retries=3,
 )
 def classify_pill(self, image_bytes: bytes, record_id: str, user_id: str) -> dict:

@@ -120,7 +120,7 @@ class GuideService:
 
         if asset_type == AssetType.TTS:
             celery_app.send_task(
-                "ai_worker.task.tts_tasks.generate_tts_task",
+                "ai_worker.task.tts_task.generate_tts_task",
                 kwargs={
                     "asset_id": str(asset.id),
                     "guide_id": str(guide_id),

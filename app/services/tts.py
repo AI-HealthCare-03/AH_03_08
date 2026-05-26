@@ -48,7 +48,7 @@ class TtsService:
         asset_id = str(uuid.uuid4())
 
         celery_app.send_task(
-            "ai_worker.tasks.tts_task.generate_tts_task",
+            "ai_worker.task.tts_task.generate_tts_task",
             kwargs={
                 "asset_id": asset_id,
                 "guide_id": guide_id,

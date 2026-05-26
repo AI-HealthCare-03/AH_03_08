@@ -5,6 +5,7 @@ import { RecordTypeSelector } from './RecordTypeSelector'
 import { ParsedDataForm } from './ParsedDataForm'
 import { FileDropzone } from '@/shared/ui/FileDropzone'
 import { Button } from '@/components/ui/button'
+import { useInvalidateGuides } from '@/entities/guide/api'
 import {
   useUploadRecord,
   useRecord,
@@ -28,6 +29,7 @@ export function RecordUploadForm() {
   const { data: record } = useRecord(recordId)
   const { mutate: updateRecord, isPending: isUpdating } = useUpdateRecord()
   const { mutate: generateGuide, isPending: isGenerating } = useGenerateGuide()
+  const invalidateGuides = useInvalidateGuides()
 
   useEffect(() => {
     if (!previewFile?.type.startsWith('image/')) return
@@ -110,9 +112,10 @@ export function RecordUploadForm() {
       {
         onSuccess: () => {
           generateGuide(recordId, {
-            onSuccess: () => {
+            onSuccess: (data) => {
+              invalidateGuides()
               toast.success('가이드 생성 요청 완료! 가이드 탭에서 확인하세요.')
-              navigate('/guide')
+              navigate(`/guide?id=${data.guide_id}`)
             },
             onError: () => toast.error('가이드 생성에 실패했습니다.'),
           })
