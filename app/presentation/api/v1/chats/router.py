@@ -2,7 +2,7 @@ import json
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
 
 from app.application.chat.dto.chat_dto import CreateSessionCommand, SendMessageCommand
 from app.application.chat.use_cases.create_session import CreateSessionUseCase
@@ -20,6 +20,8 @@ from app.models.underlying_diseases import UnderlyingDisease
 from app.models.users import User
 from app.presentation.api.v1.chats.schemas import (
     CreateSessionRequestSchema,
+    MessageListResponseSchema,
+    MessageResponseSchema,
     SessionListResponseSchema,
     SessionResponseSchema,
 )
@@ -72,6 +74,37 @@ def get_stream_message_use_case(
     return StreamMessageUseCase(session_repo, message_repo, llm_client)
 
 
+async def _build_guide_context(session_id: UUID) -> str:
+    from app.models.chat_sessions import ChatSession as ChatSessionORM
+    from app.models.guides import Guide
+    session = await ChatSessionORM.get_or_none(id=session_id)
+    if not session or not session.guide_id:
+        return ""
+    guide = await Guide.get_or_none(id=session.guide_id)
+    if not guide:
+        return ""
+    parts = []
+    if guide.summary_text:
+        parts.append(f"요약: {guide.summary_text}")
+    if guide.medication_guide:
+        parts.append(f"복약 안내: {guide.medication_guide}")
+    if guide.lifestyle_guide:
+        parts.append(f"생활 습관: {guide.lifestyle_guide}")
+    try:
+        record = await guide.record
+        if record and record.parsed_data:
+            disease_code = record.parsed_data.get("disease_code")
+            if disease_code:
+                parts.append(f"질병분류기호: {disease_code}")
+            meds = record.parsed_data.get("medications", [])
+            if meds:
+                med_list = ", ".join(m.get("name", "") for m in meds if m.get("name"))
+                parts.append(f"처방 약물: {med_list}")
+    except Exception:
+        pass
+    return "\n".join(parts)
+
+
 async def _get_ws_user(token: str) -> User | None:
     """WebSocket은 HTTPBearer를 쓸 수 없어서 JWT를 직접 검증한다."""
     try:
@@ -98,15 +131,20 @@ async def create_session(
 async def list_sessions(
     user: Annotated[User, Depends(get_request_user)],
     use_case: Annotated[ListSessionsUseCase, Depends(get_list_sessions_use_case)],
+    message_repo: Annotated[AbstractChatMessageRepository, Depends(get_chat_message_repository)],
     page: Annotated[int, Query(ge=1)] = 1,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> SessionListResponseSchema:
     sessions, total = await use_case.execute(user_id=user.id, page=page, limit=limit)
-    return SessionListResponseSchema(
-        total=total,
-        page=page,
-        items=[SessionResponseSchema.model_validate(s) for s in sessions],
-    )
+    items = []
+    for session in sessions:
+        messages = await message_repo.find_recent_by_session_id(session.id, limit=1)
+        last = messages[0] if messages else None
+        schema = SessionResponseSchema.model_validate(session)
+        schema.last_message_content = last.content if last else None
+        schema.last_message_role = last.role if last else None
+        items.append(schema)
+    return SessionListResponseSchema(total=total, page=page, items=items)
 
 
 @chats_router.get("/{session_id}", response_model=SessionResponseSchema, status_code=status.HTTP_200_OK)
@@ -117,6 +155,21 @@ async def get_session(
 ) -> SessionResponseSchema:
     session = await use_case.execute(session_id=session_id, user_id=user.id)
     return SessionResponseSchema.model_validate(session)
+
+
+@chats_router.get("/{session_id}/messages", response_model=MessageListResponseSchema, status_code=status.HTTP_200_OK)
+async def list_messages(
+    session_id: UUID,
+    user: Annotated[User, Depends(get_request_user)],
+    session_repo: Annotated[AbstractChatSessionRepository, Depends(get_chat_session_repository)],
+    message_repo: Annotated[AbstractChatMessageRepository, Depends(get_chat_message_repository)],
+    limit: Annotated[int, Query(ge=1, le=200)] = 100,
+) -> MessageListResponseSchema:
+    session = await session_repo.find_by_id(session_id=session_id, user_id=user.id)
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="채팅 세션을 찾을 수 없습니다.")
+    messages = await message_repo.find_recent_by_session_id(session_id=session_id, limit=limit)
+    return MessageListResponseSchema(items=[MessageResponseSchema.model_validate(m) for m in reversed(messages)])
 
 
 @chats_router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -150,6 +203,9 @@ async def chat_websocket(
         await websocket.close(code=4001)
         return
 
+    # 세션의 가이드 컨텍스트를 연결 시점에 한 번만 로드
+    guide_context = await _build_guide_context(session_id)
+
     use_case = StreamMessageUseCase(
         TortoiseChatSessionRepository(),
         TortoiseChatMessageRepository(),
@@ -179,6 +235,7 @@ async def chat_websocket(
                 content=content,
                 allergies=list(allergies),
                 underlying_diseases=list(diseases),
+                guide_context=guide_context,
             )
 
             try:
