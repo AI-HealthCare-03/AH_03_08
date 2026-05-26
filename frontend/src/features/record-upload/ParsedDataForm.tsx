@@ -30,6 +30,7 @@ export function ParsedDataForm({ data, onChange }: ParsedDataFormProps) {
           <DateField label="발행일" value={data.issued_at ?? ''} onChange={(v) => setField('issued_at', v)} />
           <Field label="처방의" value={data.doctor ?? ''} onChange={(v) => setField('doctor', v)} />
           <Field label="약사명" value={data.pharmacist ?? ''} onChange={(v) => setField('pharmacist', v)} />
+          <Field label="질병분류기호" value={data.disease_code ?? ''} onChange={(v) => setField('disease_code', v)} />
         </div>
       </div>
 
