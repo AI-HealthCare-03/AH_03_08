@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 
 import asyncmy
 from celery import Task, shared_task
@@ -16,8 +17,35 @@ _client = OpenAI(api_key=_config.OPENAI_API_KEY)
 _PARSE_SYSTEM_PROMPT = (
     "당신은 의약품 처방전 및 약봉투 OCR 텍스트를 분석하는 전문가입니다. "
     "주어진 텍스트에서 정보를 추출하여 지정된 JSON 스키마에 맞게 반환하세요. "
-    "확인할 수 없는 값은 null로 반환하세요."
+    "확인할 수 없는 값은 null로 반환하세요.\n\n"
+    "질병분류기호(disease_code) 추출 규칙:\n"
+    "- 형식: 영문자 1자리 + 숫자 2자리 + 선택적으로 소수점 + 숫자 1~2자리 (예: J18.0, K29.10, N30)\n"
+    "- OCR 오류 보정: 공백 제거, 숫자 자리의 'o'/'O'는 '0'으로, 'l'/'I'는 '1'으로 교체\n"
+    "- 처방전에 없거나 불확실하면 null로 반환하세요."
 )
+
+
+_DISEASE_CODE_RE = re.compile(r'^[A-Z]\d{2}(\.\d{1,2})?$')
+
+
+def _normalize_disease_code(code: str | None) -> str | None:
+    if not code:
+        return None
+    s = code.replace(' ', '').strip()
+    if not s or not s[0].isalpha():
+        return None
+    normalized = s[0].upper()
+    for ch in s[1:]:
+        if ch in ('o', 'O'):
+            normalized += '0'
+        elif ch in ('l', 'I', '|'):
+            normalized += '1'
+        else:
+            normalized += ch
+    if _DISEASE_CODE_RE.fullmatch(normalized):
+        return normalized
+    # 패턴 불일치라도 공백·대소문자만 정리한 값을 돌려줘 사용자가 폼에서 수정 가능하게
+    return s[0].upper() + s[1:] if s else None
 
 
 class OcrTask(Task):
@@ -68,7 +96,8 @@ def _parse_with_openai(raw_text: str) -> ParsedRecord:
     if parsed is None:
         logger.warning("[OCR Task] OpenAI 파싱 결과 없음, 빈 ParsedRecord 반환")
         return ParsedRecord()
-    logger.info(f"[OCR Task] 파싱 완료: 약품 {len(parsed.medications)}개")
+    parsed.disease_code = _normalize_disease_code(parsed.disease_code)
+    logger.info(f"[OCR Task] 파싱 완료: 약품 {len(parsed.medications)}개, 질병분류기호={parsed.disease_code}")
     return parsed
 
 

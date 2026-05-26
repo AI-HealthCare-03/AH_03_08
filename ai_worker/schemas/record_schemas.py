@@ -26,4 +26,5 @@ class ParsedRecord(BaseModel):
     pharmacy: str | None = None
     doctor: str | None = None
     pharmacist: str | None = None
+    disease_code: str | None = None
     medications: list[Medication] = []
