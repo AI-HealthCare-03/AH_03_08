@@ -51,6 +51,10 @@ jobs:
           MYSQL_DATABASE: ai_health
         ports:
           - 3306:3306
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
