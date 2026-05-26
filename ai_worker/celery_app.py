@@ -18,7 +18,6 @@ celery_app = Celery(
         "ai_worker.tasks.tts_tasks",
         "ai_worker.tasks.tts_task",
         "ai_worker.tasks.image_task",
-        "ai_worker.tasks.image_tasks",
     ],
 )
 
@@ -38,7 +37,6 @@ celery_app.conf.update(
         "ai_worker.tasks.tts_tasks.*": {"queue": "tts"},
         "ai_worker.tasks.tts_task.*": {"queue": "tts"},
         "ai_worker.tasks.image_task.*": {"queue": "image"},
-        "ai_worker.tasks.image_tasks.*": {"queue": "image"},
     },
     beat_schedule={
         "daily-tip-every-morning": {
