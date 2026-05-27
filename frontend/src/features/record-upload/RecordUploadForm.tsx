@@ -49,12 +49,14 @@ export function RecordUploadForm() {
   }, [record?.status, record?.parsed_data])
 
   useEffect(() => {
-    if (pillResult?.status === 'COMPLETED') {
-      toast.success('낱알약 분석이 완료되었습니다!')
-      qc.invalidateQueries({ queryKey: ['medical-records'] })
-    }
-  }, [pillResult?.status])
-
+  if (pillResult?.status === 'COMPLETED') {
+    toast.success('낱알약 분석이 완료되었습니다!', { duration: 6000 })
+    qc.invalidateQueries({ queryKey: ['medical-records'] })
+  } else if (pillResult?.status === 'FAILED') {
+    toast.error('낱알약을 인식하지 못했습니다. 지원되지 않는 약품이거나 사진 품질이 낮을 수 있습니다.', { duration: 6000 })
+    qc.invalidateQueries({ queryKey: ['medical-records'] })
+  }
+}, [pillResult?.status])
   function resetRecord() {
     setRecordId(null)
     setEditedData(null)
