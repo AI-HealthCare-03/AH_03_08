@@ -3,8 +3,8 @@ import type { RecordType } from '@/shared/types'
 
 const medicationSchema = z.object({
   name: z.string(),
-  dosage: z.string().nullish(),
-  frequency: z.string().nullish(),
+  dosage: z.coerce.string().nullish(),
+  frequency: z.coerce.string().nullish(),
   days: z.number().nullish(),
   instructions: z.string().nullish(),
 })
@@ -18,6 +18,7 @@ export const parsedDataSchema = z.object({
   pharmacy: z.string().nullish(),
   doctor: z.string().nullish(),
   pharmacist: z.string().nullish(),
+  disease_code: z.string().nullish(),
   medications: z.array(medicationSchema).default([]),
 })
 

@@ -1,9 +1,8 @@
-import os
 from typing import Annotated
 
-from celery import Celery
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from ai_worker.celery_app import celery_app
 from app.dependencies.security import get_request_user
 from app.dtos.guide import FeedbackCreateRequest, GuideGenerateRequest
 from app.models.medical_records import MedicalRecord
@@ -12,11 +11,7 @@ from app.repositories.guide_repository import create_guide
 from app.services import feedback_service
 from app.services import guide as guide_service
 
-# ai_worker 직접 import 금지 — Redis 큐로만 작업 위임
-celery_app = Celery(
-    broker=os.getenv("CELERY_BROKER_URL", os.getenv("REDIS_URL", "redis://redis:6379/1")),
-)
-GENERATE_GUIDE_TASK = "ai_worker.task.llm_tasks.generate_guide_task"
+GENERATE_GUIDE_TASK = "ai_worker.tasks.llm_tasks.generate_guide_task"
 
 guide_router = APIRouter(prefix="/guides", tags=["guides"])
 CurrentUser = Annotated[User, Depends(get_request_user)]
