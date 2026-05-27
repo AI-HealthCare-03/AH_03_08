@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { RecordTypeSelector } from './RecordTypeSelector'
@@ -10,6 +11,7 @@ import {
   useRecord,
   useUpdateRecord,
   useGenerateGuide,
+  usePillResult,
 } from '@/entities/medical-record/api'
 import { RECORD_TYPE_META } from '@/entities/medical-record/model'
 import type { ParsedData } from '@/entities/medical-record/model'
@@ -17,6 +19,7 @@ import type { RecordType } from '@/shared/types'
 
 export function RecordUploadForm() {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const [selectedType, setSelectedType] = useState<RecordType | null>(null)
   const [previewFile, setPreviewFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -25,9 +28,10 @@ export function RecordUploadForm() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { mutate: upload, isPending: isUploading } = useUploadRecord()
-  const { data: record } = useRecord(recordId)
+  const { data: record } = useRecord(selectedType === 'pill_photo' ? null : recordId, selectedType ?? undefined)
   const { mutate: updateRecord, isPending: isUpdating } = useUpdateRecord()
   const { mutate: generateGuide, isPending: isGenerating } = useGenerateGuide()
+  const { data: pillResult } = usePillResult(selectedType === 'pill_photo' ? recordId : null)
 
   useEffect(() => {
     if (!previewFile?.type.startsWith('image/')) return
@@ -44,6 +48,15 @@ export function RecordUploadForm() {
     }
   }, [record?.status, record?.parsed_data])
 
+  useEffect(() => {
+  if (pillResult?.status === 'COMPLETED') {
+    toast.success('낱알약 분석이 완료되었습니다!', { duration: 6000 })
+    qc.invalidateQueries({ queryKey: ['medical-records'] })
+  } else if (pillResult?.status === 'FAILED') {
+    toast.error('낱알약을 인식하지 못했습니다. 지원되지 않는 약품이거나 사진 품질이 낮을 수 있습니다.', { duration: 6000 })
+    qc.invalidateQueries({ queryKey: ['medical-records'] })
+  }
+}, [pillResult?.status])
   function resetRecord() {
     setRecordId(null)
     setEditedData(null)
@@ -122,7 +135,7 @@ export function RecordUploadForm() {
     )
   }
 
-  const isProcessing = record?.status === 'pending' || record?.status === 'processing'
+  const isProcessing = (record?.status === 'pending' || record?.status === 'processing') && selectedType !== 'pill_photo'
   const isCompleted = record?.status === 'completed'
   const isFailed = record?.status === 'failed'
   const hint = selectedType
@@ -201,14 +214,22 @@ export function RecordUploadForm() {
           <div className="mt-3 flex items-center gap-2 rounded-xl bg-primary/5 px-4 py-3">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent shrink-0" />
             <p className="text-sm text-primary">
-              {isUploading ? '파일 업로드 중...' : 'OCR 분석 중... 잠시만 기다려 주세요.'}
+              {isUploading
+                ? '파일 업로드 중...'
+                : selectedType === 'pill_photo'
+                ? '낱알약 분석 중... 잠시만 기다려 주세요.'
+                : 'OCR 분석 중... 잠시만 기다려 주세요.'}
             </p>
           </div>
         )}
 
         {isFailed && (
           <div className="mt-3 rounded-xl bg-red-50 px-4 py-3">
-            <p className="text-sm text-red-600">OCR 처리에 실패했습니다. 파일을 다시 업로드해주세요.</p>
+            <p className="text-sm text-red-600">
+              {selectedType === 'pill_photo'
+                ? '낱알약 분석에 실패했습니다. 파일을 다시 업로드해주세요.'
+                : 'OCR 처리에 실패했습니다. 파일을 다시 업로드해주세요.'}
+            </p>
           </div>
         )}
       </section>
