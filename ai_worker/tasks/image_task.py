@@ -55,12 +55,15 @@ async def _save_image_result(record_id: str, drug_info: dict):
         status="COMPLETED",
     )
 
+
 async def _save_failed_result(record_id: str):
     await _init_tortoise()
     from ai_worker.models import MedicalRecord
+
     await MedicalRecord.filter(id=record_id).update(
         status="FAILED",
     )
+
 
 @celery_app.task(
     bind=True,
@@ -97,7 +100,6 @@ def classify_pill(self, image_bytes: bytes, record_id: str, user_id: str) -> dic
                 "data": None,
                 "message": "분류할 수 없는 약품입니다.",
             }
-
 
         drug_info["confidence_score"] = confidence_score
         _run_async(_save_image_result(record_id, drug_info))
