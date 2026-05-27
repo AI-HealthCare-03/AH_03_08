@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuthStore } from '@/app/providers/auth-store'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
@@ -25,6 +26,7 @@ apiClient.interceptors.response.use(
         // refresh_token은 httpOnly 쿠키로 자동 전송됨
         const { data } = await axios.get(`${BASE_URL}/api/v1/auth/token/refresh`)
         localStorage.setItem('access_token', data.access_token)
+        useAuthStore.getState().setTokens(data.access_token)
         original.headers.Authorization = `Bearer ${data.access_token}`
         return apiClient(original)
       } catch {
