@@ -129,12 +129,15 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
             ]
         )
         parsed = _parse_json(response.content)
+        summary_text = (parsed.get("summary") or "").strip()
+        title = summary_text[:15] if summary_text else None
 
         await Guide.filter(id=guide_id).update(
             status="done",
+            title=title,
             medication_guide=parsed.get("medication_guide", ""),
             lifestyle_guide=parsed.get("lifestyle_guide", ""),
-            summary=parsed.get("summary", ""),
+            summary=summary_text,
             allergy_warnings=parsed.get("allergy_warnings", []),
             condition_interactions=parsed.get("condition_interactions", []),
         )

@@ -5,7 +5,7 @@ const statusConfig: Record<RecordStatus, { label: string; className: string }> =
   pending:    { label: '대기중', className: 'bg-[#FAEEDA] text-[#854F0B] hover:bg-[#FAEEDA]' },
   processing: { label: '처리중', className: 'bg-[#FAEEDA] text-[#854F0B] hover:bg-[#FAEEDA]' },
   completed:  { label: '완료',   className: 'bg-[#EAF3DE] text-[#3B6D11] hover:bg-[#EAF3DE]' },
-  failed:     { label: '실패',   className: 'bg-[#FCEBEB] text-[#A32D2D] hover:bg-[#FCEBEB]' },
+  failed:     { label: '인식불가',   className: 'bg-[#FCEBEB] text-[#A32D2D] hover:bg-[#FCEBEB]' },
 }
 
 interface StatusBadgeProps {

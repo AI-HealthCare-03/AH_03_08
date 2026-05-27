@@ -31,14 +31,13 @@ celery_app.conf.update(
     result_expires=3600,
     task_routes={
         "ai_worker.tasks.ocr_task.*": {"queue": "image"},
-        "ai_worker.tasks.llm_tasks.*": {"queue": "llm"},
-        "ai_worker.tasks.tts_tasks.*": {"queue": "tts"},
+        "ai_worker.tasks.llm_task.*": {"queue": "llm"},
         "ai_worker.tasks.tts_task.*": {"queue": "tts"},
         "ai_worker.tasks.image_task.*": {"queue": "image"},
     },
     beat_schedule={
         "daily-tip-every-morning": {
-            "task": "ai_worker.tasks.llm_tasks.generate_daily_tip_scheduled",
+            "task": "ai_worker.tasks.llm_task.generate_daily_tip_scheduled",
             "schedule": 86400.0,
             "options": {"queue": "llm"},
         },
