@@ -52,7 +52,7 @@ async def _save_image_result(record_id: str, drug_info: dict):
 
     await MedicalRecord.filter(id=record_id).update(
         parsed_data=drug_info,
-        status="DONE",
+        status="COMPLETED",
     )
 
 
