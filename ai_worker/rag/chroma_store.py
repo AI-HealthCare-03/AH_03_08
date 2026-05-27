@@ -22,12 +22,12 @@ def get_vectorstore():
         return _vectorstore
     try:
         from langchain_chroma import Chroma
-        from langchain_community.embeddings import HuggingFaceEmbeddings
+        from langchain_openai import OpenAIEmbeddings
 
-        _embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={"normalize_embeddings": True},
+        _embeddings = OpenAIEmbeddings(
+            model=os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
+            api_key=os.getenv("OPENAI_API_KEY", ""),
+            
         )
         _vectorstore = Chroma(
             collection_name=COLLECTION_NAME,

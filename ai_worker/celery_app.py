@@ -13,11 +13,9 @@ celery_app = Celery(
     broker=BROKER_URL,
     backend=BACKEND_URL,
     include=[
-        "ai_worker.tasks.ocr_task",
-        "ai_worker.tasks.llm_tasks",
-        "ai_worker.tasks.tts_tasks",
-        "ai_worker.tasks.tts_task",
-        "ai_worker.tasks.image_task",
+        "ai_worker.task.ocr_task",
+        "ai_worker.task.llm_tasks",
+        "ai_worker.task.tts_task",
     ],
 )
 
