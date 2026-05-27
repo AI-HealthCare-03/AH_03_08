@@ -28,7 +28,7 @@ export function RecordUploadForm() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { mutate: upload, isPending: isUploading } = useUploadRecord()
-  const { data: record } = useRecord(recordId, selectedType ?? undefined)
+  const { data: record } = useRecord(selectedType === 'pill_photo' ? null : recordId, selectedType ?? undefined)
   const { mutate: updateRecord, isPending: isUpdating } = useUpdateRecord()
   const { mutate: generateGuide, isPending: isGenerating } = useGenerateGuide()
   const { data: pillResult } = usePillResult(selectedType === 'pill_photo' ? recordId : null)
