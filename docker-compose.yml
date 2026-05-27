@@ -91,6 +91,7 @@ services:
     # ex) PILL_MODEL_BASE_PATH=/Users/본인경로/pill_data
     volumes:
       - ${PILL_MODEL_BASE_PATH}:/app/models
+      - /tmp/uploads:/tmp/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -113,6 +114,7 @@ services:
     mem_limit: 4G
     volumes:
       - chroma_data:/data/chromadb
+      - ./data:/app/data
     networks:
       - ws
     depends_on:

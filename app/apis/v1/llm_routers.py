@@ -67,7 +67,7 @@ async def get_record_list(
 
 @record_router.get("/{record_id}", status_code=status.HTTP_200_OK)
 async def get_record(
-    record_id: int,
+    record_id: str,
     user: Annotated[User, Depends(get_request_user)],
     service: Annotated[MedicalRecordService, Depends(MedicalRecordService)],
 ) -> Response:
