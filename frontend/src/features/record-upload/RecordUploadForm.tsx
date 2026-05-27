@@ -49,7 +49,7 @@ export function RecordUploadForm() {
   }, [record?.status, record?.parsed_data])
 
   useEffect(() => {
-    if (pillResult?.status === 'DONE') {
+    if (pillResult?.status === 'COMPLETED') {
       toast.success('낱알약 분석이 완료되었습니다!')
       qc.invalidateQueries({ queryKey: ['medical-records'] })
     }
