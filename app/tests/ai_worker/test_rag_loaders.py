@@ -4,7 +4,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from ai_worker.rag import loaders
 
 pytestmark = pytest.mark.no_db

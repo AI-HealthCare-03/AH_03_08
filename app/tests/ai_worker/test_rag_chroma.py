@@ -5,7 +5,6 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from ai_worker.rag import chroma_store
 
 pytestmark = pytest.mark.no_db
