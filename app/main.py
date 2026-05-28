@@ -1,5 +1,5 @@
-from contextlib import asynccontextmanager
 import os
+from contextlib import asynccontextmanager
 
 import redis.asyncio as aioredis
 from fastapi import FastAPI
