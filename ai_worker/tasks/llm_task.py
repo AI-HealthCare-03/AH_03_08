@@ -5,6 +5,7 @@ LLM Celery Tasks
 - generate_daily_tip_task
 """
 
+import asyncio
 import json
 import logging
 import os
@@ -28,66 +29,63 @@ logger = logging.getLogger(__name__)
 _redis = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"), decode_responses=True)
 
 
-def _get_llm():
-    return ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0,
-        max_tokens=4096,
-        api_key=os.getenv("OPENAI_API_KEY", ""),
-    )
+# ─────────────────────────────────────────────────────────────────
+# [최적화 10-A] LLM 인스턴스 싱글톤
+#
+# 문제: _get_llm() / _get_llm_stream() 이 호출마다 ChatOpenAI() 새 인스턴스 생성.
+#       HTTP 클라이언트 재초기화, API 키 파싱 등 불필요한 비용 반복.
+#
+# 해결: 모듈 레벨 변수로 지연 초기화(Lazy singleton).
+#       첫 호출 시 1회 생성 후 재사용.
+# ─────────────────────────────────────────────────────────────────
+
+_llm: ChatOpenAI | None = None
+_llm_stream: ChatOpenAI | None = None
 
 
-def _get_llm_stream():
-    return ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0,
-        max_tokens=2048,
-        streaming=True,
-        api_key=os.getenv("OPENAI_API_KEY", ""),
-    )
+def _get_llm() -> ChatOpenAI:
+    global _llm
+    if _llm is None:
+        _llm = ChatOpenAI(
+            model="gpt-4o-mini",
+            temperature=0,
+            max_tokens=4096,
+            api_key=os.getenv("OPENAI_API_KEY", ""),
+        )
+    return _llm
 
 
-_tortoise_initialized = False
+def _get_llm_stream() -> ChatOpenAI:
+    global _llm_stream
+    if _llm_stream is None:
+        _llm_stream = ChatOpenAI(
+            model="gpt-4o-mini",
+            temperature=0,
+            max_tokens=2048,
+            streaming=True,
+            api_key=os.getenv("OPENAI_API_KEY", ""),
+        )
+    return _llm_stream
 
 
-async def _init_tortoise():
-    global _tortoise_initialized
-    if _tortoise_initialized:
-        return
-    from tortoise import Tortoise
+# ─────────────────────────────────────────────────────────────────
+# [최적화 7] Tortoise 초기화 헬퍼
+#
+# 문제: 기존 _run_async()는 호출마다 new_event_loop() 생성 후
+#       전역 _tortoise_initialized 플래그를 False로 리셋 → 매 태스크마다
+#       Tortoise.init() 재실행 (DB 연결 풀 생성·해제 반복).
+#
+# 해결: asyncio.run()으로 단순화. Tortoise init/close를 각 async 함수
+#       내부에서 명시적으로 처리하여 코드 흐름을 명확하게 유지.
+# ─────────────────────────────────────────────────────────────────
 
+def _db_url() -> str:
     db_host = os.getenv("DB_HOST", "mysql")
-    db_port = int(os.getenv("DB_PORT", "3306"))
+    db_port = os.getenv("DB_PORT", "3306")
     db_user = os.getenv("DB_USER", "ozcoding")
     db_password = os.getenv("DB_PASSWORD", "pw1234")
     db_name = os.getenv("DB_NAME", "ai_health")
-    await Tortoise.init(
-        db_url=f"mysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}",
-        modules={"models": ["ai_worker.models"]},
-    )
-    _tortoise_initialized = True
-
-
-def _run_async(coro):
-    import asyncio
-
-    global _tortoise_initialized
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    _tortoise_initialized = False
-    try:
-        return loop.run_until_complete(coro)
-    except Exception as e:
-        raise e
-    finally:
-        try:
-            from tortoise import Tortoise
-
-            loop.run_until_complete(Tortoise.close_connections())
-        except Exception:
-            pass
-        loop.close()
-        asyncio.set_event_loop(None)
+    return f"mysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 
 @celery_app.task(
@@ -99,29 +97,36 @@ def _run_async(coro):
 )
 def generate_guide_task(self, guide_id: str, record_id: str, user_id: int):
     logger.info(f"[generate_guide] guide_id={guide_id}")
-    _run_async(_generate_guide(self, guide_id, record_id, user_id))
+    asyncio.run(_generate_guide(self, guide_id, record_id, user_id))
 
 
 async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
-    await _init_tortoise()
-    from ai_worker.models import Guide, MedicalRecord, User
+    # [12] Tortoise 직접 접근 제거 — callback.py 통해 FastAPI에 위임
+    await _do_generate_guide(task, guide_id, record_id, user_id)
 
-    guide = await Guide.get_or_none(id=guide_id)
-    if not guide:
-        return
 
-    await Guide.filter(id=guide_id).update(status="processing")
+async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
+    from ai_worker.callback import guide_done, guide_failed
+    from ai_worker.models import MedicalRecord, User
+    from tortoise import Tortoise
 
+    # MedicalRecord / User 조회는 여전히 직접 접근 (읽기 전용)
+    await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
     try:
         record = await MedicalRecord.get_or_none(id=record_id)
         if not record or not record.parsed_data:
+            guide_failed(guide_id, user_id)
             raise ValueError(f"OCR result not found: {record_id}")
 
         medications = record.parsed_data.get("medications", [])
         user = await User.get_or_none(id=user_id)
         user_health = await load_user_health(user_id, user)
-        rag_context = search_text_for_medications(medications)
+    finally:
+        await Tortoise.close_connections()
 
+    rag_context = search_text_for_medications(medications)
+
+    try:
         response = _get_llm().invoke(
             [
                 SystemMessage(content=GUIDE_SYSTEM),
@@ -129,24 +134,30 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
             ]
         )
         parsed = _parse_json(response.content)
-        summary_text = (parsed.get("summary") or "").strip()
-        title = summary_text[:15] if summary_text else None
 
-        await Guide.filter(id=guide_id).update(
-            status="done",
-            title=title,
+        # [최적화 10-B] 파싱 실패 시 가이드를 failed 상태로 저장
+        if parsed is None:
+            raise ValueError("LLM 응답을 JSON으로 파싱할 수 없습니다.")
+
+        summary_text = (parsed.get("summary") or "").strip()
+
+        # [12] DB 저장 책임을 FastAPI에 위임 (callback HTTP 호출)
+        ok = guide_done(
+            guide_id=guide_id,
+            user_id=user_id,
             medication_guide=parsed.get("medication_guide", ""),
             lifestyle_guide=parsed.get("lifestyle_guide", ""),
-            summary=summary_text,
+            summary_text=summary_text,
             allergy_warnings=parsed.get("allergy_warnings", []),
             condition_interactions=parsed.get("condition_interactions", []),
         )
+        if not ok:
+            raise RuntimeError("guide_done callback 실패")
 
-        _redis.publish(f"guide:done:{user_id}", json.dumps({"guide_id": guide_id, "status": "done"}))
         logger.info(f"[generate_guide] done guide_id={guide_id}")
 
     except Exception as exc:
-        await Guide.filter(id=guide_id).update(status="failed")
+        guide_failed(guide_id, user_id)
         logger.error(f"[generate_guide] failed: {exc}", exc_info=True)
         raise task.retry(exc=exc) from exc
 
@@ -161,11 +172,19 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
 )
 def process_chat_message_task(self, session_id: int, message_id: int, user_id: int, user_message: str):
     logger.info(f"[chat] session={session_id} msg={message_id}")
-    _run_async(_process_chat(self, session_id, message_id, user_id, user_message))
+    asyncio.run(_process_chat(self, session_id, message_id, user_id, user_message))
 
 
 async def _process_chat(task, session_id: int, message_id: int, user_id: int, user_message: str):
-    await _init_tortoise()
+    from tortoise import Tortoise
+    await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
+    try:
+        await _do_process_chat(task, session_id, message_id, user_id, user_message)
+    finally:
+        await Tortoise.close_connections()
+
+
+async def _do_process_chat(task, session_id: int, message_id: int, user_id: int, user_message: str):
     from ai_worker.models import ChatMessage, User
 
     try:
@@ -230,6 +249,8 @@ def generate_daily_tip_task(self, tip_id: str, user_id: int):
             ]
         )
         tip_data = _parse_json(response.content)
+        if tip_data is None:
+            raise ValueError("daily_tip LLM 응답 JSON 파싱 실패")
         _redis.set(f"daily_tip:{tip_id}", json.dumps(tip_data, ensure_ascii=False), ex=86400)
         logger.info(f"[daily_tip] done tip_id={tip_id}")
     except Exception as exc:
@@ -308,18 +329,23 @@ def _save_and_publish(session_id: int, message_id: int, user_msg: str, answer: s
     )
 
 
-def _parse_json(raw: str) -> dict:
+def _parse_json(raw: str) -> dict | None:
+    """
+    LLM 응답 문자열을 JSON dict로 파싱한다.
+
+    [최적화 10-B] 파싱 실패 처리 개선
+    문제: 기존에는 실패 시 raw text를 medication_guide에 통째로 넣어 반환
+          → 클라이언트가 구조화되지 않은 텍스트를 받아 파싱 오류 발생.
+    해결: 실패 시 None 반환 → 호출부에서 Guide.status="failed" 처리.
+    """
+    # 마크다운 코드 펜스 제거 (```json ... ``` 또는 ``` ... ```)
     clean = raw.strip()
     if clean.startswith("```"):
-        parts = clean.split("```")
-        clean = parts[1][4:] if parts[1].startswith("json") else parts[1]
+        clean = clean.removeprefix("```json").removeprefix("```")
+        clean = clean.removesuffix("```").strip()
+
     try:
         return json.loads(clean)
     except json.JSONDecodeError:
-        return {
-            "medication_guide": raw,
-            "lifestyle_guide": "",
-            "summary": "",
-            "allergy_warnings": [],
-            "condition_interactions": [],
-        }
+        logger.error(f"[_parse_json] JSON 파싱 실패. 응답 앞 200자: {clean[:200]!r}")
+        return None

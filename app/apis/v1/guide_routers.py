@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from ai_worker.celery_app import celery_app
+from app.core.celery_client import celery_client as celery_app
 from app.dependencies.security import get_request_user
 from app.dtos.guide import FeedbackCreateRequest, GuideGenerateRequest
 from app.models.medical_records import MedicalRecord
@@ -11,7 +11,8 @@ from app.repositories.guide_repository import create_guide
 from app.services import feedback_service
 from app.services import guide as guide_service
 
-GENERATE_GUIDE_TASK = "ai_worker.tasks.llm_tasks.generate_guide_task"
+# [수정] tasks/llm_task.py name= 과 일치 (단수 .task, 복수 llm_tasks)
+GENERATE_GUIDE_TASK = "ai_worker.task.llm_tasks.generate_guide_task"
 
 guide_router = APIRouter(prefix="/guides", tags=["guides"])
 CurrentUser = Annotated[User, Depends(get_request_user)]

@@ -28,29 +28,12 @@ class AssetType(StrEnum):
     CARD_IMAGE = "CARD_IMAGE"
 
 
-class Guide(models.Model):
-    id = fields.UUIDField(primary_key=True)
-    user = fields.ForeignKeyField("models.User", related_name="guides", on_delete=fields.CASCADE)
-    record = fields.ForeignKeyField(
-        "models.MedicalRecord", related_name="guides", on_delete=fields.CASCADE, source_field="record_id"
-    )
-    status = fields.CharField(max_length=20, default="processing")
-    medication_guide = fields.TextField(null=True)
-    lifestyle_guide = fields.TextField(null=True)
-    summary = fields.TextField(null=True, source_field="summary_text")
-    allergy_warnings = fields.JSONField(default=list)
-    condition_interactions = fields.JSONField(default=list)
-    created_at = fields.DatetimeField(auto_now_add=True)
-
-    class Meta:
-        table = "guides"
-
-
 class GuideAsset(models.Model):
     id = fields.UUIDField(primary_key=True)
     guide = fields.ForeignKeyField("models.Guide", related_name="assets", on_delete=fields.CASCADE)
     asset_type = fields.CharField(max_length=50)
     file_url = fields.CharField(max_length=500, null=True)
+    status = fields.CharField(max_length=20, default="PENDING")
     created_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:

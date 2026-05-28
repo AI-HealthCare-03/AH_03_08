@@ -6,6 +6,7 @@ from app.apis.v1.feedback_routers import feedback_router
 from app.apis.v1.guide_routers import guide_router
 from app.apis.v1.health_routers import health_router
 from app.apis.v1.image_routers import image_router
+from app.apis.v1.internal_routers import internal_router
 from app.apis.v1.llm_routers import chat_router, record_router
 from app.apis.v1.tts_routers import tts_router
 from app.apis.v1.user_routers import user_router
@@ -26,3 +27,4 @@ v1_routers.include_router(chats_router)
 v1_routers.include_router(image_router)
 v1_routers.include_router(ai_router)
 v1_routers.include_router(feedback_router)
+v1_routers.include_router(internal_router)  # Worker 콜백 + SSE

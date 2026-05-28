@@ -248,12 +248,9 @@ async def websocket_chat_stream(websocket: WebSocket, session_id: int):
     """
     await websocket.accept()
 
-    import redis.asyncio as aioredis
-
-    from app.core import config
-
-    redis_url = getattr(config, "REDIS_URL", "redis://redis:6379/0")
-    redis = aioredis.from_url(redis_url, decode_responses=True)
+    # [수정 6] app.state.redis 싱글톤 재사용 (main.py lifespan에서 1회 생성)
+    # 기존: 연결마다 aioredis.from_url() 호출 → 연결 풀 고갈 위험
+    redis = websocket.app.state.redis
     pubsub = redis.pubsub()
     await pubsub.subscribe(f"chat:stream:{session_id}")
 
@@ -263,7 +260,6 @@ async def websocket_chat_stream(websocket: WebSocket, session_id: int):
                 continue
             data = json.loads(raw_message["data"])
             await websocket.send_json(data)
-            # done 또는 error 신호가 오면 종료
             if data.get("done") or data.get("error"):
                 break
     except WebSocketDisconnect:
@@ -271,4 +267,4 @@ async def websocket_chat_stream(websocket: WebSocket, session_id: int):
     finally:
         await pubsub.unsubscribe(f"chat:stream:{session_id}")
         await pubsub.aclose()
-        await redis.aclose()
+        # redis 클라이언트는 싱글톤이므로 여기서 aclose() 하지 않음

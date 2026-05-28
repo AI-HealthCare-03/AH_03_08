@@ -1,10 +1,10 @@
 import os
 
-from celery import Celery
 from fastapi.exceptions import HTTPException
 from starlette import status
 from tortoise.transactions import in_transaction
 
+from app.core.celery_client import celery_client as celery_app
 from app.models.llm import AssetType, GuideStatus, RecordStatus, RecordType
 from app.repositories.llm_repository import (
     ChatMessageRepository,
@@ -12,11 +12,6 @@ from app.repositories.llm_repository import (
     GuideAssetRepository,
     GuideRepository,
     MedicalRecordRepository,
-)
-
-# ai_worker 직접 import 금지 — Redis 브로커로만 Celery 작업 위임
-celery_app = Celery(
-    broker=os.getenv("CELERY_BROKER_URL", os.getenv("REDIS_URL", "redis://redis:6379/1")),
 )
 
 # ════════════════════════════════════════
@@ -69,9 +64,16 @@ class GuideService:
                 detail="OCR 처리가 완료되지 않았거나 존재하지 않는 레코드입니다.",
             )
 
-        # 이미 가이드가 생성 중이거나 완료된 경우 중복 방지
-        total, existing = await self.guide_repo.get_list_by_user(user_id, page=1, limit=1)
-        # Guide 생성 (status=PENDING)
+        # [수정 9] 동일 record에 처리 중이거나 완료된 가이드가 있으면 재생성 차단
+        # 기존: get_list_by_user() 결과를 unused variable로 받고 아무 처리도 안 함
+        existing = await self.guide_repo.get_active_by_record(record_id, user_id)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"이미 {'처리 중인' if existing.status == 'processing' else '완료된'} 가이드가 있습니다. (guide_id: {existing.id})",
+            )
+
+        # Guide 생성 (status=processing)
         async with in_transaction():
             guide = await self.guide_repo.create(user_id=user_id, record_id=record_id)
 
@@ -86,6 +88,7 @@ class GuideService:
         #     queue="llm",
         # )
         celery_app.send_task(
+            # [수정] tasks/llm_task.py의 name= 과 일치 (단수 .task, 복수 llm_tasks)
             "ai_worker.task.llm_tasks.generate_guide_task",
             kwargs={"guide_id": str(guide.id), "record_id": str(record_id), "user_id": user_id},
             queue="llm",
@@ -120,17 +123,22 @@ class GuideService:
 
         if asset_type == AssetType.TTS:
             celery_app.send_task(
-                "ai_worker.task.tts_tasks.generate_tts_task",
+                # [수정] tasks/tts_task.py의 name= 과 일치 (복수 .tasks)
+                "ai_worker.tasks.tts_task.generate_tts_task",
                 kwargs={
                     "asset_id": str(asset.id),
                     "guide_id": str(guide_id),
-                    "text": guide.summary or guide.medication_guide,
+                    "text": guide.summary_text or guide.medication_guide,
+                    "user_id": str(user_id),   # S3 경로: tts/{user_id}/{uuid}.mp3
                 },
                 queue="tts",
             )
         else:
             celery_app.send_task(
-                "ai_worker.task.image_tasks.generate_card_image_task",
+                # TODO: ai_worker/tasks/image_task.py에 generate_card_image_task 구현 후
+                # name= 데코레이터 값과 반드시 일치시킬 것
+                # 예: name="ai_worker.tasks.image_task.generate_card_image_task"
+                "ai_worker.tasks.image_task.generate_card_image_task",
                 kwargs={"asset_id": str(asset.id), "guide_id": str(guide_id)},
                 queue="image",
             )
@@ -220,6 +228,7 @@ class ChatService:
 
         # Celery Task 발행 — LLM Worker가 스트리밍 응답 처리
         celery_app.send_task(
+            # tasks/llm_task.py name= 과 일치
             "ai_worker.task.llm_tasks.process_chat_message_task",
             kwargs={
                 "session_id": session_id,
