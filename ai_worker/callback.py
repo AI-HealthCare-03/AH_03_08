@@ -36,6 +36,7 @@ def _post(path: str, payload: dict) -> bool:
 
 # ── 콜백 함수 ────────────────────────────────────────────────────
 
+
 def guide_done(
     guide_id: str,
     user_id: int,
@@ -45,69 +46,93 @@ def guide_done(
     allergy_warnings: list,
     condition_interactions: list,
 ) -> bool:
-    return _post("/callback/guide", {
-        "guide_id": guide_id,
-        "user_id": user_id,
-        "status": "done",
-        "medication_guide": medication_guide,
-        "lifestyle_guide": lifestyle_guide,
-        "summary_text": summary_text,
-        "allergy_warnings": allergy_warnings,
-        "condition_interactions": condition_interactions,
-    })
+    return _post(
+        "/callback/guide",
+        {
+            "guide_id": guide_id,
+            "user_id": user_id,
+            "status": "done",
+            "medication_guide": medication_guide,
+            "lifestyle_guide": lifestyle_guide,
+            "summary_text": summary_text,
+            "allergy_warnings": allergy_warnings,
+            "condition_interactions": condition_interactions,
+        },
+    )
 
 
 def guide_failed(guide_id: str, user_id: int) -> bool:
-    return _post("/callback/guide", {
-        "guide_id": guide_id,
-        "user_id": user_id,
-        "status": "failed",
-    })
+    return _post(
+        "/callback/guide",
+        {
+            "guide_id": guide_id,
+            "user_id": user_id,
+            "status": "failed",
+        },
+    )
 
 
 def ocr_done(record_id: str, ocr_raw_text: str, parsed_data: dict) -> bool:
-    return _post("/callback/ocr", {
-        "record_id": record_id,
-        "status": "COMPLETED",
-        "ocr_raw_text": ocr_raw_text,
-        "parsed_data": parsed_data,
-    })
+    return _post(
+        "/callback/ocr",
+        {
+            "record_id": record_id,
+            "status": "COMPLETED",
+            "ocr_raw_text": ocr_raw_text,
+            "parsed_data": parsed_data,
+        },
+    )
 
 
 def ocr_failed(record_id: str) -> bool:
-    return _post("/callback/ocr", {
-        "record_id": record_id,
-        "status": "FAILED",
-    })
+    return _post(
+        "/callback/ocr",
+        {
+            "record_id": record_id,
+            "status": "FAILED",
+        },
+    )
 
 
 def image_done(record_id: str, parsed_data: dict) -> bool:
-    return _post("/callback/image", {
-        "record_id": record_id,
-        "status": "COMPLETED",
-        "parsed_data": parsed_data,
-    })
+    return _post(
+        "/callback/image",
+        {
+            "record_id": record_id,
+            "status": "COMPLETED",
+            "parsed_data": parsed_data,
+        },
+    )
 
 
 def image_failed(record_id: str) -> bool:
-    return _post("/callback/image", {
-        "record_id": record_id,
-        "status": "FAILED",
-    })
+    return _post(
+        "/callback/image",
+        {
+            "record_id": record_id,
+            "status": "FAILED",
+        },
+    )
 
 
 def asset_done(asset_id: str, guide_id: str, file_url: str) -> bool:
-    return _post("/callback/asset", {
-        "asset_id": asset_id,
-        "guide_id": guide_id,
-        "status": "DONE",
-        "file_url": file_url,
-    })
+    return _post(
+        "/callback/asset",
+        {
+            "asset_id": asset_id,
+            "guide_id": guide_id,
+            "status": "DONE",
+            "file_url": file_url,
+        },
+    )
 
 
 def asset_failed(asset_id: str, guide_id: str) -> bool:
-    return _post("/callback/asset", {
-        "asset_id": asset_id,
-        "guide_id": guide_id,
-        "status": "FAILED",
-    })
+    return _post(
+        "/callback/asset",
+        {
+            "asset_id": asset_id,
+            "guide_id": guide_id,
+            "status": "FAILED",
+        },
+    )

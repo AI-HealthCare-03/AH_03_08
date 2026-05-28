@@ -1,4 +1,3 @@
-
 from fastapi.exceptions import HTTPException
 from starlette import status
 from tortoise.transactions import in_transaction
@@ -128,7 +127,7 @@ class GuideService:
                     "asset_id": str(asset.id),
                     "guide_id": str(guide_id),
                     "text": guide.summary_text or guide.medication_guide,
-                    "user_id": str(user_id),   # S3 경로: tts/{user_id}/{uuid}.mp3
+                    "user_id": str(user_id),  # S3 경로: tts/{user_id}/{uuid}.mp3
                 },
                 queue="tts",
             )

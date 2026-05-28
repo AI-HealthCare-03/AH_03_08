@@ -31,7 +31,6 @@ celery_app.conf.update(
     task_reject_on_worker_lost=True,
     worker_prefetch_multiplier=1,
     result_expires=3600,
-
     task_routes={
         "ai_worker.tasks.ocr_task.*": {"queue": "image"},
         "ai_worker.tasks.llm_task.*": {"queue": "llm"},

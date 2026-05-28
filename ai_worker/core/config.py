@@ -103,8 +103,8 @@ class Config(BaseSettings):
         if self.ALLOWED_ORIGINS:
             return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
         if self.ENV == Env.PROD:
-            return []   # 운영 환경에서 ALLOWED_ORIGINS 미설정 시 전체 차단
-        return [        # 로컬·개발 환경 기본값
+            return []  # 운영 환경에서 ALLOWED_ORIGINS 미설정 시 전체 차단
+        return [  # 로컬·개발 환경 기본값
             "http://localhost:5173",
             "http://localhost:3000",
             "http://127.0.0.1:5173",
