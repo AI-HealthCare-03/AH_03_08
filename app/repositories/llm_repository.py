@@ -55,6 +55,15 @@ class GuideRepository:
     async def get_by_id(self, guide_id: int, user_id: int) -> Guide | None:
         return await self._model.get_or_none(id=guide_id, user_id=user_id)
 
+    # [수정 9] 중복 가이드 방지용 — 동일 record에 처리 중인 가이드 조회
+    async def get_active_by_record(self, record_id: str, user_id: int) -> Guide | None:
+        """processing 또는 done 상태의 가이드가 이미 존재하면 반환."""
+        return await self._model.get_or_none(
+            medical_record_id=record_id,
+            user_id=user_id,
+            status__in=["processing", "done"],
+        )
+
     async def get_list_by_user(self, user_id: int, page: int, limit: int) -> tuple[int, list[Guide]]:
         qs = self._model.filter(user_id=user_id).order_by("-created_at")
         total = await qs.count()
@@ -70,15 +79,14 @@ class GuideRepository:
         allergy_warnings: list,
         condition_interactions: list,
     ) -> None:
+        # guides.py 기준 속성명: summary_text (DB 컬럼명과 동일)
         await self._model.filter(id=guide_id).update(
             status=GuideStatus.DONE,
             medication_guide=medication_guide,
             lifestyle_guide=lifestyle_guide,
-            summary=summary,
+            summary_text=summary,       # ← llm.py의 summary 속성 제거됨, guides.py 기준으로 수정
             allergy_warnings=allergy_warnings,
             condition_interactions=condition_interactions,
-            completed_at=datetime.now(config.TIMEZONE),
-            updated_at=datetime.now(config.TIMEZONE),
         )
 
     async def update_failed(self, guide_id: int) -> None:

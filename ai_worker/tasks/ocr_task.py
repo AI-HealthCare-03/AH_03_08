@@ -2,7 +2,6 @@ import asyncio
 import logging
 import re
 
-import asyncmy
 from celery import Task, shared_task
 from openai import OpenAI
 
@@ -101,41 +100,24 @@ def _parse_with_openai(raw_text: str) -> ParsedRecord:
     return parsed
 
 
-async def _get_conn() -> asyncmy.Connection:
-    return await asyncmy.connect(
-        host=_config.DB_HOST,
-        port=_config.DB_PORT,
-        user=_config.DB_USER,
-        password=_config.DB_PASSWORD,
-        db=_config.DB_NAME,
+def _db_url() -> str:
+    return (
+        f"mysql://{_config.DB_USER}:{_config.DB_PASSWORD}"
+        f"@{_config.DB_HOST}:{_config.DB_PORT}/{_config.DB_NAME}"
     )
 
 
 async def _update_db(record_id: str, ocr_raw_text: str, parsed: ParsedRecord) -> None:
-    import json
-
-    conn = await _get_conn()
-    try:
-        async with conn.cursor() as cursor:
-            await cursor.execute(
-                "UPDATE medical_records SET ocr_raw_text=%s, parsed_data=%s, status='COMPLETED' WHERE id=%s",
-                (ocr_raw_text, json.dumps(parsed.model_dump(), ensure_ascii=False), record_id),
-            )
-        await conn.commit()
-        logger.info(f"[OCR Task] DB 업데이트 완료 record_id={record_id}")
-    finally:
-        conn.close()
+    """
+    [12] FastAPI callback 엔드포인트로 DB 저장 위임.
+    동기 httpx 호출 — asyncio.run() 컨텍스트에서 실행됨.
+    """
+    from ai_worker.callback import ocr_done
+    ocr_done(record_id, ocr_raw_text, parsed.model_dump())
+    logger.info(f"[OCR Task] callback 전송 완료 record_id={record_id}")
 
 
 async def _update_status(record_id: str, status: str) -> None:
-    conn = await _get_conn()
-    try:
-        async with conn.cursor() as cursor:
-            await cursor.execute(
-                "UPDATE medical_records SET status=%s WHERE id=%s",
-                (status, record_id),
-            )
-        await conn.commit()
-        logger.info(f"[OCR Task] 상태 업데이트 record_id={record_id} status={status}")
-    finally:
-        conn.close()
+    from ai_worker.callback import ocr_failed
+    if status == "FAILED":
+        ocr_failed(record_id)
