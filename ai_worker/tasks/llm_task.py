@@ -106,9 +106,10 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
 
 
 async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
+    from tortoise import Tortoise
+
     from ai_worker.callback import guide_done, guide_failed
     from ai_worker.models import MedicalRecord, User
-    from tortoise import Tortoise
 
     # MedicalRecord / User 조회는 여전히 직접 접근 (읽기 전용)
     await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
@@ -135,7 +136,6 @@ async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
         )
         parsed = _parse_json(response.content)
         summary_text = (parsed.get("summary") or "").strip()
-        title = summary_text[:15] if summary_text else None
 
         # [최적화 10-B] 파싱 실패 시 가이드를 failed 상태로 저장
         if parsed is None:
