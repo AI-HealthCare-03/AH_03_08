@@ -39,20 +39,21 @@ async def get_analysis_result(
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="진료기록을 찾을 수 없습니다.")
     parsed_data = record.parsed_data or {}
+    drug_info = parsed_data.get("drug_info", {})
     return Response(
         content=DrugInfoResponse(
             record_id=record_id,
             status=record.status,
-            drug_name=parsed_data.get("drug_name"),
-            dl_company=parsed_data.get("dl_company"),
-            dl_material=parsed_data.get("dl_material"),
-            drug_shape=parsed_data.get("drug_shape"),
-            color_class1=parsed_data.get("color_class1"),
-            di_class_no=parsed_data.get("di_class_no"),
-            di_etc_otc_code=parsed_data.get("di_etc_otc_code"),
-            chart=parsed_data.get("chart"),
-            print_front=parsed_data.get("print_front"),
-            print_back=parsed_data.get("print_back"),
+            drug_name=drug_info.get("drug_name"),
+            dl_company=drug_info.get("dl_company"),
+            dl_material=drug_info.get("dl_material"),
+            drug_shape=drug_info.get("drug_shape"),
+            color_class1=drug_info.get("color_class1"),
+            di_class_no=drug_info.get("di_class_no"),
+            di_etc_otc_code=drug_info.get("di_etc_otc_code"),
+            chart=drug_info.get("chart"),
+            print_front=drug_info.get("print_front"),
+            print_back=drug_info.get("print_back"),
         ).model_dump(),
         status_code=status.HTTP_200_OK,
     )

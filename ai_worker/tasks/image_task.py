@@ -106,7 +106,16 @@ def classify_pill(self, image_bytes: bytes, record_id: str, user_id: str) -> dic
             }
 
         drug_info["confidence_score"] = confidence_score
-        image_done(record_id, drug_info)
+
+        # medications 구조로 감싸서 저장
+        parsed_data = {
+            "medications": [{
+                "name": drug_info.get("drug_name"),
+                "instructions": drug_info.get("dl_material"),
+            }],
+            "drug_info": drug_info  # 원본 보존 (카드뉴스용)
+        }
+        image_done(record_id, parsed_data)
         logger.info(f"낱알약 분류 완료 - kcode: {kcode}")
 
         return {
