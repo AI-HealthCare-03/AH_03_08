@@ -55,16 +55,6 @@ def _get_classifier():
         _classifier = get_image_classifier(config)
     return _classifier
 
-
-async def _save_failed_result(record_id: str):
-    await _init_tortoise()
-    from ai_worker.models import MedicalRecord
-
-    await MedicalRecord.filter(id=record_id).update(
-        status="FAILED",
-    )
-
-
 @celery_app.task(
     bind=True,
     name="ai_worker.tasks.image_task.classify_pill",
