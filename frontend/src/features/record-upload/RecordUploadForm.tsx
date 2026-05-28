@@ -31,6 +31,7 @@ export function RecordUploadForm() {
 
   const { mutate: upload, isPending: isUploading } = useUploadRecord()
   const { data: record } = useRecord(selectedType === 'pill_photo' ? null : recordId, selectedType ?? undefined)
+  const { data: pillResult } = usePillResult(selectedType === 'pill_photo' ? recordId : null)  // 추가
   const { mutate: updateRecord, isPending: isUpdating } = useUpdateRecord()
   const { mutate: generateGuide, isPending: isGenerating } = useGenerateGuide()
   const invalidateGuides = useInvalidateGuides()
