@@ -31,7 +31,7 @@ export function RecordUploadForm() {
 
   const { mutate: upload, isPending: isUploading } = useUploadRecord()
   const { data: record } = useRecord(selectedType === 'pill_photo' ? null : recordId, selectedType ?? undefined)
-  const { data: pillResult } = usePillResult(selectedType === 'pill_photo' ? recordId : null)  // 추가
+  const { data: pillResult } = usePillResult(selectedType === 'pill_photo' ? recordId : null)
   const { mutate: updateRecord, isPending: isUpdating } = useUpdateRecord()
   const { mutate: generateGuide, isPending: isGenerating } = useGenerateGuide()
   const invalidateGuides = useInvalidateGuides()
@@ -138,6 +138,18 @@ export function RecordUploadForm() {
         onError: () => toast.error('데이터 저장에 실패했습니다.'),
       },
     )
+  }
+
+  function handleGenerateGuideForPill() {
+    if (!recordId) return
+    generateGuide(recordId, {
+      onSuccess: (data) => {
+        invalidateGuides()
+        toast.success('가이드 생성 요청 완료! 가이드 탭에서 확인하세요.')
+        navigate(`/guide?id=${data.guide_id}`)
+      },
+      onError: () => toast.error('가이드 생성에 실패했습니다.'),
+    })
   }
 
   const isProcessing = (record?.status === 'pending' || record?.status === 'processing') && selectedType !== 'pill_photo'
@@ -268,9 +280,25 @@ export function RecordUploadForm() {
           <h2 className="mb-3 text-sm font-semibold text-gray-700">3. 약품 정보</h2>
           <PillResultCard
             drugName={pillResult.drug_name ?? null}
+            dlCompany={pillResult.dl_company ?? null}
+            dlMaterial={pillResult.dl_material ?? null}
             diClassNo={pillResult.di_class_no ?? null}
             diEtcOtcCode={pillResult.di_etc_otc_code ?? null}
           />
+          <Button
+            className="mt-4 w-full"
+            disabled={isGenerating}
+            onClick={handleGenerateGuideForPill}
+          >
+            {isGenerating ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                처리 중...
+              </span>
+            ) : (
+              '가이드 생성'
+            )}
+          </Button>
         </section>
       )}
     </div>
