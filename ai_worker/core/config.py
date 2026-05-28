@@ -67,6 +67,11 @@ class Config(BaseSettings):
     CLOVA_OCR_URL: str = ""
     CLOVA_OCR_SECRET: str = ""
 
+    # Pill Classification
+    PILL_MODEL_PATH: str = ""
+    PILL_LABEL_PATH: str = ""
+    PILL_DATA_PATH: str = ""
+
     # [수정 6] Redis 싱글톤에서 사용할 URL 필드 추가
     # WebSocket 핸들러가 매 연결마다 aioredis.from_url()을 호출하던 문제 해결
     REDIS_URL: str = "redis://localhost:6379/0"
