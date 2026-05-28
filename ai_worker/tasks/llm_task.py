@@ -79,6 +79,7 @@ def _get_llm_stream() -> ChatOpenAI:
 #       내부에서 명시적으로 처리하여 코드 흐름을 명확하게 유지.
 # ─────────────────────────────────────────────────────────────────
 
+
 def _db_url() -> str:
     db_host = os.getenv("DB_HOST", "mysql")
     db_port = os.getenv("DB_PORT", "3306")
@@ -106,9 +107,10 @@ async def _generate_guide(task, guide_id: str, record_id: str, user_id: int):
 
 
 async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
+    from tortoise import Tortoise
+
     from ai_worker.callback import guide_done, guide_failed
     from ai_worker.models import MedicalRecord, User
-    from tortoise import Tortoise
 
     # MedicalRecord / User 조회는 여전히 직접 접근 (읽기 전용)
     await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
@@ -135,7 +137,6 @@ async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
         )
         parsed = _parse_json(response.content)
         summary_text = (parsed.get("summary") or "").strip()
-        title = summary_text[:15] if summary_text else None
 
         # [최적화 10-B] 파싱 실패 시 가이드를 failed 상태로 저장
         if parsed is None:
@@ -179,6 +180,7 @@ def process_chat_message_task(self, session_id: int, message_id: int, user_id: i
 
 async def _process_chat(task, session_id: int, message_id: int, user_id: int, user_message: str):
     from tortoise import Tortoise
+
     await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
     try:
         await _do_process_chat(task, session_id, message_id, user_id, user_message)

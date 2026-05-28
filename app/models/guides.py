@@ -10,9 +10,7 @@ class Guide(models.Model):
     """
 
     id = fields.UUIDField(pk=True)
-    user = fields.ForeignKeyField(
-        "models.User", related_name="guides", on_delete=fields.CASCADE
-    )
+    user = fields.ForeignKeyField("models.User", related_name="guides", on_delete=fields.CASCADE)
     record = fields.ForeignKeyField(
         "models.MedicalRecord",
         related_name="guides",
@@ -23,7 +21,7 @@ class Guide(models.Model):
     title = fields.CharField(max_length=200, null=True)
     medication_guide = fields.TextField(null=True)
     lifestyle_guide = fields.TextField(null=True)
-    summary_text = fields.TextField(null=True)          # DB 컬럼명 summary_text
+    summary_text = fields.TextField(null=True)  # DB 컬럼명 summary_text
     allergy_warnings = fields.JSONField(default=list)
     condition_interactions = fields.JSONField(default=list)
     prompt_version = fields.CharField(max_length=20, default="v1.0")

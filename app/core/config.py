@@ -68,5 +68,8 @@ class Config(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = ""
 
+    # Internal
+    INTERNAL_SECRET: str = "local-internal-secret-change-in-prod"
+
 
 config = Config()

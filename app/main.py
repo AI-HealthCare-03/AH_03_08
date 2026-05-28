@@ -1,5 +1,5 @@
-from contextlib import asynccontextmanager
 import os
+from contextlib import asynccontextmanager
 
 import redis.asyncio as aioredis
 from fastapi import FastAPI
@@ -32,11 +32,7 @@ app = FastAPI(
 )
 
 # CORS — config에 get_allowed_origins가 있으면 사용, 없으면 기본값
-_allowed_origins = (
-    config.get_allowed_origins()
-    if callable(getattr(config, "get_allowed_origins", None))
-    else ["*"]
-)
+_allowed_origins = config.get_allowed_origins() if callable(getattr(config, "get_allowed_origins", None)) else ["*"]
 
 app.add_middleware(
     CORSMiddleware,
