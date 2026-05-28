@@ -1,4 +1,3 @@
-import os
 
 from fastapi.exceptions import HTTPException
 from starlette import status

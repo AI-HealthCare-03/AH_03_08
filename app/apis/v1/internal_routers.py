@@ -88,7 +88,6 @@ class AssetCallbackRequest(BaseModel):
 async def guide_callback(body: GuideCallbackRequest, request: Request):
     """LLM Worker가 가이드 생성 완료/실패 시 호출."""
     if body.status == "done":
-        title = (body.summary_text or "")[:15] or None
         await Guide.filter(id=body.guide_id).update(
             status="done",
             medication_guide=body.medication_guide,
@@ -196,4 +195,4 @@ async def guide_stream(guide_id: str, request: Request):
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",   # Nginx SSE 버퍼링 비활성화
         },
-    )   
+    )
