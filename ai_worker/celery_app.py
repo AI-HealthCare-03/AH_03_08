@@ -16,10 +16,11 @@ celery_app = Celery(
     # 변경 전: "ai_worker.task.*" (단수, 존재하지 않는 경로)
     # 변경 후: "ai_worker.tasks.*" (복수, 실제 디렉터리)
     include=[
-        "ai_worker.tasks.ocr_task",
-        "ai_worker.tasks.llm_task",
-        "ai_worker.tasks.tts_task",
-        "ai_worker.tasks.image_task",
+        "ai_worker.task.ocr_task",
+        "ai_worker.task.llm_tasks",
+        "ai_worker.task.tts_task",
+        "ai_worker.task.image_task",
+        "ai_worker.task.ai_tasks",
     ],
 )
 
@@ -41,12 +42,12 @@ celery_app.conf.update(
     task_routes={
         "ai_worker.task.ocr_task.*": {"queue": "image"},
         "ai_worker.task.llm_tasks.*": {"queue": "llm"},
-        "ai_worker.tasks.tts_task.*": {"queue": "tts"},
-        "ai_worker.tasks.image_task.*": {"queue": "image"},
+        "ai_worker.task.tts_task.*": {"queue": "tts"},
+        "ai_worker.task.image_task.*": {"queue": "image"},
+        "ai_worker.task.ai_tasks.*": {"queue": "llm"},
     },
     beat_schedule={
         "daily-tip-every-morning": {
-            # [수정] 실제 name="ai_worker.task.llm_tasks.generate_daily_tip_scheduled" 과 일치
             "task": "ai_worker.task.llm_tasks.generate_daily_tip_scheduled",
             "schedule": 86400.0,
             "options": {"queue": "llm"},

@@ -20,6 +20,7 @@ class Guide(models.Model):
         on_delete=fields.CASCADE,
     )
     status = fields.CharField(max_length=20, default="processing")  # processing / done / failed
+    title = fields.CharField(max_length=200, null=True)
     medication_guide = fields.TextField(null=True)
     lifestyle_guide = fields.TextField(null=True)
     summary_text = fields.TextField(null=True)          # DB 컬럼명 summary_text

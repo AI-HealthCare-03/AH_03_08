@@ -28,6 +28,7 @@ class Guide(models.Model):
     user = fields.ForeignKeyField("models.User", related_name="guides")
     record = fields.ForeignKeyField("models.MedicalRecord", related_name="guides", source_field="record_id")
     status = fields.CharField(max_length=20, default="processing")
+    title = fields.CharField(max_length=200, null=True)
     medication_guide = fields.TextField(null=True)
     lifestyle_guide = fields.TextField(null=True)
     summary_text = fields.TextField(null=True)   # app/models/guides.py 와 속성명 통일
