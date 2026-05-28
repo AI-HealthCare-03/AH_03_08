@@ -33,6 +33,7 @@ internal_router = APIRouter(prefix="/internal", tags=["internal"])
 # 내부 인증 의존성
 # ─────────────────────────────────────────────────────────────────
 
+
 def verify_internal_secret(x_internal_secret: str = Header(...)) -> None:
     """Worker → FastAPI 내부 호출 인증. INTERNAL_SECRET 불일치 시 403."""
     if x_internal_secret != config.INTERNAL_SECRET:
@@ -49,10 +50,11 @@ InternalAuth = Depends(verify_internal_secret)
 # 요청 스키마
 # ─────────────────────────────────────────────────────────────────
 
+
 class GuideCallbackRequest(BaseModel):
     guide_id: str
     user_id: int
-    status: str                        # "done" | "failed"
+    status: str  # "done" | "failed"
     medication_guide: str | None = None
     lifestyle_guide: str | None = None
     summary_text: str | None = None
@@ -62,27 +64,28 @@ class GuideCallbackRequest(BaseModel):
 
 class OcrCallbackRequest(BaseModel):
     record_id: str
-    status: str                        # "COMPLETED" | "FAILED"
+    status: str  # "COMPLETED" | "FAILED"
     ocr_raw_text: str | None = None
     parsed_data: dict | None = None
 
 
 class ImageCallbackRequest(BaseModel):
     record_id: str
-    status: str                        # "COMPLETED" | "FAILED"
-    parsed_data: dict | None = None    # drug_info + confidence_score
+    status: str  # "COMPLETED" | "FAILED"
+    parsed_data: dict | None = None  # drug_info + confidence_score
 
 
 class AssetCallbackRequest(BaseModel):
     asset_id: str
     guide_id: str
-    status: str                        # "DONE" | "FAILED"
-    file_url: str | None = None        # TTS mp3 S3 URL
+    status: str  # "DONE" | "FAILED"
+    file_url: str | None = None  # TTS mp3 S3 URL
 
 
 # ─────────────────────────────────────────────────────────────────
 # [12] 콜백 엔드포인트 — Worker 완료 수신 → DB 저장 → Redis 발행
 # ─────────────────────────────────────────────────────────────────
+
 
 @internal_router.post("/callback/guide", dependencies=[InternalAuth])
 async def guide_callback(body: GuideCallbackRequest, request: Request):
@@ -150,6 +153,7 @@ async def asset_callback(body: AssetCallbackRequest):
 # [13] SSE 엔드포인트 — 클라이언트가 가이드 완료를 실시간 수신
 # ─────────────────────────────────────────────────────────────────
 
+
 @internal_router.get("/guides/{guide_id}/stream")
 async def guide_stream(guide_id: str, request: Request):
     """
@@ -193,6 +197,6 @@ async def guide_stream(guide_id: str, request: Request):
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",   # Nginx SSE 버퍼링 비활성화
+            "X-Accel-Buffering": "no",  # Nginx SSE 버퍼링 비활성화
         },
     )

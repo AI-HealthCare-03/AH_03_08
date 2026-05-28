@@ -79,6 +79,7 @@ def _get_llm_stream() -> ChatOpenAI:
 #       내부에서 명시적으로 처리하여 코드 흐름을 명확하게 유지.
 # ─────────────────────────────────────────────────────────────────
 
+
 def _db_url() -> str:
     db_host = os.getenv("DB_HOST", "mysql")
     db_port = os.getenv("DB_PORT", "3306")
@@ -179,6 +180,7 @@ def process_chat_message_task(self, session_id: int, message_id: int, user_id: i
 
 async def _process_chat(task, session_id: int, message_id: int, user_id: int, user_message: str):
     from tortoise import Tortoise
+
     await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
     try:
         await _do_process_chat(task, session_id, message_id, user_id, user_message)

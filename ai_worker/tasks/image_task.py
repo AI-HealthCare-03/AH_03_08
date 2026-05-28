@@ -33,6 +33,7 @@ def _load_classifier(**kwargs) -> None:
     global _classifier
     try:
         from ai_worker.image import get_image_classifier  # lazy import — llm-worker 로드 시 torchvision 방지
+
         _classifier = get_image_classifier(config)
         logger.info("PillClassifier 초기화 완료 (프로세스 시작 시 1회 로드)")
     except Exception as exc:
@@ -52,8 +53,10 @@ def _get_classifier():
     global _classifier
     if _classifier is None:
         from ai_worker.image import get_image_classifier  # lazy import
+
         _classifier = get_image_classifier(config)
     return _classifier
+
 
 @celery_app.task(
     bind=True,
@@ -99,11 +102,13 @@ def classify_pill(self, image_bytes: bytes, record_id: str, user_id: str) -> dic
 
         # medications 구조로 감싸서 저장
         parsed_data = {
-            "medications": [{
-                "name": drug_info.get("drug_name"),
-                "instructions": drug_info.get("dl_material"),
-            }],
-            "drug_info": drug_info  # 원본 보존 (카드뉴스용)
+            "medications": [
+                {
+                    "name": drug_info.get("drug_name"),
+                    "instructions": drug_info.get("dl_material"),
+                }
+            ],
+            "drug_info": drug_info,  # 원본 보존 (카드뉴스용)
         }
         image_done(record_id, parsed_data)
         logger.info(f"낱알약 분류 완료 - kcode: {kcode}")
