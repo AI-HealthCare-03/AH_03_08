@@ -84,7 +84,7 @@ class GuideRepository:
             status=GuideStatus.DONE,
             medication_guide=medication_guide,
             lifestyle_guide=lifestyle_guide,
-            summary_text=summary,       # ← llm.py의 summary 속성 제거됨, guides.py 기준으로 수정
+            summary_text=summary,  # ← llm.py의 summary 속성 제거됨, guides.py 기준으로 수정
             allergy_warnings=allergy_warnings,
             condition_interactions=condition_interactions,
         )

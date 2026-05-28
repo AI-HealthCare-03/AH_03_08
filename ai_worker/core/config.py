@@ -67,6 +67,11 @@ class Config(BaseSettings):
     CLOVA_OCR_URL: str = ""
     CLOVA_OCR_SECRET: str = ""
 
+    # Pill Classification
+    PILL_MODEL_PATH: str = ""
+    PILL_LABEL_PATH: str = ""
+    PILL_DATA_PATH: str = ""
+
     # [수정 6] Redis 싱글톤에서 사용할 URL 필드 추가
     # WebSocket 핸들러가 매 연결마다 aioredis.from_url()을 호출하던 문제 해결
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -86,6 +91,8 @@ class Config(BaseSettings):
     # 운영 환경에서는 .env에 강력한 랜덤 문자열로 설정
     INTERNAL_SECRET: str = "local-internal-secret-change-in-prod"
 
+    APP_INTERNAL_URL: str = "http://fastapi:8000"
+
     # [수정 8] CORS — 환경별 허용 출처
     # 운영 환경에서는 .env의 ALLOWED_ORIGINS에 실제 도메인을 콤마 구분으로 설정
     # 예: ALLOWED_ORIGINS=https://medilog.vercel.app,https://www.medilog.com
@@ -96,8 +103,8 @@ class Config(BaseSettings):
         if self.ALLOWED_ORIGINS:
             return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
         if self.ENV == Env.PROD:
-            return []   # 운영 환경에서 ALLOWED_ORIGINS 미설정 시 전체 차단
-        return [        # 로컬·개발 환경 기본값
+            return []  # 운영 환경에서 ALLOWED_ORIGINS 미설정 시 전체 차단
+        return [  # 로컬·개발 환경 기본값
             "http://localhost:5173",
             "http://localhost:3000",
             "http://127.0.0.1:5173",

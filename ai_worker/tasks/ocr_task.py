@@ -101,10 +101,7 @@ def _parse_with_openai(raw_text: str) -> ParsedRecord:
 
 
 def _db_url() -> str:
-    return (
-        f"mysql://{_config.DB_USER}:{_config.DB_PASSWORD}"
-        f"@{_config.DB_HOST}:{_config.DB_PORT}/{_config.DB_NAME}"
-    )
+    return f"mysql://{_config.DB_USER}:{_config.DB_PASSWORD}@{_config.DB_HOST}:{_config.DB_PORT}/{_config.DB_NAME}"
 
 
 async def _update_db(record_id: str, ocr_raw_text: str, parsed: ParsedRecord) -> None:
@@ -113,11 +110,13 @@ async def _update_db(record_id: str, ocr_raw_text: str, parsed: ParsedRecord) ->
     동기 httpx 호출 — asyncio.run() 컨텍스트에서 실행됨.
     """
     from ai_worker.callback import ocr_done
+
     ocr_done(record_id, ocr_raw_text, parsed.model_dump())
     logger.info(f"[OCR Task] callback 전송 완료 record_id={record_id}")
 
 
 async def _update_status(record_id: str, status: str) -> None:
     from ai_worker.callback import ocr_failed
+
     if status == "FAILED":
         ocr_failed(record_id)

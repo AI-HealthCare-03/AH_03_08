@@ -15,7 +15,7 @@ class User(models.Model):
 class MedicalRecord(models.Model):
     id = fields.CharField(max_length=36, primary_key=True)
     user = fields.ForeignKeyField("models.User", related_name="records")
-    ocr_raw_text = fields.TextField(null=True)   # OCR 추출 원문
+    ocr_raw_text = fields.TextField(null=True)  # OCR 추출 원문
     parsed_data = fields.JSONField(null=True)
     status = fields.CharField(max_length=20, default="PENDING")
 
@@ -31,7 +31,7 @@ class Guide(models.Model):
     title = fields.CharField(max_length=200, null=True)
     medication_guide = fields.TextField(null=True)
     lifestyle_guide = fields.TextField(null=True)
-    summary_text = fields.TextField(null=True)   # app/models/guides.py 와 속성명 통일
+    summary_text = fields.TextField(null=True)  # app/models/guides.py 와 속성명 통일
     allergy_warnings = fields.JSONField(null=True)
     condition_interactions = fields.JSONField(null=True)
 
