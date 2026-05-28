@@ -91,6 +91,8 @@ class Config(BaseSettings):
     # 운영 환경에서는 .env에 강력한 랜덤 문자열로 설정
     INTERNAL_SECRET: str = "local-internal-secret-change-in-prod"
 
+    APP_INTERNAL_URL: str = "http://fastapi:8000"
+
     # [수정 8] CORS — 환경별 허용 출처
     # 운영 환경에서는 .env의 ALLOWED_ORIGINS에 실제 도메인을 콤마 구분으로 설정
     # 예: ALLOWED_ORIGINS=https://medilog.vercel.app,https://www.medilog.com
