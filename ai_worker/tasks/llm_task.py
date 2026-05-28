@@ -134,6 +134,8 @@ async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
             ]
         )
         parsed = _parse_json(response.content)
+        summary_text = (parsed.get("summary") or "").strip()
+        title = summary_text[:15] if summary_text else None
 
         # [최적화 10-B] 파싱 실패 시 가이드를 failed 상태로 저장
         if parsed is None:

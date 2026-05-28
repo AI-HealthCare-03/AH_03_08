@@ -15,4 +15,4 @@ COPY ./scripts/ingest_chroma_knowledge.py ./scripts/ingest_chroma_knowledge.py
 
 # docker-compose command가 -A ai_worker.celery_app 으로 override하므로
 # CMD는 fallback용. celery_app으로 통일하여 main.py 혼용 제거.
-CMD ["uv", "run", "--no-sync", "celery", "-A", "ai_worker.celery_app", "worker", "--loglevel=info"]
+CMD ["uv", "run", "--no-sync", "celery", "-A", "ai_worker.celery_app", "worker", "--loglevel=info", "python", "-Q", "llm,image"]

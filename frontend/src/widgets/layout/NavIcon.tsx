@@ -39,6 +39,24 @@ const icons: Record<string, React.ReactNode> = {
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
       d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
   ),
+  flag: (
+    <>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+        d="M6 3v18" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+        d="M6 4h10l-1 3 1 3H6" />
+    </>
+  ),
+  utensils: (
+    <>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+        d="M6 2v10M9 2v10M6 7h3" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+        d="M14 2v8a3 3 0 006 0V2" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+        d="M17 10v12" />
+    </>
+  ),
 }
 
 // active 시 연초록색 (#22ad28), 비활성은 currentColor(부모 text 색 상속)

@@ -11,6 +11,8 @@ import { ChatbotPage } from '@/pages/chatbot'
 import { CalendarPage } from '@/pages/calendar'
 import { NotificationPage } from '@/pages/notification'
 import { MyPage } from '@/pages/my-page'
+import { ChallengePage } from '@/pages/challenge'
+import { NutritionPage } from '@/pages/nutrition'
 
 function ProtectedRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
@@ -35,6 +37,8 @@ export const router = createBrowserRouter([
           { path: '/home', element: <HomePage /> },
           { path: '/medical-record', element: <MedicalRecordPage /> },
           { path: '/guide', element: <GuidePage /> },
+          { path: '/challenge', element: <ChallengePage /> },
+          { path: '/nutrition', element: <NutritionPage /> },
           { path: '/chatbot', element: <ChatbotPage /> },
           { path: '/chatbot/:sessionId', element: <ChatbotPage /> },
           { path: '/calendar', element: <CalendarPage /> },
