@@ -14,7 +14,7 @@ class AIService:
 
     async def request_analysis(self, user: User, medical_record) -> object:
         task = celery_app.send_task(
-            "ai_worker.task.ai_tasks.analyze_health_data",
+            "ai_worker.tasks.ai_task.analyze_health_data",
             args=[
                 {
                     "user_id": str(user.id),
