@@ -17,7 +17,7 @@ celery_app = Celery(
         "ai_worker.tasks.llm_task",
         "ai_worker.tasks.tts_task",
         "ai_worker.tasks.image_task",
-        "ai_worker.tasks.ai_tasks",
+        "ai_worker.tasks.ai_task",
     ],
 )
 

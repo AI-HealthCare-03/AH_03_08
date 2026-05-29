@@ -108,7 +108,7 @@ services:
         - linux/arm64
     image: ${DOCKER_USER}/${DOCKER_REPOSITORY}:ai-${AI_WORKER_VERSION}
     env_file: .env
-    command: uv run --no-sync celery -A ai_worker.celery_app worker -Q llm -c 2 --loglevel=info
+    command: uv run --no-sync celery -A ai_worker.celery_app worker -Q llm,tts -c 2 --loglevel=info
     restart: always
     mem_limit: 4G
     volumes:

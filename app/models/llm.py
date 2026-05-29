@@ -12,7 +12,7 @@ class RecordType(IntEnum):
 class RecordStatus(StrEnum):
     PENDING = "PENDING"
     PROCESSING = "PROCESSING"
-    DONE = "DONE"
+    COMPLETED = "COMPLETED"  # DONE → COMPLETED
     FAILED = "FAILED"
 
 

@@ -3,6 +3,9 @@ from pathlib import Path
 
 from celery import Celery
 
+import base64
+
+
 from app.application.medical_record.dto.record_dto import UploadRecordCommand
 from app.core import config
 from app.domain.medical_record.entity import MedicalRecord
@@ -30,7 +33,7 @@ class UploadRecordUseCase:
 
         # REQ-IMG: pill_photo(2) 타입은 낱알약 분류 task로 분기
         if command.record_type == RecordType.PILL:
-            self._dispatch_image_analyze(saved.id, command.file_content)
+            self._dispatch_image_analyze(saved.id, command.file_content, command.user_id)
         else:
             self._dispatch_ocr(saved.id, str(file_path))
 
@@ -39,19 +42,19 @@ class UploadRecordUseCase:
     def _dispatch_ocr(self, record_id: uuid.UUID, file_path: str) -> None:
         _celery.send_task(
             # [수정] tasks/ocr_task.py의 name= 과 일치 (단수 .task)
-            "ai_worker.task.ocr_task.process_ocr",
+            "ai_worker.tasks.ocr_task.process_ocr",
             args=[str(record_id), file_path],
             queue="image",
         )
 
     # REQ-IMG: 낱알약 이미지 분류 task 등록 (태준)
-    def _dispatch_image_analyze(self, record_id: uuid.UUID, image_bytes: bytes) -> None:
+    def _dispatch_image_analyze(self, record_id: uuid.UUID, image_bytes: bytes, user_id: int) -> None:
         _celery.send_task(
             "ai_worker.tasks.image_task.classify_pill",
             kwargs={
                 "record_id": str(record_id),
-                "user_id": "",
-                "image_bytes": image_bytes,
+                "user_id": str(user_id),
+                "image_bytes": base64.b64encode(image_bytes).decode("utf-8"),  # base64 인코딩
             },
             queue="image",
         )

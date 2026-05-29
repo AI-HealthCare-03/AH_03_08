@@ -87,7 +87,7 @@ class GuideService:
         # )
         celery_app.send_task(
             # [수정] tasks/llm_task.py의 name= 과 일치 (단수 .task, 복수 llm_tasks)
-            "ai_worker.task.llm_tasks.generate_guide_task",
+            "ai_worker.tasks.llm_task.generate_guide_task",
             kwargs={"guide_id": str(guide.id), "record_id": str(record_id), "user_id": user_id},
             queue="llm",
         )
@@ -227,7 +227,7 @@ class ChatService:
         # Celery Task 발행 — LLM Worker가 스트리밍 응답 처리
         celery_app.send_task(
             # tasks/llm_task.py name= 과 일치
-            "ai_worker.task.llm_tasks.process_chat_message_task",
+            "ai_worker.tasks.llm_task.process_chat_message_task",
             kwargs={
                 "session_id": session_id,
                 "message_id": assistant_msg.id,

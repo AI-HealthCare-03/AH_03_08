@@ -39,6 +39,8 @@ export const medicalRecordSchema = z.object({
 
 export type MedicalRecord = z.infer<typeof medicalRecordSchema>
 
+export type RecordStatus = 'pending' | 'processing' | 'completed' | 'failed'
+
 export const RECORD_TYPE_META: Record<RecordType, { label: string; description: string; icon: string }> = {
   prescription: {
     label: '처방전',

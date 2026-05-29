@@ -63,7 +63,7 @@ def _get_classifier():
     name="ai_worker.tasks.image_task.classify_pill",
     max_retries=3,
 )
-def classify_pill(self, image_bytes: bytes, record_id: str, user_id: str) -> dict:
+def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
     """
     낱알약 이미지를 분류하는 Celery Task.
 
@@ -83,6 +83,7 @@ def classify_pill(self, image_bytes: bytes, record_id: str, user_id: str) -> dic
         logger.info(f"낱알약 분류 시작 - record_id: {record_id}")
 
         # [최적화 5] 싱글톤에서 이미 로드된 분류기 반환 (모델 재로드 없음)
+        raw_bytes = base64.b64decode(image_bytes)
         classifier = _get_classifier()
         kcode, drug_info, confidence_score = classifier.classify(image_bytes)
 

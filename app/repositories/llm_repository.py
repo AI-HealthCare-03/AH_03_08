@@ -40,7 +40,7 @@ class MedicalRecordRepository:
     async def update_parsed_data(self, record_id: str, parsed_data: dict) -> None:
         await self._model.filter(id=record_id).update(
             parsed_data=parsed_data,
-            status=RecordStatus.DONE,
+            status="COMPLETED",
             updated_at=datetime.now(config.TIMEZONE),
         )
 
@@ -50,8 +50,10 @@ class GuideRepository:
         self._model = Guide
 
     async def create(self, user_id: int, record_id: str) -> Guide:
-        return await self._model.create(user_id=user_id, medical_record_id=record_id)
-
+        return await self._model.create(
+            user_id=user_id,
+            record_id=record_id,
+        )
     async def get_by_id(self, guide_id: int, user_id: int) -> Guide | None:
         return await self._model.get_or_none(id=guide_id, user_id=user_id)
 
@@ -59,7 +61,7 @@ class GuideRepository:
     async def get_active_by_record(self, record_id: str, user_id: int) -> Guide | None:
         """processing 또는 done 상태의 가이드가 이미 존재하면 반환."""
         return await self._model.get_or_none(
-            medical_record_id=record_id,
+            record_id=record_id,
             user_id=user_id,
             status__in=["processing", "done"],
         )
@@ -111,7 +113,7 @@ class GuideAssetRepository:
 
     async def update_done(self, asset_id: int, file_url: str) -> None:
         await self._model.filter(id=asset_id).update(
-            status=RecordStatus.DONE,
+            status=RecordStatus.COMPLETED,
             file_url=file_url,
             updated_at=datetime.now(config.TIMEZONE),
         )
@@ -149,7 +151,7 @@ class ChatMessageRepository:
         session_id: int,
         role: str,
         content: str = "",
-        status: RecordStatus = RecordStatus.DONE,
+        status: RecordStatus = RecordStatus.COMPLETED,
     ) -> ChatMessage:
         return await self._model.create(
             session_id=session_id,
@@ -172,5 +174,5 @@ class ChatMessageRepository:
     async def update_content(self, message_id: int, content: str) -> None:
         await self._model.filter(id=message_id).update(
             content=content,
-            status=RecordStatus.DONE,
+            status=RecordStatus.COMPLETED,
         )

@@ -66,6 +66,8 @@ class Config(BaseSettings):
     # OCR
     CLOVA_OCR_URL: str = ""
     CLOVA_OCR_SECRET: str = ""
+    OCR_PROVIDER: str = "clova"  # 이 줄 추가
+
 
     # Pill Classification
     PILL_MODEL_PATH: str = ""

@@ -77,10 +77,10 @@ class GuideDetailResponse(BaseSerializerModel):
     status: GuideStatus
     medication_guide: str | None
     lifestyle_guide: str | None
-    summary: str | None
+    summary_text: str | None
     allergy_warnings: list[AllergyWarning]
     condition_interactions: list[ConditionInteraction]
-    completed_at: datetime | None
+    # completed_at: datetime | None
     created_at: datetime
 
 

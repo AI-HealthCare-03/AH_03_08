@@ -15,7 +15,7 @@ TORTOISE_APP_MODELS = [
     "app.models.medications",
     "app.models.calendar_events",
     "app.models.notifications",
-    "app.models.guide_assets",
+    # "app.models.guide_assets",
     "app.models.feedbacks",
     "app.models.feedback_tags",
     "app.models.chat_sessions",

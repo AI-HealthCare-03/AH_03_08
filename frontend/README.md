@@ -57,6 +57,10 @@ npm run dev       # 개발 서버 실행
 npm run build     # 프로덕션 빌드
 npm run preview   # 빌드 결과 미리보기
 npm run lint      # ESLint 검사
+
+#도커에서 실행
+cd frontend
+docker run --rm -it -v ${PWD}:/app -w /app -p 5173:5173 node:20 sh -c "npm install && npm run dev -- --host"
 ```
 
 ## 인증 방식

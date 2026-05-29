@@ -4,6 +4,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import ORJSONResponse as Response
 
+from uuid import UUID
+
 from app.dependencies.security import get_request_user
 from app.dtos.llm import (
     AssetCreateRequest,
@@ -113,7 +115,7 @@ async def get_guide_list(
 
 @guide_router.get("/{guide_id}", status_code=status.HTTP_200_OK)
 async def get_guide(
-    guide_id: int,
+    guide_id: UUID,
     user: Annotated[User, Depends(get_request_user)],
     service: Annotated[GuideService, Depends(GuideService)],
 ) -> Response:
@@ -126,7 +128,7 @@ async def get_guide(
 
 @guide_router.post("/{guide_id}/assets", status_code=status.HTTP_202_ACCEPTED)
 async def create_asset(
-    guide_id: int,
+    guide_id: UUID,
     body: AssetCreateRequest,
     user: Annotated[User, Depends(get_request_user)],
     service: Annotated[GuideService, Depends(GuideService)],
@@ -140,8 +142,8 @@ async def create_asset(
 
 @guide_router.get("/{guide_id}/assets/{asset_id}", status_code=status.HTTP_200_OK)
 async def get_asset(
-    guide_id: int,
-    asset_id: int,
+    guide_id: UUID,
+    asset_id: UUID,
     user: Annotated[User, Depends(get_request_user)],
     service: Annotated[GuideService, Depends(GuideService)],
 ) -> Response:
