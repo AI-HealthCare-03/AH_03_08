@@ -1,10 +1,8 @@
+import base64
 import uuid
 from pathlib import Path
 
 from celery import Celery
-
-import base64
-
 
 from app.application.medical_record.dto.record_dto import UploadRecordCommand
 from app.core import config

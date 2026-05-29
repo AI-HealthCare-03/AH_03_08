@@ -1,10 +1,9 @@
 import json
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import ORJSONResponse as Response
-
-from uuid import UUID
 
 from app.dependencies.security import get_request_user
 from app.dtos.llm import (

@@ -54,6 +54,7 @@ class GuideRepository:
             user_id=user_id,
             record_id=record_id,
         )
+
     async def get_by_id(self, guide_id: int, user_id: int) -> Guide | None:
         return await self._model.get_or_none(id=guide_id, user_id=user_id)
 

@@ -22,8 +22,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.core.config import config
-from app.models.llm import GuideAsset
 from app.models.guides import Guide
+from app.models.llm import GuideAsset
 from app.models.medical_records import MedicalRecord
 
 internal_router = APIRouter(prefix="/internal", tags=["internal"])
