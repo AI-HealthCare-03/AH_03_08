@@ -11,6 +11,8 @@ from ai_worker.celery_app import celery_app
 from ai_worker.core.config import Config
 from ai_worker.core.logger import logger
 
+import base64
+
 config = Config()
 
 # ─────────────────────────────────────────────────────────────────

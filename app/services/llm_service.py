@@ -77,10 +77,6 @@ class GuideService:
 
         # Celery Task 발행 — LLM Worker가 백그라운드에서 처리
         celery_app.send_task(
-<<<<<<< HEAD
-            # [수정] tasks/llm_task.py의 name= 과 일치 (단수 .task, 복수 llm_tasks)
-=======
->>>>>>> 36105e165a0efff5a62b5b145da53ee37f206d23
             "ai_worker.tasks.llm_task.generate_guide_task",
             kwargs={"guide_id": str(guide.id), "record_id": str(record_id), "user_id": user_id},
             queue="llm",

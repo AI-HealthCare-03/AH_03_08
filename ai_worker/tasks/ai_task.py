@@ -18,11 +18,7 @@ class AITask(Task):
 @celery_app.task(
     base=AITask,
     bind=True,
-<<<<<<< HEAD
-    name="ai_worker.task.llm_tasks.generate_daily_tip_scheduled",
-=======
-    name="ai_worker.tasks.ai_task.analyze_health_data",
->>>>>>> 36105e165a0efff5a62b5b145da53ee37f206d23
+    name="ai_worker.tasks.llm_task.generate_daily_tip_scheduled",
     max_retries=3,
 )
 def analyze_health_data(self, request_data: dict) -> dict:
