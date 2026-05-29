@@ -16,3 +16,4 @@ example.local.env
 example.prod.env
 
 app/models/proj_pill/
+app/models/pill_data_croped
