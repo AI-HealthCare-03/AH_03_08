@@ -91,7 +91,7 @@ def _db_url() -> str:
 
 @celery_app.task(
     bind=True,
-    name="ai_worker.task.llm_tasks.generate_guide_task",
+    name="ai_worker.tasks.llm_task.generate_guide_task",
     max_retries=3,
     default_retry_delay=30,
     acks_late=True,
@@ -167,7 +167,7 @@ async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
 
 @celery_app.task(
     bind=True,
-    name="ai_worker.task.llm_tasks.process_chat_message_task",
+    name="ai_worker.tasks.llm_task.process_chat_message_task",
     max_retries=2,
     default_retry_delay=5,
     acks_late=True,
@@ -240,7 +240,7 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
         raise task.retry(exc=exc) from exc
 
 
-@celery_app.task(bind=True, name="ai_worker.task.llm_tasks.generate_daily_tip_task", max_retries=2)
+@celery_app.task(bind=True, name="ai_worker.tasks.llm_task.generate_daily_tip_task", max_retries=2)
 def generate_daily_tip_task(self, tip_id: str, user_id: int):
     logger.info(f"[daily_tip] tip_id={tip_id}")
     try:
@@ -262,7 +262,7 @@ def generate_daily_tip_task(self, tip_id: str, user_id: int):
         raise self.retry(exc=exc) from exc
 
 
-@celery_app.task(name="ai_worker.task.llm_tasks.generate_daily_tip_scheduled")
+@celery_app.task(name="ai_worker.tasks.llm_task.generate_daily_tip_scheduled")
 def generate_daily_tip_scheduled():
     import uuid
 
