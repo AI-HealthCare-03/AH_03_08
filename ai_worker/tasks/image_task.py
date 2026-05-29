@@ -4,14 +4,13 @@
 # llm-worker(-Q llm)가 이 파일을 include할 때 torchvision이 로드되면
 # CPU 빌드에서 RuntimeError: operator torchvision::nms does not exist 발생.
 # PillClassifier, get_image_classifier는 실제 사용 시점(_load_classifier)에만 import.
+import base64
 
 from celery.signals import worker_process_init, worker_process_shutdown
 
 from ai_worker.celery_app import celery_app
 from ai_worker.core.config import Config
 from ai_worker.core.logger import logger
-
-import base64
 
 config = Config()
 
@@ -70,7 +69,7 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
     낱알약 이미지를 분류하는 Celery Task.
 
     Args:
-        image_bytes: 사용자가 업로드한 이미지 파일 (bytes)
+        image_bytes: 사용자가 업로드한 이미지 파일 (base64 인코딩된 str)
         record_id: MEDICAL_RECORDS 테이블의 record_id (FK)
         user_id: 요청한 사용자 ID
 
@@ -85,8 +84,10 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
         logger.info(f"낱알약 분류 시작 - record_id: {record_id}")
 
         # [최적화 5] 싱글톤에서 이미 로드된 분류기 반환 (모델 재로드 없음)
-        raw_bytes = base64.b64decode(image_bytes)
         classifier = _get_classifier()
+        # base64 인코딩된 str이면 bytes로 디코딩
+        if isinstance(image_bytes, str):
+            image_bytes = base64.b64decode(image_bytes)
         kcode, drug_info, confidence_score = classifier.classify(image_bytes)
 
         # [12] DB 저장 책임을 FastAPI에 위임

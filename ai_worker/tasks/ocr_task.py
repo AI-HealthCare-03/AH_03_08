@@ -59,7 +59,7 @@ class OcrTask(Task):
 @shared_task(
     base=OcrTask,
     bind=True,
-    name="ai_worker.tasks.ocr_task.process_ocr",   # task → tasks
+    name="ai_worker.tasks.ocr_task.process_ocr",  # task → tasks
     max_retries=3,
 )
 def process_ocr(self, record_id: str, file_path: str) -> dict:

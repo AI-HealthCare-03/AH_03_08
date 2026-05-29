@@ -68,7 +68,6 @@ class Config(BaseSettings):
     CLOVA_OCR_SECRET: str = ""
     OCR_PROVIDER: str = "clova"  # 이 줄 추가
 
-
     # Pill Classification
     PILL_MODEL_PATH: str = ""
     PILL_LABEL_PATH: str = ""
