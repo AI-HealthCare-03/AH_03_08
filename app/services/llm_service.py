@@ -76,18 +76,8 @@ class GuideService:
             guide = await self.guide_repo.create(user_id=user_id, record_id=record_id)
 
         # Celery Task 발행 — LLM Worker가 백그라운드에서 처리
-        # from ai_worker.task.llm_tasks import generate_guide_task
-        # generate_guide_task.apply_async(
-        #     kwargs={
-        #         "guide_id": guide.id,
-        #         "record_id": record_id,
-        #         "user_id": user_id,
-        #     },
-        #     queue="llm",
-        # )
         celery_app.send_task(
-            # [수정] tasks/llm_task.py의 name= 과 일치 (단수 .task, 복수 llm_tasks)
-            "ai_worker.task.llm_tasks.generate_guide_task",
+            "ai_worker.tasks.llm_task.generate_guide_task",
             kwargs={"guide_id": str(guide.id), "record_id": str(record_id), "user_id": user_id},
             queue="llm",
         )
@@ -121,7 +111,6 @@ class GuideService:
 
         if asset_type == AssetType.TTS:
             celery_app.send_task(
-                # [수정] tasks/tts_task.py의 name= 과 일치 (복수 .tasks)
                 "ai_worker.tasks.tts_task.generate_tts_task",
                 kwargs={
                     "asset_id": str(asset.id),
@@ -133,9 +122,6 @@ class GuideService:
             )
         else:
             celery_app.send_task(
-                # TODO: ai_worker/tasks/image_task.py에 generate_card_image_task 구현 후
-                # name= 데코레이터 값과 반드시 일치시킬 것
-                # 예: name="ai_worker.tasks.image_task.generate_card_image_task"
                 "ai_worker.tasks.image_task.generate_card_image_task",
                 kwargs={"asset_id": str(asset.id), "guide_id": str(guide_id)},
                 queue="image",
@@ -226,8 +212,7 @@ class ChatService:
 
         # Celery Task 발행 — LLM Worker가 스트리밍 응답 처리
         celery_app.send_task(
-            # tasks/llm_task.py name= 과 일치
-            "ai_worker.task.llm_tasks.process_chat_message_task",
+            "ai_worker.tasks.llm_task.process_chat_message_task",
             kwargs={
                 "session_id": session_id,
                 "message_id": assistant_msg.id,
