@@ -15,5 +15,4 @@ wheels/
 example.local.env
 example.prod.env
 
-C:\Users\minse\Documents\AH_03_08\app\models\proj_pill\pill_resnet152_dataclass01_aug0.pt
-app/models/proj_pill/*
+app/models/proj_pill/
