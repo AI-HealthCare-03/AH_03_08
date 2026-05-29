@@ -11,7 +11,10 @@ from app.repositories.guide_repository import create_guide
 from app.services import feedback_service
 from app.services import guide as guide_service
 
+<<<<<<< HEAD
 # [수정] tasks/llm_task.py name= 과 일치 (단수 .task, 복수 llm_tasks)
+=======
+>>>>>>> 36105e165a0efff5a62b5b145da53ee37f206d23
 GENERATE_GUIDE_TASK = "ai_worker.tasks.llm_task.generate_guide_task"
 
 guide_router = APIRouter(prefix="/guides", tags=["guides"])

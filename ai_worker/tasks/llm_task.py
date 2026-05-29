@@ -241,7 +241,10 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
 
 
 @celery_app.task(bind=True, name="ai_worker.tasks.llm_task.generate_daily_tip_task", max_retries=2)
+<<<<<<< HEAD
 
+=======
+>>>>>>> 36105e165a0efff5a62b5b145da53ee37f206d23
 def generate_daily_tip_task(self, tip_id: str, user_id: int):
     logger.info(f"[daily_tip] tip_id={tip_id}")
     try:
@@ -263,7 +266,11 @@ def generate_daily_tip_task(self, tip_id: str, user_id: int):
         raise self.retry(exc=exc) from exc
 
 
+<<<<<<< HEAD
 @celery_app.task(name="ai_worker.tasks.llm_task.generate_daily_tip_scheduled",)
+=======
+@celery_app.task(name="ai_worker.tasks.llm_task.generate_daily_tip_scheduled")
+>>>>>>> 36105e165a0efff5a62b5b145da53ee37f206d23
 def generate_daily_tip_scheduled():
     import uuid
 
