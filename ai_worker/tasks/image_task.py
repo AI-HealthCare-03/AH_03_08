@@ -108,8 +108,13 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
         parsed_data = {
             "medications": [
                 {
-                    "name": drug_info.get("drug_name"),
+                    "drug_name": drug_info.get("drug_name"),
+                    "dosage": None,
+                    "frequency": None,
+                    "duration": None,
                     "instructions": drug_info.get("dl_material"),
+                    "category": drug_info.get("di_class_no"),
+                    "otc_code": drug_info.get("di_etc_otc_code"),
                 }
             ],
             "drug_info": drug_info,  # 원본 보존 (카드뉴스용)
