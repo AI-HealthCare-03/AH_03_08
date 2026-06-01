@@ -4,12 +4,13 @@
 from typing import Annotated
 
 # 서드파티 라이브러리
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse as Response
 
 # 로컬 모듈
 from app.dependencies.security import get_request_user
-from app.dtos.tts import GuideAssetCreateRequest, GuideAssetCreateResponse
+from app.dtos.tts import AssetType, GuideAssetCreateRequest, GuideAssetCreateResponse
+from app.models.guides import Guide
 from app.models.users import User
 from app.services.tts import TtsService
 
@@ -45,10 +46,16 @@ async def create_guide_asset(
         - 개인정보 보호: 의료 데이터 접근 시 JWT 인증 필수
         - Celery Task 등록 후 즉시 202 반환 (비동기 처리)
     """
-    # summary_text는 DB에서 가져와야 하지만
-    # 팀장님 DB 완성 전까지 임시로 빈 문자열 처리
-    # TODO: 팀장 DB 연동 후 GUIDES 테이블에서 summary_text 조회로 교체
-    summary_text = ""
+    guide = await Guide.get_or_none(id=guide_id, user_id=current_user.id)
+    if not guide:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="가이드를 찾을 수 없습니다.")
+
+    if request.asset_type == AssetType.tts_medication:
+        summary_text = guide.medication_guide or ""
+    elif request.asset_type == AssetType.tts_lifestyle:
+        summary_text = guide.lifestyle_guide or ""
+    else:
+        summary_text = guide.summary_text or ""
 
     result = await tts_service.create_guide_asset(
         guide_id=guide_id,
