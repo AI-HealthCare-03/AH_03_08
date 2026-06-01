@@ -55,6 +55,31 @@ class GuideGenerateResponse(BaseModel):
     status: GuideStatus  # 항상 PENDING으로 시작
 
 
+# ✅ [신규] 복약 가이드 개별 약품 항목
+# 기존: medication_guide가 str 단일 필드 → 프론트 파싱 불가, 약품별 UI 불가
+# 개선: 약품별 구조화 객체 → 카드 UI 렌더링, TTS 분리, 개별 알림 설정 가능
+class MedicationGuideItem(BaseModel):
+    """약품별 복약 가이드 항목"""
+
+    drug_name: str
+    how_to_take: str                       # 복용 방법 (예: 식후 30분, 물과 함께)
+    schedule: str                          # 복용 시간대 (예: 아침·저녁 식후)
+    warnings: list[str] = Field(default_factory=list)      # 주의사항 목록
+    side_effects: list[str] = Field(default_factory=list)  # 흔한 부작용 목록
+
+
+# ✅ [신규] 생활습관 가이드 카테고리 분리
+# 기존: lifestyle_guide가 str 단일 필드 → 식이/운동/수면 섹션 구분 불가
+# 개선: 카테고리별 필드 분리 → 프론트에서 탭/섹션 UI 구성 가능
+class LifestyleGuide(BaseModel):
+    """생활습관 가이드 (카테고리별)"""
+
+    diet: str | None = None      # 식이 권고사항
+    exercise: str | None = None  # 운동 관련 주의사항
+    sleep: str | None = None     # 수면 관련 안내
+    other: str | None = None     # 기타 생활습관 개선사항
+
+
 class AllergyWarning(BaseModel):
     """알러지 경고 항목"""
 
@@ -71,16 +96,23 @@ class ConditionInteraction(BaseModel):
 
 
 class GuideDetailResponse(BaseSerializerModel):
-    """가이드 상세 응답"""
+    """가이드 상세 응답
+
+    ✅ [변경]
+    - medication_guide: str → list[MedicationGuideItem]
+    - lifestyle_guide:  str → LifestyleGuide
+    """
 
     id: UUID
     status: GuideStatus
-    medication_guide: str | None
-    lifestyle_guide: str | None
+
+    # ✅ 구조화된 타입으로 변경 (None 허용: PENDING/PROCESSING 상태 대응)
+    medication_guide: list[MedicationGuideItem] | None = None
+    lifestyle_guide: LifestyleGuide | None = None
+
     summary_text: str | None
     allergy_warnings: list[AllergyWarning]
     condition_interactions: list[ConditionInteraction]
-    # completed_at: datetime | None
     created_at: datetime
 
 

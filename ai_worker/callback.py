@@ -45,20 +45,32 @@ def guide_done(
     summary_text: str,
     allergy_warnings: list,
     condition_interactions: list,
+    # 신규 필드 (선택적 — 구버전 호환 유지)
+    drug_interactions: list | None = None,
+    side_effects_watch: list | None = None,
+    medication_schedule: list | None = None,
+    urgent_warnings: list | None = None,
 ) -> bool:
-    return _post(
-        "/callback/guide",
-        {
-            "guide_id": guide_id,
-            "user_id": user_id,
-            "status": "done",
-            "medication_guide": medication_guide,
-            "lifestyle_guide": lifestyle_guide,
-            "summary_text": summary_text,
-            "allergy_warnings": allergy_warnings,
-            "condition_interactions": condition_interactions,
-        },
-    )
+    payload: dict = {
+        "guide_id": guide_id,
+        "user_id": user_id,
+        "status": "done",
+        "medication_guide": medication_guide,
+        "lifestyle_guide": lifestyle_guide,
+        "summary_text": summary_text,
+        "allergy_warnings": allergy_warnings,
+        "condition_interactions": condition_interactions,
+    }
+    # None이 아닌 필드만 포함 (DB 컬럼이 없는 경우 FastAPI가 무시)
+    if drug_interactions is not None:
+        payload["drug_interactions"] = drug_interactions
+    if side_effects_watch is not None:
+        payload["side_effects_watch"] = side_effects_watch
+    if medication_schedule is not None:
+        payload["medication_schedule"] = medication_schedule
+    if urgent_warnings is not None:
+        payload["urgent_warnings"] = urgent_warnings
+    return _post("/callback/guide", payload)
 
 
 def guide_failed(guide_id: str, user_id: int) -> bool:
