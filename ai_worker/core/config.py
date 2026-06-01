@@ -77,6 +77,12 @@ class Config(BaseSettings):
     # WebSocket 핸들러가 매 연결마다 aioredis.from_url()을 호출하던 문제 해결
     REDIS_URL: str = "redis://localhost:6379/0"
 
+    # AWS S3
+    S3_BUCKET_NAME: str = ""
+    AWS_ACCESS_KEY: str = ""
+    AWS_SECRET_KEY: str = ""
+    AWS_REGION: str = "ap-northeast-2"
+
     # Celery
     CELERY_BROKER_URL: str = "redis://localhost:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
