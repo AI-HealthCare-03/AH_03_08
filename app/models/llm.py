@@ -32,6 +32,7 @@ class AssetType(StrEnum):
 # Guide 모델
 # ════════════════════════════════════════
 
+
 class Guide(models.Model):
     """복약 가이드
 
@@ -88,6 +89,7 @@ class Guide(models.Model):
 # MedicalRecord 모델
 # ════════════════════════════════════════
 
+
 class MedicalRecord(models.Model):
     id = fields.UUIDField(primary_key=True)
     user = fields.ForeignKeyField("models.User", related_name="records", on_delete=fields.CASCADE)
@@ -105,6 +107,7 @@ class MedicalRecord(models.Model):
 # GuideAsset 모델
 # ════════════════════════════════════════
 
+
 class GuideAsset(models.Model):
     id = fields.UUIDField(primary_key=True)
     guide = fields.ForeignKeyField("models.Guide", related_name="assets", on_delete=fields.CASCADE)
@@ -120,6 +123,7 @@ class GuideAsset(models.Model):
 # ════════════════════════════════════════
 # Chat 모델
 # ════════════════════════════════════════
+
 
 class ChatSession(models.Model):
     id = fields.BigIntField(primary_key=True, generated=True)

@@ -62,9 +62,9 @@ class MedicationGuideItem(BaseModel):
     """약품별 복약 가이드 항목"""
 
     drug_name: str
-    how_to_take: str                       # 복용 방법 (예: 식후 30분, 물과 함께)
-    schedule: str                          # 복용 시간대 (예: 아침·저녁 식후)
-    warnings: list[str] = Field(default_factory=list)      # 주의사항 목록
+    how_to_take: str  # 복용 방법 (예: 식후 30분, 물과 함께)
+    schedule: str  # 복용 시간대 (예: 아침·저녁 식후)
+    warnings: list[str] = Field(default_factory=list)  # 주의사항 목록
     side_effects: list[str] = Field(default_factory=list)  # 흔한 부작용 목록
 
 
@@ -74,10 +74,10 @@ class MedicationGuideItem(BaseModel):
 class LifestyleGuide(BaseModel):
     """생활습관 가이드 (카테고리별)"""
 
-    diet: str | None = None      # 식이 권고사항
+    diet: str | None = None  # 식이 권고사항
     exercise: str | None = None  # 운동 관련 주의사항
-    sleep: str | None = None     # 수면 관련 안내
-    other: str | None = None     # 기타 생활습관 개선사항
+    sleep: str | None = None  # 수면 관련 안내
+    other: str | None = None  # 기타 생활습관 개선사항
 
 
 class AllergyWarning(BaseModel):

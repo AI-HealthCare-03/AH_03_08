@@ -1,87 +1,3 @@
-from app.models.llm import ChatMessage, ChatSession, Guide, GuideAsset, GuideStatus, MedicalRecord
-
-
-class GuideRepository:
-    async def create_guide(self, user_id: int, record_id: int) -> Guide:
-        return await Guide.create(user_id=user_id, record_id=record_id)
-
-    async def get_guide(self, guide_id: int, user_id: int) -> Guide | None:
-        return await Guide.get_or_none(id=guide_id, user_id=user_id)
-
-    async def get_guides_by_user(self, user_id: int, page: int, limit: int) -> tuple[int, list[Guide]]:
-        qs = Guide.filter(user_id=user_id).order_by("-created_at")
-        total = await qs.count()
-        items = await qs.offset((page - 1) * limit).limit(limit)
-        return total, items
-
-    async def update_guide_done(
-        self,
-        guide_id: int,
-        medication_guide: str,
-        lifestyle_guide: str,
-        summary: str,
-        allergy_warnings: list,
-        condition_interactions: list,
-    ) -> None:
-        from datetime import datetime, timezone
-        await Guide.filter(id=guide_id).update(
-            status=GuideStatus.DONE,
-            medication_guide=medication_guide,
-            lifestyle_guide=lifestyle_guide,
-            summary=summary,
-            allergy_warnings=allergy_warnings,
-            condition_interactions=condition_interactions,
-            completed_at=datetime.now(timezone.utc),
-        )
-
-    async def update_guide_failed(self, guide_id: int) -> None:
-        await Guide.filter(id=guide_id).update(status=GuideStatus.FAILED)
-
-    async def update_guide_processing(self, guide_id: int) -> None:
-        await Guide.filter(id=guide_id).update(status=GuideStatus.PROCESSING)
-
-    async def create_asset(self, guide_id: int, asset_type: str) -> GuideAsset:
-        return await GuideAsset.create(guide_id=guide_id, asset_type=asset_type)
-
-    async def get_asset(self, asset_id: int, guide_id: int) -> GuideAsset | None:
-        return await GuideAsset.get_or_none(id=asset_id, guide_id=guide_id)
-
-    async def get_assets_by_guide(self, guide_id: int) -> list[GuideAsset]:
-        return await GuideAsset.filter(guide_id=guide_id)
-
-    async def update_asset_done(self, asset_id: int, file_url: str) -> None:
-        await GuideAsset.filter(id=asset_id).update(status="DONE", file_url=file_url)
-
-
-class MedicalRecordRepository:
-    async def get_completed_record(self, record_id: int, user_id: int) -> MedicalRecord | None:
-        return await MedicalRecord.get_or_none(id=record_id, user_id=user_id, status="DONE")
-
-
-class ChatRepository:
-    async def create_session(self, user_id: int) -> ChatSession:
-        return await ChatSession.create(user_id=user_id)
-
-    async def get_session(self, session_id: int, user_id: int) -> ChatSession | None:
-        return await ChatSession.get_or_none(id=session_id, user_id=user_id)
-
-    async def get_sessions_by_user(self, user_id: int) -> list[ChatSession]:
-        return await ChatSession.filter(user_id=user_id).order_by("-created_at").limit(50)
-
-    async def delete_session(self, session_id: int) -> None:
-        await ChatSession.filter(id=session_id).delete()
-
-    async def create_message(self, session_id: int, role: str, content: str = "", status: str = "DONE") -> ChatMessage:
-        return await ChatMessage.create(session_id=session_id, role=role, content=content, status=status)
-
-    async def get_messages(self, session_id: int, limit: int, cursor: int | None) -> list[ChatMessage]:
-        qs = ChatMessage.filter(session_id=session_id)
-        if cursor:
-            qs = qs.filter(id__gt=cursor)
-        return await qs.order_by("created_at").limit(limit)
-
-    async def update_message_content(self, message_id: int, content: str) -> None:
-        await ChatMessage.filter(id=message_id).update(content=content, status="DONE")
 from datetime import datetime
 
 from app.core import config
@@ -142,6 +58,7 @@ class GuideRepository:
     async def get_by_id(self, guide_id: int, user_id: int) -> Guide | None:
         return await self._model.get_or_none(id=guide_id, user_id=user_id)
 
+    # [수정 9] 중복 가이드 방지용 — 동일 record에 처리 중인 가이드 조회
     async def get_active_by_record(self, record_id: str, user_id: int) -> Guide | None:
         """processing 또는 done 상태의 가이드가 이미 존재하면 반환."""
         return await self._model.get_or_none(
@@ -165,11 +82,12 @@ class GuideRepository:
         allergy_warnings: list,
         condition_interactions: list,
     ) -> None:
+        # guides.py 기준 속성명: summary_text (DB 컬럼명과 동일)
         await self._model.filter(id=guide_id).update(
             status=GuideStatus.DONE,
             medication_guide=medication_guide,
             lifestyle_guide=lifestyle_guide,
-            summary_text=summary,
+            summary_text=summary,  # ← llm.py의 summary 속성 제거됨, guides.py 기준으로 수정
             allergy_warnings=allergy_warnings,
             condition_interactions=condition_interactions,
         )
