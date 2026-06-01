@@ -7,14 +7,14 @@ from tortoise.contrib.test import TestCase
 from app.main import app
 
 _SIGNUP = {
-    "email": "tts_test@example.com",
+    "email": "card_news_test@example.com",
     "password": "Password123!",
-    "name": "TTS테스터",
+    "name": "카드뉴스테스터",
     "gender": "MALE",
     "birth_date": "1995-05-20",
-    "phone_number": "01098765432",
+    "phone_number": "01011112222",
 }
-_LOGIN = {"email": "tts_test@example.com", "password": "Password123!"}
+_LOGIN = {"email": "card_news_test@example.com", "password": "Password123!"}
 
 
 async def _get_auth_headers(client: AsyncClient) -> dict:
@@ -29,19 +29,19 @@ def _mock_guide():
     return guide
 
 
-class TestCreateGuideAssetAPI(TestCase):
-    async def test_create_tts_success(self):
-        """tts 타입 TTS 생성 요청 테스트"""
+class TestCreateCardNewsAPI(TestCase):
+    async def test_create_card_news_success(self):
+        """card_news 타입 카드뉴스 생성 요청 테스트"""
         with (
             patch("app.apis.v1.asset_routers.Guide.get_or_none", new=AsyncMock(return_value=_mock_guide())),
-            patch("app.services.tts.celery_app.send_task") as mock_task,
+            patch("app.services.card_news.celery_app.send_task") as mock_task,
         ):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
                 response = await client.post(
                     "/api/v1/guides/00000000-0000-0000-0000-000000000001/assets",
                     headers=headers,
-                    json={"asset_type": "tts"},
+                    json={"asset_type": "card_news"},
                 )
 
         assert response.status_code == status.HTTP_202_ACCEPTED
@@ -50,37 +50,25 @@ class TestCreateGuideAssetAPI(TestCase):
         assert data["status"] == "processing"
         mock_task.assert_called_once()
 
-    async def test_create_invalid_asset_type(self):
-        """잘못된 asset_type 요청 시 422 반환 테스트"""
-        with patch("app.services.tts.celery_app.send_task"):
+    async def test_create_card_news_guide_not_found(self):
+        """존재하지 않는 guide_id로 요청 시 404 반환 테스트"""
+        with patch("app.apis.v1.asset_routers.Guide.get_or_none", new=AsyncMock(return_value=None)):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
                 response = await client.post(
-                    "/api/v1/guides/00000000-0000-0000-0000-000000000001/assets",
+                    "/api/v1/guides/00000000-0000-0000-0000-000000000099/assets",
                     headers=headers,
-                    json={"asset_type": "invalid_type"},
+                    json={"asset_type": "card_news"},
                 )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    async def test_create_unauthorized(self):
+    async def test_create_card_news_unauthorized(self):
         """JWT 인증 없이 요청 시 401 반환 테스트"""
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.post(
                 "/api/v1/guides/00000000-0000-0000-0000-000000000001/assets",
-                json={"asset_type": "tts"},
+                json={"asset_type": "card_news"},
             )
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-    async def test_create_missing_asset_type(self):
-        """asset_type 없이 요청 시 422 반환 테스트"""
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            headers = await _get_auth_headers(client)
-            response = await client.post(
-                "/api/v1/guides/00000000-0000-0000-0000-000000000001/assets",
-                headers=headers,
-                json={},
-            )
-
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY

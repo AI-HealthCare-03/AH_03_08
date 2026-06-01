@@ -1,5 +1,3 @@
-# app/services/tts.py
-
 # 표준 라이브러리
 import uuid
 
@@ -13,15 +11,15 @@ from app.dtos.asset import GuideAssetCreateResponse
 celery_app = Celery(broker=config.CELERY_BROKER_URL, backend=config.CELERY_RESULT_BACKEND)
 
 
-class TtsService:
-    async def create_tts_asset(
+class CardNewsService:
+    async def create_card_news_asset(
         self,
         guide_id: str,
         user_id: str,
         summary_text: str,
     ) -> GuideAssetCreateResponse:
         """
-        TTS 음성 변환 요청을 처리하고 Celery Task를 등록한다.
+        카드뉴스 이미지 생성 요청을 처리하고 Celery Task를 등록한다.
 
         Args:
             guide_id: GUIDES 테이블의 guide_id
@@ -38,7 +36,7 @@ class TtsService:
         asset_id = str(uuid.uuid4())
 
         celery_app.send_task(
-            "ai_worker.tasks.tts_task.generate_tts_task",
+            "ai_worker.tasks.card_news_task.generate_card_news_task",
             kwargs={
                 "asset_id": asset_id,
                 "guide_id": guide_id,
