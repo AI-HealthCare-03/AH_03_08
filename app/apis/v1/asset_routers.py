@@ -59,7 +59,9 @@ async def create_guide_asset(
         )
     elif request.asset_type == AssetType.card_image:
         # TODO: CardImageService 구현 후 연결
-        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="카드뉴스 기능은 아직 지원되지 않습니다.")
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="카드뉴스 기능은 아직 지원되지 않습니다."
+        )
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="지원하지 않는 asset_type입니다.")
 
