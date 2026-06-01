@@ -20,3 +20,10 @@ async def create_feedback(
 
 async def get_feedbacks_by_user(user_id: int) -> list[Feedback]:
     return await Feedback.filter(user_id=user_id).order_by("-created_at").all()
+
+
+async def get_feedbacks_paginated(page: int, limit: int) -> tuple[list[Feedback], int]:
+    qs = Feedback.all().order_by("-created_at")
+    total = await qs.count()
+    items = await qs.offset((page - 1) * limit).limit(limit)
+    return items, total

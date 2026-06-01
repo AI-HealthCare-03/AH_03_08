@@ -3,6 +3,7 @@ from fastapi import HTTPException, status
 from app.repositories.feedback_repository import (
     create_feedback,
     get_feedbacks_by_user,
+    get_feedbacks_paginated,
 )
 from app.repositories.guide_repository import get_guide_by_id
 
@@ -41,3 +42,18 @@ async def list_my_feedbacks(user_id: int) -> list[dict]:
         }
         for f in rows
     ]
+
+
+async def list_admin_feedbacks(page: int, limit: int) -> dict:
+    rows, total = await get_feedbacks_paginated(page=page, limit=limit)
+    items = [
+        {
+            "user_id": f.user_id,
+            "guide_id": str(f.guide_id),
+            "rating": f.rating,
+            "comment": f.comment,
+            "created_at": f.created_at.isoformat() if f.created_at else None,
+        }
+        for f in rows
+    ]
+    return {"total": total, "page": page, "limit": limit, "items": items}
