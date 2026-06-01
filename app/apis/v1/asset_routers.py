@@ -12,6 +12,7 @@ from app.dependencies.security import get_request_user
 from app.dtos.asset import AssetType, GuideAssetCreateRequest, GuideAssetCreateResponse
 from app.models.guides import Guide
 from app.models.users import User
+from app.services.card_news import CardNewsService
 from app.services.tts import TtsService
 
 asset_router = APIRouter(prefix="/guides", tags=["guides"])
@@ -26,17 +27,18 @@ async def create_guide_asset(
     guide_id: str,
     request: GuideAssetCreateRequest,
     tts_service: Annotated[TtsService, Depends(TtsService)],
+    card_news_service: Annotated[CardNewsService, Depends(CardNewsService)],
     current_user: Annotated[User, Depends(get_request_user)],
 ) -> Response:
     """
     TTS 음성 / 카드뉴스 이미지 생성 요청 엔드포인트.
 
     API 명세서: POST /api/v1/guides/{guide_id}/assets
-    REQ-GUIDE-002 연동 (asset_type=tts)
+    REQ-GUIDE-002 연동 (asset_type=tts, asset_type=card_news)
 
     Args:
         guide_id: GUIDES 테이블의 guide_id
-        request: { asset_type: "tts" or "card_image" }
+        request: { asset_type: "tts" or "card_news" }
         current_user: JWT 인증된 사용자 (Bearer token)
 
     Returns:
@@ -57,10 +59,11 @@ async def create_guide_asset(
             user_id=str(current_user.id),
             summary_text=summary_text,
         )
-    elif request.asset_type == AssetType.card_image:
-        # TODO: CardImageService 구현 후 연결
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="카드뉴스 기능은 아직 지원되지 않습니다."
+    elif request.asset_type == AssetType.card_news:
+        result = await card_news_service.create_card_news_asset(
+            guide_id=guide_id,
+            user_id=str(current_user.id),
+            summary_text=summary_text,
         )
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="지원하지 않는 asset_type입니다.")
