@@ -6,7 +6,7 @@ from celery import Celery
 
 # 로컬 모듈
 from app.core.config import config
-from app.dtos.tts import GuideAssetCreateResponse
+from app.dtos.asset import GuideAssetCreateResponse
 
 celery_app = Celery(broker=config.CELERY_BROKER_URL, backend=config.CELERY_RESULT_BACKEND)
 
