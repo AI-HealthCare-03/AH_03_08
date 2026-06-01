@@ -24,6 +24,11 @@ class Guide(models.Model):
     summary_text = fields.TextField(null=True)  # DB 컬럼명 summary_text
     allergy_warnings = fields.JSONField(default=list)
     condition_interactions = fields.JSONField(default=list)
+    # 신규 필드 (llm_task.py 개선으로 추가)
+    drug_interactions = fields.JSONField(default=list)       # 약물 간·식품 상호작용
+    side_effects_watch = fields.JSONField(default=list)      # 부작용 모니터링 목록
+    medication_schedule = fields.JSONField(default=list)     # 복약 시간표
+    urgent_warnings = fields.JSONField(default=list)         # 즉시 의사 상담 필요 경고
     prompt_version = fields.CharField(max_length=20, default="v1.0")
     llm_model = fields.CharField(max_length=100, null=True)
     llm_temperature = fields.FloatField(null=True)

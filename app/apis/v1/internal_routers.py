@@ -60,6 +60,11 @@ class GuideCallbackRequest(BaseModel):
     summary_text: str | None = None
     allergy_warnings: list = []
     condition_interactions: list = []
+    # 신규 필드 (선택적 — 구버전 worker 호환)
+    drug_interactions: list = []
+    side_effects_watch: list = []
+    medication_schedule: list = []
+    urgent_warnings: list = []
 
 
 class OcrCallbackRequest(BaseModel):
@@ -98,6 +103,10 @@ async def guide_callback(body: GuideCallbackRequest, request: Request):
             summary_text=body.summary_text,
             allergy_warnings=body.allergy_warnings,
             condition_interactions=body.condition_interactions,
+            drug_interactions=body.drug_interactions,
+            side_effects_watch=body.side_effects_watch,
+            medication_schedule=body.medication_schedule,
+            urgent_warnings=body.urgent_warnings,
             llm_model="gpt-4o-mini",
         )
     else:
