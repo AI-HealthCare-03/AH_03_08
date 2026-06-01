@@ -436,3 +436,4 @@ def get_collection_stats() -> dict:
         }
     except Exception as exc:
         return {"status": "error", "detail": str(exc)}
+    

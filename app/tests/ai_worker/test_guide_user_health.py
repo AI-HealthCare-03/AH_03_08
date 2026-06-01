@@ -5,7 +5,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
-
 from ai_worker.user_health import build_user_health, load_user_health
 
 pytestmark = pytest.mark.no_db
