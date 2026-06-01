@@ -1,10 +1,7 @@
-# app/tests/tts_apis/test_tts_apis.py
-from unittest.mock import patch
-
+from unittest.mock import AsyncMock, MagicMock, patch
 from httpx import ASGITransport, AsyncClient
 from starlette import status
 from tortoise.contrib.test import TestCase
-
 from app.main import app
 
 _SIGNUP = {
@@ -24,10 +21,17 @@ async def _get_auth_headers(client: AsyncClient) -> dict:
     return {"Authorization": f"Bearer {resp.json()['access_token']}"}
 
 
+def _mock_guide():
+    guide = MagicMock()
+    guide.summary_text = "테스트 요약 텍스트입니다."
+    return guide
+
+
 class TestCreateGuideAssetAPI(TestCase):
     async def test_create_tts_success(self):
         """tts 타입 TTS 생성 요청 테스트"""
-        with patch("app.services.tts.celery_app.send_task") as mock_task:
+        with patch("app.apis.v1.asset_routers.Guide.get_or_none", new=AsyncMock(return_value=_mock_guide())), \
+             patch("app.services.tts.celery_app.send_task") as mock_task:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
                 response = await client.post(
@@ -44,7 +48,8 @@ class TestCreateGuideAssetAPI(TestCase):
 
     async def test_create_card_image_not_implemented(self):
         """card_image 타입 요청 시 501 반환 테스트"""
-        with patch("app.services.tts.celery_app.send_task"):
+        with patch("app.apis.v1.asset_routers.Guide.get_or_none", new=AsyncMock(return_value=_mock_guide())), \
+             patch("app.services.tts.celery_app.send_task"):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
                 response = await client.post(
