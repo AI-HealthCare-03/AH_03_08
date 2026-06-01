@@ -51,12 +51,17 @@ async def create_guide_asset(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="가이드를 찾을 수 없습니다.")
     summary_text = guide.summary_text or ""
 
-    result = await tts_service.create_guide_asset(
-        guide_id=guide_id,
-        asset_type=request.asset_type,
-        user_id=str(current_user.id),
-        summary_text=summary_text,
-    )
+    if request.asset_type == AssetType.tts:
+        result = await tts_service.create_tts_asset(
+            guide_id=guide_id,
+            user_id=str(current_user.id),
+            summary_text=summary_text,
+        )
+    elif request.asset_type == AssetType.card_image:
+        # TODO: CardImageService 구현 후 연결
+        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="카드뉴스 기능은 아직 지원되지 않습니다.")
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="지원하지 않는 asset_type입니다.")
 
     return Response(
         content=result.model_dump(),
