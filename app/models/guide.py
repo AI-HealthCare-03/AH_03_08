@@ -1,14 +1,8 @@
 from tortoise import fields
 from tortoise.models import Model
 
-class Guide(models.Model):
-    """
-    복약 가이드 정규 모델 (app/models/guides.py 단일 정의).
-    - app/models/llm.py 의 Guide 클래스는 제거됨.
-    - summary_text: DB 컬럼명. 코드에서는 guide.summary_text 로 접근.
-    - on_delete=CASCADE: 유저/레코드 삭제 시 연쇄 삭제.
-    """
 
+class Guide(Model):
     id = fields.UUIDField(pk=True)
     user = fields.ForeignKeyField("models.User", related_name="guides", on_delete=fields.CASCADE)
     record = fields.ForeignKeyField(
@@ -17,18 +11,17 @@ class Guide(models.Model):
         source_field="record_id",
         on_delete=fields.CASCADE,
     )
-    status = fields.CharField(max_length=20, default="processing")  # processing / done / failed
+    status = fields.CharField(max_length=20, default="processing")
     title = fields.CharField(max_length=200, null=True)
     medication_guide = fields.TextField(null=True)
     lifestyle_guide = fields.TextField(null=True)
-    summary_text = fields.TextField(null=True)  # DB 컬럼명 summary_text
+    summary_text = fields.TextField(null=True)
     allergy_warnings = fields.JSONField(default=list)
     condition_interactions = fields.JSONField(default=list)
-    # 신규 필드 (llm_task.py 개선으로 추가)
-    drug_interactions = fields.JSONField(default=list)  # 약물 간·식품 상호작용
-    side_effects_watch = fields.JSONField(default=list)  # 부작용 모니터링 목록
-    medication_schedule = fields.JSONField(default=list)  # 복약 시간표
-    urgent_warnings = fields.JSONField(default=list)  # 즉시 의사 상담 필요 경고
+    drug_interactions = fields.JSONField(default=list)
+    side_effects_watch = fields.JSONField(default=list)
+    medication_schedule = fields.JSONField(default=list)
+    urgent_warnings = fields.JSONField(default=list)
     prompt_version = fields.CharField(max_length=20, default="v1.0")
     llm_model = fields.CharField(max_length=100, null=True)
     llm_temperature = fields.FloatField(null=True)
@@ -38,19 +31,16 @@ class Guide(models.Model):
         table = "guides"
 
 
-
 class Feedback(Model):
-    # 테이블 이름 설정
+    id = fields.UUIDField(pk=True)
+    guide_id = fields.UUIDField()
+    user_id = fields.UUIDField()
+    rating = fields.IntField(null=True)
+    comment = fields.CharField(max_length=500, null=True)
+    status = fields.CharField(max_length=20, null=True)
+    deactive_at = fields.DatetimeField(null=True)
+    deactive_by = fields.UUIDField(null=True)
+    created_at = fields.DatetimeField(auto_now_add=True)
+
     class Meta:
         table = "feedbacks"
-
-    # ERD 기준 컬럼 정의
-    id = fields.UUIDField(pk=True)
-    guide_id = fields.UUIDField()  # 어떤 가이드에 대한 피드백인지
-    user_id = fields.UUIDField()  # 누가 남긴 피드백인지
-    rating = fields.IntField(null=True)  # 평점
-    comment = fields.CharField(max_length=500, null=True)  # 코멘트
-    status = fields.CharField(max_length=20, null=True)  # 피드백 상태
-    deactive_at = fields.DatetimeField(null=True)  # 비활성화 시간
-    deactive_by = fields.UUIDField(null=True)  # 비활성화한 유저
-    created_at = fields.DatetimeField(auto_now_add=True)
