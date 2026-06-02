@@ -156,3 +156,24 @@ export function useSubmitFeedback() {
     onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.feedbacks() }),
   })
 }
+
+export type AssetType = 'tts' | 'card_news'
+
+export interface CreateAssetResponse {
+  asset_id: string
+  status: string
+}
+
+async function createAsset(guideId: string, assetType: AssetType): Promise<CreateAssetResponse> {
+  const { data } = await apiClient.post<ApiEnvelope<CreateAssetResponse>>(
+    `/guides/${guideId}/assets`,
+    { asset_type: assetType },
+  )
+  return data.data
+}
+
+export function useCreateAsset(guideId: string) {
+  return useMutation({
+    mutationFn: (assetType: AssetType) => createAsset(guideId, assetType),
+  })
+}
