@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+﻿from fastapi import FastAPI
 from tortoise import Tortoise
 from tortoise.contrib.fastapi import register_tortoise
 
@@ -9,7 +9,7 @@ TORTOISE_APP_MODELS = [
     "app.models.users",
     "app.models.llm",
     "app.models.medical_records",
-    "app.models.guides",
+    "app.models.guide",
     "app.models.allergies",
     "app.models.underlying_diseases",
     "app.models.medications",
