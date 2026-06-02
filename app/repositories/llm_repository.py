@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from app.core import config
-from app.models.guides import Guide
+from app.models.guide import Guide
 from app.models.llm import (
     AssetType,
     ChatMessage,
