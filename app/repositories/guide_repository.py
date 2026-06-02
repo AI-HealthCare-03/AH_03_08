@@ -1,4 +1,4 @@
-from app.models.guides import Guide
+﻿from app.models.guide import Guide
 
 
 async def create_guide(user_id: int, record_id: str) -> Guide:
