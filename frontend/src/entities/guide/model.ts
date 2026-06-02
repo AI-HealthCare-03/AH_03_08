@@ -1,4 +1,4 @@
-import { z } from 'zod'
+﻿import { z } from 'zod'
 
 export const guideStatusSchema = z.enum(['processing', 'done', 'failed'])
 export type GuideStatus = z.infer<typeof guideStatusSchema>

@@ -5,7 +5,6 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from ai_worker.rag import chroma_store
 
 pytestmark = pytest.mark.no_db
@@ -27,20 +26,26 @@ def test_search_text_for_medications_empty_when_no_drugs():
 
 def test_search_text_for_medications_formats_results():
     mock_vs = MagicMock()
-    mock_vs.similarity_search.return_value = [
-        SimpleNamespace(page_content="타이레놀 복용 주의"),
-        SimpleNamespace(page_content="간 손상 주의"),
+    # Mock the correct method with (doc, score) tuples
+    mock_vs.similarity_search_with_relevance_scores.return_value = [
+        (SimpleNamespace(page_content="타이레놀 복용 주의", metadata={"source": "가이드"}), 0.92),
+        (SimpleNamespace(page_content="간 손상 주의", metadata={"source": "가이드"}), 0.88),
     ]
     with patch.object(chroma_store, "get_vectorstore", return_value=mock_vs):
         text = chroma_store.search_text_for_medications([{"drug_name": "타이레놀"}])
 
     assert "[1] 타이레놀 복용 주의" in text
     assert "[2] 간 손상 주의" in text
-    mock_vs.similarity_search.assert_called_once()
+    mock_vs.similarity_search_with_relevance_scores.assert_called_once()
 
 
 def test_search_docs_with_scores_filters_by_threshold():
     mock_vs = MagicMock()
+    # Mock MMR results (no scores)
+    mock_vs.max_marginal_relevance_search.return_value = [
+        SimpleNamespace(page_content="high"),
+    ]
+    # Mock similarity search for score mapping
     mock_vs.similarity_search_with_relevance_scores.return_value = [
         (SimpleNamespace(page_content="high"), 0.85),
         (SimpleNamespace(page_content="low"), 0.3),

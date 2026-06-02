@@ -115,6 +115,7 @@ services:
       - chroma_data:/data/chromadb
       - ./data:/app/data
       - ./ai_worker:/app/ai_worker  # 소스코드 실시간 반영
+      - ./scripts:/app/scripts      # ingest 스크립트 실시간 반영
     networks:
       - ws
     depends_on:
