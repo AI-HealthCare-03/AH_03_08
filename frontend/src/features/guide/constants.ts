@@ -1,29 +1,57 @@
-/** 팀 와이어프레임 — 긍정 피드백 칩 (복수 선택) */
-export const POSITIVE_FEEDBACK_CATEGORIES = [
-  '복약 방법이 명확해요',
-  '주의사항이 잘 나와 있어요',
-  '내 건강 상태가 잘 반영됐어요',
-  '이해하기 쉬워요',
-  '생활습관 조언이 도움됐어요',
-] as const
-
-/** 팀 와이어프레임 — 부정 피드백 칩 (복수 선택) */
-export const NEGATIVE_FEEDBACK_CATEGORIES = [
-  '너무 전문적이에요',
-  '정보가 부족해요',
-  '주의사항이 불명확해요',
-  '약 정보가 틀렸어요',
-  '읽기 어려워요',
-] as const
-
-/** @deprecated NEGATIVE_FEEDBACK_CATEGORIES 사용 */
-export const FEEDBACK_CATEGORIES = NEGATIVE_FEEDBACK_CATEGORIES
-
-export type GuideContentTab = 'medication' | 'lifestyle' | 'info'
-
-/** 와이어프레임 탭: 복약 가이드 · 생활 가이드 · 정보 조회 */
-export const GUIDE_TABS: { id: GuideContentTab; label: string }[] = [
-  { id: 'medication', label: '복약 가이드' },
-  { id: 'lifestyle', label: '생활 가이드' },
-  { id: 'info', label: '첨부 자료' },
-]
+/** 팀 와이어프레임 — 긍정 피드백 칩 (복수 선택) */
+
+export const POSITIVE_FEEDBACK_CATEGORIES = [
+
+  '복약 방법이 명확해요',
+
+  '주의사항이 잘 나와 있어요',
+
+  '내 건강 상태가 잘 반영됐어요',
+
+  '이해하기 쉬워요',
+
+  '생활습관 조언이 도움됐어요',
+
+] as const
+
+
+
+/** 팀 와이어프레임 — 부정 피드백 칩 (복수 선택) */
+
+export const NEGATIVE_FEEDBACK_CATEGORIES = [
+
+  '너무 전문적이에요',
+
+  '정보가 부족해요',
+
+  '주의사항이 불명확해요',
+
+  '약 정보가 틀렸어요',
+
+  '읽기 어려워요',
+
+] as const
+
+
+
+/** @deprecated NEGATIVE_FEEDBACK_CATEGORIES 사용 */
+
+export const FEEDBACK_CATEGORIES = NEGATIVE_FEEDBACK_CATEGORIES
+
+
+
+export type GuideContentTab = 'medication' | 'lifestyle' | 'info'
+
+
+
+/** 와이어프레임 탭: 복약 가이드 · 생활 가이드 · 정보 조회 */
+
+export const GUIDE_TABS: { id: GuideContentTab; label: string }[] = [
+
+  { id: 'medication', label: '복약 가이드' },
+
+  { id: 'lifestyle', label: '생활 가이드' },
+
+  { id: 'info', label: '첨부 자료' },
+
+]

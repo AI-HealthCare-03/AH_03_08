@@ -1,4 +1,4 @@
-import json
+﻿import json
 from typing import Annotated
 from uuid import UUID
 
@@ -76,7 +76,7 @@ def get_stream_message_use_case(
 
 async def _build_guide_context(session_id: UUID) -> str:
     from app.models.chat_sessions import ChatSession as ChatSessionORM
-    from app.models.guides import Guide
+    from app.models.guide import Guide
 
     session = await ChatSessionORM.get_or_none(id=session_id)
     if not session or not session.guide_id:
@@ -86,28 +86,28 @@ async def _build_guide_context(session_id: UUID) -> str:
         return ""
     parts = []
     if guide.summary_text:
-        parts.append(f"요약: {guide.summary_text}")
+        parts.append(f"?붿빟: {guide.summary_text}")
     if guide.medication_guide:
-        parts.append(f"복약 안내: {guide.medication_guide}")
+        parts.append(f"蹂듭빟 ?덈궡: {guide.medication_guide}")
     if guide.lifestyle_guide:
-        parts.append(f"생활 습관: {guide.lifestyle_guide}")
+        parts.append(f"?앺솢 ?듦?: {guide.lifestyle_guide}")
     try:
         record = await guide.record
         if record and record.parsed_data:
             disease_code = record.parsed_data.get("disease_code")
             if disease_code:
-                parts.append(f"질병분류기호: {disease_code}")
+                parts.append(f"吏덈퀝遺꾨쪟湲고샇: {disease_code}")
             meds = record.parsed_data.get("medications", [])
             if meds:
                 med_list = ", ".join(m.get("name", "") for m in meds if m.get("name"))
-                parts.append(f"처방 약물: {med_list}")
+                parts.append(f"泥섎갑 ?쎈Ъ: {med_list}")
     except Exception:
         pass
     return "\n".join(parts)
 
 
 async def _get_ws_user(token: str) -> User | None:
-    """WebSocket은 HTTPBearer를 쓸 수 없어서 JWT를 직접 검증한다."""
+    """WebSocket? HTTPBearer瑜??????놁뼱??JWT瑜?吏곸젒 寃利앺븳??"""
     try:
         verified = JwtService().verify_jwt(token=token, token_type="access")
         from app.repositories.user_repository import UserRepository
@@ -168,7 +168,7 @@ async def list_messages(
 ) -> MessageListResponseSchema:
     session = await session_repo.find_by_id(session_id=session_id, user_id=user.id)
     if not session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="채팅 세션을 찾을 수 없습니다.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="梨꾪똿 ?몄뀡??李얠쓣 ???놁뒿?덈떎.")
     messages = await message_repo.find_recent_by_session_id(session_id=session_id, limit=limit)
     return MessageListResponseSchema(items=[MessageResponseSchema.model_validate(m) for m in reversed(messages)])
 
@@ -189,22 +189,22 @@ async def chat_websocket(
     token: str,
 ) -> None:
     """
-    WebSocket 채팅 엔드포인트.
-    연결: ws://host/api/v1/chats/{session_id}/ws?token=<access_token>
-    클라이언트 → 서버: {"content": "질문 내용"}
-    서버 → 클라이언트: {"type": "token", "content": "토큰"} (스트리밍)
-    서버 → 클라이언트: {"type": "done"} (완료)
-    서버 → 클라이언트: {"type": "error", "detail": "메시지"} (에러)
+    WebSocket 梨꾪똿 ?붾뱶?ъ씤??
+    ?곌껐: ws://host/api/v1/chats/{session_id}/ws?token=<access_token>
+    ?대씪?댁뼵?????쒕쾭: {"content": "吏덈Ц ?댁슜"}
+    ?쒕쾭 ???대씪?댁뼵?? {"type": "token", "content": "?좏겙"} (?ㅽ듃由щ컢)
+    ?쒕쾭 ???대씪?댁뼵?? {"type": "done"} (?꾨즺)
+    ?쒕쾭 ???대씪?댁뼵?? {"type": "error", "detail": "硫붿떆吏"} (?먮윭)
     """
     await websocket.accept()
 
     user = await _get_ws_user(token)
     if not user:
-        await websocket.send_text(json.dumps({"type": "error", "detail": "인증에 실패했습니다."}))
+        await websocket.send_text(json.dumps({"type": "error", "detail": "?몄쬆???ㅽ뙣?덉뒿?덈떎."}))
         await websocket.close(code=4001)
         return
 
-    # 세션의 가이드 컨텍스트를 연결 시점에 한 번만 로드
+    # ?몄뀡??媛?대뱶 而⑦뀓?ㅽ듃瑜??곌껐 ?쒖젏????踰덈쭔 濡쒕뱶
     guide_context = await _build_guide_context(session_id)
 
     use_case = StreamMessageUseCase(
@@ -220,11 +220,11 @@ async def chat_websocket(
                 data = json.loads(raw)
                 content = data.get("content", "").strip()
             except (json.JSONDecodeError, AttributeError):
-                await websocket.send_text(json.dumps({"type": "error", "detail": "잘못된 메시지 형식입니다."}))
+                await websocket.send_text(json.dumps({"type": "error", "detail": "?섎せ??硫붿떆吏 ?뺤떇?낅땲??"}))
                 continue
 
             if not content:
-                await websocket.send_text(json.dumps({"type": "error", "detail": "메시지 내용을 입력해주세요."}))
+                await websocket.send_text(json.dumps({"type": "error", "detail": "硫붿떆吏 ?댁슜???낅젰?댁＜?몄슂."}))
                 continue
 
             allergies = await Allergy.filter(user_id=user.id).values_list("allergy_name", flat=True)
