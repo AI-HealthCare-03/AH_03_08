@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, HeartPulse, Paperclip, Pill } from 'lucide-react'
+import { AlertTriangle, HeartPulse, Newspaper, Pill } from 'lucide-react'
 import type { Guide } from '@/entities/guide/model'
 import { GUIDE_TABS, type GuideContentTab } from './constants'
 import { splitBulletLines } from './guide-utils'
 import { useRecord } from '@/entities/medical-record/api'
+import { apiClient } from '@/shared/api/client'
+import { toast } from '@/shared/lib/toast'
 
 interface GuideContentTabsProps {
   guide: Guide
@@ -18,9 +20,11 @@ function WarningBox({ children }: { children: React.ReactNode }) {
   )
 }
 
-/** 와이어프레임 — 복약 / 생활 / 정보 조회 탭 */
+/** 와이어프레임 — 복약 / 생활 / 카드뉴스 탭 */
 export function GuideContentTabs({ guide }: GuideContentTabsProps) {
   const [tab, setTab] = useState<GuideContentTab>('medication')
+  const [isCardNewsLoading, setIsCardNewsLoading] = useState(false)
+  const [cardNewsUrl, setCardNewsUrl] = useState<string | null>(null)
   const { data: record } = useRecord(guide.record_id)
   const meds = record?.parsed_data?.medications ?? []
 
@@ -46,6 +50,24 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
           interaction: guide.allergy_warnings[0].warning,
         }
       : null)
+
+  async function handleCreateCardNews() {
+    try {
+      setIsCardNewsLoading(true)
+      const response = await apiClient.post(
+        `/guides/${guide.id}/assets`,
+        { asset_type: 'card_news' },
+        { responseType: 'blob' },
+      )
+      const url = URL.createObjectURL(response.data)
+      setCardNewsUrl(url)
+      toast.success('카드뉴스가 생성되었습니다.')
+    } catch {
+      toast.error('카드뉴스 생성 요청에 실패했습니다.')
+    } finally {
+      setIsCardNewsLoading(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -141,38 +163,26 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
       {tab === 'info' && (
         <div className="space-y-4">
           <article className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <Paperclip className="h-5 w-5 text-brand-primary" />
-              <h3 className="text-sm font-semibold text-gray-900">첨부 자료</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <Newspaper className="h-5 w-5 text-brand-primary" />
+              <h3 className="text-sm font-semibold text-gray-900">카드뉴스</h3>
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              TTS / 카드 이미지 자산은 준비 중입니다. (요청 버튼은 상단에서 동작)
-            </p>
+            <button
+              type="button"
+              onClick={handleCreateCardNews}
+              disabled={isCardNewsLoading}
+              className="w-full rounded-xl border-2 border-dashed border-brand-primary py-4 text-sm font-semibold text-brand-primary hover:bg-brand-lightest transition-colors disabled:opacity-50"
+            >
+              {isCardNewsLoading ? '생성 중...' : '카드뉴스 생성'}
+            </button>
+            {cardNewsUrl && (
+              <img
+                src={cardNewsUrl}
+                alt="카드뉴스"
+                className="mt-4 w-full rounded-xl border border-gray-100"
+              />
+            )}
           </article>
-
-          {guide.allergy_warnings && guide.allergy_warnings.length > 0 && (
-            <div className="rounded-2xl border border-red-100 bg-status-red-bg/60 p-4 space-y-2">
-              <p className="text-sm font-semibold text-status-red-text">알러지 경고</p>
-              {guide.allergy_warnings.map((w) => (
-                <p key={`${w.drug_name}-${w.warning}`} className="text-sm text-status-red-text">
-                  <span className="font-medium">{w.drug_name}</span>: {w.warning}
-                </p>
-              ))}
-            </div>
-          )}
-
-          {guide.condition_interactions && guide.condition_interactions.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                기저질환 상호작용
-              </p>
-              {guide.condition_interactions.map((c) => (
-                <WarningBox key={`${c.drug_name}-${c.condition}`}>
-                  <span className="font-medium">{c.drug_name}</span> · {c.condition}: {c.interaction}
-                </WarningBox>
-              ))}
-            </div>
-          )}
         </div>
       )}
     </div>
