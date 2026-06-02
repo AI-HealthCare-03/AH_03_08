@@ -10,7 +10,6 @@ Usage:
 """
 
 import argparse
-import os
 import sys
 from collections import Counter
 from pathlib import Path
@@ -32,7 +31,6 @@ def main() -> None:
     from ai_worker.rag.chroma_store import (
         get_collection_stats,
         get_vectorstore,
-        ingest_rag_from_dir,
         ingest_text_documents,
         load_documents_from_dir,
     )
@@ -56,7 +54,7 @@ def main() -> None:
 
     # 카테고리 분포 출력
     categories = Counter(d.metadata.get("category", "기타") for d in docs)
-    print(f"\n=== RAG 문서 로드 결과 ===")
+    print("\n=== RAG 문서 로드 결과 ===")
     print(f"  총 문서 수: {len(docs)}")
     print("  카테고리 분포:")
     for cat, cnt in categories.most_common():
