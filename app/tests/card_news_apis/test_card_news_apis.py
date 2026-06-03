@@ -20,7 +20,7 @@ _LOGIN = {"email": "card_news_test@example.com", "password": "Password123!"}
 async def _get_auth_headers(client: AsyncClient) -> dict:
     await client.post("/api/v1/auth/signup", json=_SIGNUP)
     resp = await client.post("/api/v1/auth/login", json=_LOGIN)
-    return {"Authorization": f"Bearer {resp.json()['access_token']}"}
+    return {"Authorization": f"Bearer {resp.json()['data']['access_token']}"}
 
 
 def _mock_guide():
