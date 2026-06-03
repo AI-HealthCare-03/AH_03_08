@@ -22,7 +22,7 @@ _FAKE_IMAGE = ("test.jpg", BytesIO(b"fake image content"), "image/jpeg")
 async def _get_auth_headers(client: AsyncClient) -> dict:
     await client.post("/api/v1/auth/signup", json=_SIGNUP)
     resp = await client.post("/api/v1/auth/login", json=_LOGIN)
-    return {"Authorization": f"Bearer {resp.json()['access_token']}"}
+    return {"Authorization": f"Bearer {resp.json()['data']['access_token']}"}
 
 
 class TestUploadRecordAPI(TestCase):
@@ -116,7 +116,7 @@ class TestGetRecordAPI(TestCase):
                 # 두 번째 유저가 조회 시도
                 await client.post("/api/v1/auth/signup", json=other_signup)
                 login_resp = await client.post("/api/v1/auth/login", json=other_login)
-                headers_b = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+                headers_b = {"Authorization": f"Bearer {login_resp.json()['data']['access_token']}"}
                 response = await client.get(f"/api/v1/records/{record_id}", headers=headers_b)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -207,7 +207,7 @@ class TestUpdateRecordAPI(TestCase):
 
                 await client.post("/api/v1/auth/signup", json=other_signup)
                 login_resp = await client.post("/api/v1/auth/login", json=other_login)
-                headers_b = {"Authorization": f"Bearer {login_resp.json()['access_token']}"}
+                headers_b = {"Authorization": f"Bearer {login_resp.json()['data']['access_token']}"}
                 response = await client.put(
                     f"/api/v1/records/{record_id}",
                     headers=headers_b,
