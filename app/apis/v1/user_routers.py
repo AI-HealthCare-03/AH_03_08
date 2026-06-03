@@ -1,44 +1,77 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, Query, status
-from fastapi.responses import ORJSONResponse as Response
-
-from app.dependencies.security import get_request_user, require_admin
-from app.dtos.users import UserInfoResponse, UserUpdateRequest
-from app.models.users import User
-from app.services import feedback_service
-from app.services.users import UserManageService
+# app/apis/v1/user_routers.py
+from typing import Literal
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+from app.dependencies.security import get_request_user
+from app.models.allergies import Allergy
+from app.models.underlying_diseases import UnderlyingDisease
 
 user_router = APIRouter(prefix="/users", tags=["users"])
-CurrentAdmin = Annotated[User, Depends(require_admin)]
 
 
-def _ok(data, message: str) -> dict:
-    return {"success": True, "data": data, "message": message}
+def _ok(data):
+    return {"success": True, "data": data, "message": "ok"}
 
 
-@user_router.get("/admin", status_code=status.HTTP_200_OK)
-async def list_feedbacks_admin(
-    admin: CurrentAdmin,
-    page: Annotated[int, Query(ge=1)] = 1,
-    limit: Annotated[int, Query(ge=1, le=100)] = 20,
-):
-    data = await feedback_service.list_admin_feedbacks(page=page, limit=limit)
-    return _ok(data, "관리자 피드백 목록 조회 성공")
+class AllergyCreateRequest(BaseModel):
+    allergen_name: str = Field(..., max_length=200)
+    severity: Literal["mild", "moderate", "severe"] = "mild"
 
 
-@user_router.get("/me", response_model=UserInfoResponse, status_code=status.HTTP_200_OK)
-async def user_me_info(
-    user: Annotated[User, Depends(get_request_user)],
-) -> Response:
-    return Response(UserInfoResponse.model_validate(user).model_dump(), status_code=status.HTTP_200_OK)
+class AllergyResponse(BaseModel):
+    id: str
+    allergen_name: str
+    severity: str
+    created_at: str
 
 
-@user_router.patch("/me", response_model=UserInfoResponse, status_code=status.HTTP_200_OK)
-async def update_user_me_info(
-    update_data: UserUpdateRequest,
-    user: Annotated[User, Depends(get_request_user)],
-    user_manage_service: Annotated[UserManageService, Depends(UserManageService)],
-) -> Response:
-    updated_user = await user_manage_service.update_user(user=user, data=update_data)
-    return Response(UserInfoResponse.model_validate(updated_user).model_dump(), status_code=status.HTTP_200_OK)
+class ConditionCreateRequest(BaseModel):
+    condition_name: str = Field(..., max_length=200)
+    severity: Literal["mild", "moderate", "severe"] = "mild"
+
+
+class ConditionResponse(BaseModel):
+    id: str
+    condition_name: str
+    severity: str
+    created_at: str
+
+
+@user_router.get("/me/allergies", summary="알러지 목록 조회")
+async def list_my_allergies(current_user=Depends(get_request_user)):
+    rows = await Allergy.filter(user_id=current_user.id).order_by("created_at")
+    return _ok([AllergyResponse(id=str(r.id), allergen_name=r.allergy_name, severity=r.severity or "mild", created_at=str(r.created_at)) for r in rows])
+
+
+@user_router.post("/me/allergies", summary="알러지 추가", status_code=status.HTTP_201_CREATED)
+async def add_my_allergy(body: AllergyCreateRequest, current_user=Depends(get_request_user)):
+    row = await Allergy.create(user_id=current_user.id, allergy_name=body.allergen_name, severity=body.severity)
+    return _ok(AllergyResponse(id=str(row.id), allergen_name=row.allergy_name, severity=row.severity or "mild", created_at=str(row.created_at)))
+
+
+@user_router.delete("/me/allergies/{allergy_id}", summary="알러지 삭제")
+async def delete_my_allergy(allergy_id: str, current_user=Depends(get_request_user)):
+    deleted = await Allergy.filter(id=allergy_id, user_id=current_user.id).delete()
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="알러지 정보를 찾을 수 없습니다.")
+    return _ok({"message": "삭제 완료"})
+
+
+@user_router.get("/me/conditions", summary="기저질환 목록 조회")
+async def list_my_conditions(current_user=Depends(get_request_user)):
+    rows = await UnderlyingDisease.filter(user_id=current_user.id).order_by("created_at")
+    return _ok([ConditionResponse(id=str(r.id), condition_name=r.underlying_disease_name, severity=r.severity or "mild", created_at=str(r.created_at)) for r in rows])
+
+
+@user_router.post("/me/conditions", summary="기저질환 추가", status_code=status.HTTP_201_CREATED)
+async def add_my_condition(body: ConditionCreateRequest, current_user=Depends(get_request_user)):
+    row = await UnderlyingDisease.create(user_id=current_user.id, underlying_disease_name=body.condition_name, severity=body.severity)
+    return _ok(ConditionResponse(id=str(row.id), condition_name=row.underlying_disease_name, severity=row.severity or "mild", created_at=str(row.created_at)))
+
+
+@user_router.delete("/me/conditions/{condition_id}", summary="기저질환 삭제")
+async def delete_my_condition(condition_id: str, current_user=Depends(get_request_user)):
+    deleted = await UnderlyingDisease.filter(id=condition_id, user_id=current_user.id).delete()
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="기저질환 정보를 찾을 수 없습니다.")
+    return _ok({"message": "삭제 완료"})
