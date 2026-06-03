@@ -1,5 +1,5 @@
 from app.models.allergies import Allergy
-from app.models.guides import Guide
+from app.models.guide import Guide
 from app.models.medical_records import MedicalRecord
 from app.models.medications import Medication
 from app.models.underlying_diseases import UnderlyingDisease
