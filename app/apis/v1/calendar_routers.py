@@ -54,10 +54,22 @@ async def get_calendar_by_date(event_date: str, current_user=Depends(get_request
 @calendar_router.post("", summary="Create calendar event", status_code=status.HTTP_201_CREATED)
 async def create_calendar_event(body: CalendarEventCreateRequest, current_user=Depends(get_request_user)):
     from app.models.medications import Medication
-    med = await Medication.filter(id=body.medication_id).prefetch_related("medical_record").first()
-    if not med or med.medical_record.user_id != current_user.id:
+    from app.models.medical_records import MedicalRecord
+
+    med = await Medication.filter(id=body.medication_id).first()
+    if not med:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication not found.")
-    row = await CalendarEvent.create(user_id=current_user.id, medication_id=body.medication_id, event_date=body.event_date, scheduled_time=body.scheduled_time, status="PENDING", note=body.note)
+    record = await MedicalRecord.filter(id=med.medical_record_id, user_id=current_user.id).first()
+    if not record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication not found.")
+    row = await CalendarEvent.create(
+        user_id=current_user.id,
+        medication_id=body.medication_id,
+        event_date=body.event_date,
+        scheduled_time=body.scheduled_time,
+        status="PENDING",
+        note=body.note,
+    )
     return _ok(_to_resp(row))
 
 

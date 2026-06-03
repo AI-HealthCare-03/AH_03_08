@@ -40,11 +40,17 @@ celery_app.conf.update(
         "ai_worker.tasks.ai_task.*": {"queue": "llm"},
         "ai_worker.tasks.card_news_task.*": {"queue": "image"},
     },
-    beat_schedule={
-        "daily-tip-every-morning": {
-            "task": "ai_worker.tasks.llm_task.generate_daily_tip_scheduled",
-            "schedule": 86400.0,
-            "options": {"queue": "llm"},
-        },
-    },
 )
+
+celery_app.conf.beat_schedule = {
+    "daily-tip-every-morning": {
+        "task": "ai_worker.tasks.llm_task.generate_daily_tip_scheduled",
+        "schedule": 86400.0,
+        "options": {"queue": "llm"},
+    },
+    "check-notifications-every-minute": {
+        "task": "ai_worker.tasks.llm_task.check_and_send_notifications",
+        "schedule": 60.0,
+        "options": {"queue": "llm"},
+    },
+}
