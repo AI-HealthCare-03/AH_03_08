@@ -32,4 +32,7 @@ class TokenRefreshResponse(LoginResponse): ...
 
 
 class GoogleLoginRequest(BaseModel):
-    code: str  # Google OAuth 인가 코드
+    code: str  # Google OAuth ?멸? 肄붾뱶
+
+class KakaoLoginRequest(BaseModel):
+    code: str  # Kakao OAuth authorization code
