@@ -21,7 +21,7 @@ class CalendarEventCreateRequest(BaseModel):
 
 
 class CalendarStatusUpdateRequest(BaseModel):
-    status: Literal["PENDING", "COMPLETED", "MISSED"]
+    status: Literal["PENDING", "TAKEN", "MISSED"]
 
 
 class CalendarEventResponse(BaseModel):
@@ -67,7 +67,7 @@ async def update_calendar_status(event_id: str, body: CalendarStatusUpdateReques
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Calendar event not found.")
     row.status = body.status
-    if body.status == "COMPLETED":
+    if body.status == "TAKEN":
         row.taken_at = datetime.now(timezone.utc)
     await row.save(update_fields=["status", "taken_at"])
     return _ok(_to_resp(row))

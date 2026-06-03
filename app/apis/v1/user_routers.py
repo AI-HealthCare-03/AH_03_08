@@ -75,3 +75,55 @@ async def delete_my_condition(condition_id: str, current_user=Depends(get_reques
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="기저질환 정보를 찾을 수 없습니다.")
     return _ok({"message": "삭제 완료"})
+
+class UserMeResponse(BaseModel):
+    id: int
+    email: str
+    name: str
+    gender: str | None = None
+    birth_date: str | None = None
+    height_cm: float | None = None
+    weight_kg: float | None = None
+
+
+class UserMeUpdateRequest(BaseModel):
+    name: str | None = None
+    gender: str | None = None
+    height_cm: float | None = None
+    weight_kg: float | None = None
+
+
+@user_router.get("/me", summary="Get my profile")
+async def get_my_profile(current_user=Depends(get_request_user)):
+    return _ok(UserMeResponse(
+        id=current_user.id,
+        email=current_user.email,
+        name=current_user.name,
+        gender=current_user.gender if hasattr(current_user, "gender") else None,
+        birth_date=str(current_user.birth_date) if getattr(current_user, "birth_date", None) else None,
+        height_cm=getattr(current_user, "height_cm", None),
+        weight_kg=getattr(current_user, "weight_kg", None),
+    ))
+
+
+@user_router.patch("/me", summary="Update my profile")
+async def update_my_profile(
+    body: UserMeUpdateRequest,
+    current_user=Depends(get_request_user),
+):
+    update_fields = []
+    if body.name is not None:
+        current_user.name = body.name
+        update_fields.append("name")
+    if body.gender is not None:
+        current_user.gender = body.gender
+        update_fields.append("gender")
+    if body.height_cm is not None:
+        current_user.height_cm = body.height_cm
+        update_fields.append("height_cm")
+    if body.weight_kg is not None:
+        current_user.weight_kg = body.weight_kg
+        update_fields.append("weight_kg")
+    if update_fields:
+        await current_user.save(update_fields=update_fields)
+    return _ok({"message": "Updated."})
