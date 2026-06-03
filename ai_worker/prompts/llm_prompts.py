@@ -8,6 +8,10 @@
 """
 
 from langchain_core.documents import Document
+from ai_worker.services.disease_code_service import (
+    lookup_disease_name_async,
+    lookup_disease_name_sync,
+)
 
 # ─────────────────────────────────────────────────────────────────
 # 복약 가이드 생성 프롬프트 (개선)
@@ -351,18 +355,47 @@ CHAT_BASE_SYSTEM = """\
 """
 
 
-def build_chat_system_prompt(user_health: dict, rag_docs: list[Document]) -> str:
+def build_chat_system_prompt(
+    user_health: dict,
+    rag_docs: list,
+    current_record: dict | None = None,
+    disease_name: str | None = None,   # ← OCR 완료 시점에 미리 조회한 진단명
+) -> str:
     """
     챗봇 시스템 프롬프트 동적 생성
-
-    개선사항:
-    - 사용자 BMI 정보 추가
-    - RAG 문서 더 길게 제공 (600→1000자)
-    - 고위험 알러지 별도 강조
-    - 현재 복용 약품 목록 포함 (user_health에 있을 경우)
+ 
+    disease_name 파라미터:
+    - _do_process_chat에서 HIRA API로 미리 조회한 진단명을 전달
+    - None이면 동기 fallback 사전 사용
     """
     parts = [CHAT_BASE_SYSTEM]
-
+ 
+    # ── 현재 진료기록 컨텍스트 ──────────────────────────────────
+    if current_record:
+        disease_code = current_record.get("disease_code")
+        # 미리 조회한 진단명 우선, 없으면 동기 fallback
+        if not disease_name:
+            from ai_worker.services.disease_code_service import lookup_disease_name_sync
+            disease_name = lookup_disease_name_sync(disease_code)
+ 
+        medications = current_record.get("medications", [])
+        med_names = [m.get("drug_name", "") for m in medications if m.get("drug_name")]
+ 
+        record_lines = [
+            "",
+            "## ⚕️ 현재 진료기록 (반드시 이 정보를 기반으로 답변하세요)",
+            f"- 질병분류기호: **{disease_code or '미상'}** → 진단명: **{disease_name}**",
+            f"- 처방 약품: {', '.join(med_names) or '정보 없음'}",
+            "",
+            "### 🚨 중요 지침",
+            "- 위 질병분류기호와 진단명은 건강보험심사평가원 공식 데이터 기반 정확한 정보입니다.",
+            "- 질병분류기호에 대해 질문받으면 반드시 위의 진단명을 사용하세요.",
+            "- 위 정보와 다른 진단명을 절대 임의로 추측하거나 생성하지 마세요.",
+            f"- 예: '{disease_code}'는 '{disease_name}'입니다. 다른 진단명으로 안내하지 마세요.",
+        ]
+        parts.append("\n".join(record_lines))
+ 
+    # ── 사용자 건강 프로필 (기존 코드 유지) ─────────────────────
     if user_health:
         lines = ["", "## 현재 사용자 건강 프로필 (개인화 참고)"]
         age = user_health.get("age")
@@ -374,7 +407,7 @@ def build_chat_system_prompt(user_health: dict, rag_docs: list[Document]) -> str
                 f" | 키 {user_health.get('height_cm', '-')}cm"
                 f" | 체중 {user_health.get('weight_kg', '-')}kg"
             )
-
+ 
         allergies = user_health.get("allergies", [])
         if allergies:
             high_risk = [a for a in allergies if a.get("severity") in ("severe", "high")]
@@ -385,26 +418,22 @@ def build_chat_system_prompt(user_health: dict, rag_docs: list[Document]) -> str
             if normal:
                 n_str = ", ".join(f"{a['name']}({a.get('severity', 'unknown')})" for a in normal)
                 lines.append(f"- 알러지: {n_str}")
-
+ 
         conditions = user_health.get("conditions", [])
         if conditions:
             lines.append(f"- 기저질환: {', '.join(c['name'] for c in conditions)}")
-
-        current_meds = user_health.get("current_medications", [])
-        if current_meds:
-            lines.append(f"- 현재 복용 약품: {', '.join(current_meds)}")
-
+ 
         lines.append("※ 위 건강 정보와 연관된 약물 위험 언급 시 반드시 경고를 포함하세요.")
         parts.append("\n".join(lines))
-
+ 
+    # ── RAG 참고 문서 (기존 코드 유지) ──────────────────────────
     if rag_docs:
         lines = ["", "## 참고 의약 문서 (RAG)"]
         for i, doc in enumerate(rag_docs, 1):
-            # 개선: 1000자까지 허용 (기존 600자)
             lines.append(f"[{i}] {doc.page_content[:1000]}")
         lines.append("답변 말미에 '[참고 문서 N]' 형태로 출처를 명시하세요.")
         parts.append("\n".join(lines))
-
+ 
     return "\n".join(parts)
 
 

@@ -251,13 +251,44 @@ async def _process_chat(task, session_id: int, message_id: int, user_id: int, us
 
 
 async def _do_process_chat(task, session_id: int, message_id: int, user_id: int, user_message: str):
-    from ai_worker.models import ChatMessage, User
-
+    from ai_worker.models import ChatMessage, ChatSession, User
+    from ai_worker.prompts.llm_prompts import build_chat_system_prompt
+    from ai_worker.services.disease_code_service import lookup_disease_name_async
+ 
     try:
         user = await User.get_or_none(id=user_id)
         user_health = await load_user_health(user_id, user)
-
-        # 개선: 키워드 기반 → 더 정확한 오프토픽 판단
+ 
+        # ── 현재 세션의 진료기록 + HIRA API 진단명 조회 ──────────
+        current_record = None
+        disease_name = None
+        try:
+            session = await ChatSession.get_or_none(id=session_id)
+            if session and session.record_id:
+                from ai_worker.models import MedicalRecord
+                record = await MedicalRecord.get_or_none(id=session.record_id)
+                if record and record.parsed_data:
+                    disease_code = record.parsed_data.get("disease_code")
+                    current_record = {
+                        "disease_code": disease_code,
+                        "medications": record.parsed_data.get("medications", []),
+                        "hospital_name": record.parsed_data.get("hospital_name"),
+                        "prescription_date": record.parsed_data.get("prescription_date"),
+                    }
+ 
+                    # HIRA API로 정확한 진단명 조회
+                    if disease_code:
+                        disease_name = await lookup_disease_name_async(disease_code)
+                        logger.info(
+                            f"[chat] HIRA 진단명 조회 완료 "
+                            f"{disease_code} → {disease_name} "
+                            f"session={session_id}"
+                        )
+ 
+        except Exception as rec_exc:
+            logger.warning(f"[chat] 진료기록/HIRA 조회 실패 (무시): {rec_exc}")
+        # ──────────────────────────────────────────────────────────
+ 
         if _is_off_topic(user_message):
             answer = (
                 "MediLog 복약 도우미입니다. 의약품 복용, 건강 관리, 약물 상호작용, "
@@ -267,16 +298,24 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
             _save_and_publish(session_id, message_id, user_message, answer)
             await ChatMessage.filter(id=message_id).update(content=answer, status="DONE")
             return
-
+ 
         rag_docs, rag_used = search_docs_with_scores(user_message)
         history = _get_history(session_id)
-
-        messages = [SystemMessage(content=build_chat_system_prompt(user_health, rag_docs))]
+ 
+        # HIRA API로 조회한 disease_name 전달
+        system_prompt = build_chat_system_prompt(
+            user_health,
+            rag_docs,
+            current_record=current_record,
+            disease_name=disease_name,
+        )
+ 
+        messages = [SystemMessage(content=system_prompt)]
         for turn in history:
             messages.append(HumanMessage(content=turn["user"]))
             messages.append(SystemMessage(content=turn["assistant"]))
         messages.append(HumanMessage(content=user_message))
-
+ 
         full_response = ""
         for chunk in _get_llm_stream().stream(messages):
             token = chunk.content
@@ -285,19 +324,17 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
                 f"chat:stream:{session_id}",
                 json.dumps({"token": token, "message_id": message_id}),
             )
-
-        # RAG 미사용 시 안내 문구
+ 
         if not rag_used:
             full_response += "\n\n*참고 문서 없음 — AI 일반 지식 기반 답변입니다. 중요한 사항은 약사에게 확인하세요.*"
-
-        # 개선된 약물 상호작용 체크 (확장된 위험 맵 사용)
+ 
         warning = _drug_interaction_check(user_message, user_health)
         if warning:
             full_response += f"\n\n⚠️ **주의**: {warning}"
-
+ 
         _save_and_publish(session_id, message_id, user_message, full_response)
         await ChatMessage.filter(id=message_id).update(content=full_response, status="DONE")
-
+ 
     except Exception as exc:
         _redis.publish(
             f"chat:stream:{session_id}",
@@ -305,6 +342,7 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
         )
         logger.error(f"[chat] 실패: {exc}", exc_info=True)
         raise task.retry(exc=exc) from exc
+ 
 
 
 # ─────────────────────────────────────────────────────────────────
