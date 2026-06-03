@@ -425,6 +425,7 @@ def check_drug_interactions_task(self, user_id: int, medications: list) -> dict:
 async def _load_health_only(user_id: int) -> dict:
     """사용자 건강 정보만 로드 (가이드 생성 없이)."""
     from tortoise import Tortoise
+
     from ai_worker.models import User
     await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
     try:

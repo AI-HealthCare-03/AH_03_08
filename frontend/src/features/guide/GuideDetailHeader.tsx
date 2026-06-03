@@ -29,7 +29,7 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
 
   async function handleTts() {
     try {
-      await apiClient.post(`/guides/${guide.id}/assets`, { asset_type: 'tts_medication' })
+      await apiClient.post(`/guides/${guide.id}/assets`, { asset_type: 'tts' })
       toast.success('음성 변환을 요청했습니다.', {
         description: '준비되면 재생 기능이 연결됩니다.',
       })

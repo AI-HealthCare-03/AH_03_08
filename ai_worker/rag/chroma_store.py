@@ -16,7 +16,6 @@
 import hashlib
 import logging
 import os
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -436,4 +435,4 @@ def get_collection_stats() -> dict:
         }
     except Exception as exc:
         return {"status": "error", "detail": str(exc)}
-    
+
