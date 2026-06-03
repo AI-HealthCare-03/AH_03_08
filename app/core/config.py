@@ -68,6 +68,11 @@ class Config(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = ""
 
+    # Kakao OAuth
+    KAKAO_CLIENT_ID: str = ""
+    KAKAO_CLIENT_SECRET: str = ""
+    KAKAO_REDIRECT_URI: str = ""
+
     # Internal
     INTERNAL_SECRET: str = "local-internal-secret-change-in-prod"
 

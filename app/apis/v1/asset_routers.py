@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse as Response
 # 로컬 모듈
 from app.dependencies.security import get_request_user
 from app.dtos.asset import AssetType, GuideAssetCreateRequest, GuideAssetCreateResponse
-from app.models.guides import Guide
+from app.models.guide import Guide
 from app.models.users import User
 from app.services.card_news import CardNewsService
 from app.services.tts import TtsService
