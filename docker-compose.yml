@@ -61,6 +61,7 @@ services:
       - ./app:/app/app
       - static_volume:/app/templates
       - /tmp/uploads:/tmp/uploads
+      - ./data:/app/data
     restart: always
     ports:
       - "8000:8000"
@@ -94,6 +95,7 @@ services:
     volumes:
       - ${PILL_MODEL_BASE_PATH}:/app/models
       - /tmp/uploads:/tmp/uploads
+      - ./data:/app/data
       - ./ai_worker:/app/ai_worker
     depends_on:
       mysql:
