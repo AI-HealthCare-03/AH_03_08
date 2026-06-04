@@ -5,11 +5,11 @@ from typing import Annotated
 
 # 서드파티 라이브러리
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import JSONResponse as Response
+from fastapi.responses import Response
 
 # 로컬 모듈
 from app.dependencies.security import get_request_user
-from app.dtos.asset import AssetType, GuideAssetCreateRequest, GuideAssetCreateResponse
+from app.dtos.asset import AssetType, GuideAssetCreateRequest
 from app.models.guide import Guide
 from app.models.users import User
 from app.services.card_news import CardNewsService
@@ -20,8 +20,7 @@ asset_router = APIRouter(prefix="/guides", tags=["guides"])
 
 @asset_router.post(
     "/{guide_id}/assets",
-    response_model=GuideAssetCreateResponse,
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=status.HTTP_200_OK,
 )
 async def create_guide_asset(
     guide_id: str,
@@ -31,7 +30,7 @@ async def create_guide_asset(
     current_user: Annotated[User, Depends(get_request_user)],
 ) -> Response:
     """
-    TTS 음성 / 카드뉴스 이미지 생성 요청 엔드포인트.
+    TTS 음성 / 카드뉴스 이미지 생성 엔드포인트.
 
     API 명세서: POST /api/v1/guides/{guide_id}/assets
     REQ-GUIDE-002 연동 (asset_type=tts, asset_type=card_news)
@@ -42,11 +41,11 @@ async def create_guide_asset(
         current_user: JWT 인증된 사용자 (Bearer token)
 
     Returns:
-        202 Accepted: { asset_id, status: "processing" }
+        200 OK: mp3 bytes (tts) 또는 png bytes (card_news)
 
     Note:
         - 개인정보 보호: 의료 데이터 접근 시 JWT 인증 필수
-        - Celery Task 등록 후 즉시 202 반환 (비동기 처리)
+        - S3 저장 없이 bytes 즉시 반환
     """
     guide = await Guide.get_or_none(id=guide_id, user_id=current_user.id)
     if not guide:
@@ -54,21 +53,12 @@ async def create_guide_asset(
     summary_text = guide.summary_text or ""
 
     if request.asset_type == AssetType.tts:
-        result = await tts_service.create_tts_asset(
-            guide_id=guide_id,
-            user_id=str(current_user.id),
-            summary_text=summary_text,
-        )
+        audio_bytes = await tts_service.create_tts_asset(summary_text=summary_text)
+        return Response(content=audio_bytes, media_type="audio/mpeg")
+
     elif request.asset_type == AssetType.card_news:
-        result = await card_news_service.create_card_news_asset(
-            guide_id=guide_id,
-            user_id=str(current_user.id),
-            summary_text=summary_text,
-        )
+        image_bytes = await card_news_service.create_card_news_asset(summary_text=summary_text)
+        return Response(content=image_bytes, media_type="image/png")
+
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="지원하지 않는 asset_type입니다.")
-
-    return Response(
-        content=result.model_dump(),
-        status_code=status.HTTP_202_ACCEPTED,
-    )
