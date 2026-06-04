@@ -1,14 +1,12 @@
 # 표준 라이브러리
 import io
+import logging
 import textwrap
-import uuid
 
 # 서드파티 라이브러리
-import boto3
-from celery.utils.log import get_task_logger
 from PIL import Image, ImageDraw, ImageFont
 
-logger = get_task_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # 카드 이미지 스펙
 CARD_WIDTH = 800
@@ -23,23 +21,7 @@ LINE_SPACING = 10
 
 
 class CardNewsGenerator:
-    """Pillow 기반 카드뉴스 이미지 생성 및 S3 업로드."""
-
-    def __init__(
-        self,
-        bucket_name: str,
-        aws_access_key: str,
-        aws_secret_key: str,
-        aws_region: str,
-    ) -> None:
-        self.s3 = boto3.client(
-            "s3",
-            aws_access_key_id=aws_access_key,
-            aws_secret_access_key=aws_secret_key,
-            region_name=aws_region,
-        )
-        self.bucket_name = bucket_name
-        self.region = aws_region
+    """Pillow 기반 카드뉴스 이미지 생성."""
 
     def generate(self, summary_text: str) -> bytes:
         """summary_text로 카드뉴스 PNG 이미지를 생성한다.
@@ -82,27 +64,3 @@ class CardNewsGenerator:
         img.save(buf, format="PNG")
         logger.info("카드뉴스 생성 완료")
         return buf.getvalue()
-
-    def upload_to_s3(self, image_data: bytes, user_id: str) -> str:
-        """PNG 이미지를 S3에 업로드하고 URL을 반환한다.
-
-        Args:
-            image_data: PNG 이미지 데이터
-            user_id: 사용자 ID (S3 경로 구분 및 개인정보 접근 분리용)
-
-        Returns:
-            str: S3 파일 URL
-
-        Note:
-            - 개인정보 보호: user_id 기반 경로로 사용자별 접근 분리
-        """
-        file_key = f"card_news/{user_id}/{uuid.uuid4()}.png"
-
-        self.s3.put_object(
-            Bucket=self.bucket_name,
-            Key=file_key,
-            Body=image_data,
-            ContentType="image/png",
-        )
-
-        return f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{file_key}"
