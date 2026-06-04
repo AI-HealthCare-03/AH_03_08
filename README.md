@@ -10,7 +10,7 @@ FastAPI API 서버, LLM 워커, AI 이미지 워커, TTS 워커를 통합한 서
 - **FastAPI Framework**: 고성능 비동기 API 서버 구현
 - **LLM Worker**: LangChain + OpenAI 기반 복약 가이드 및 생활습관 개선 가이드 자동 생성
 - **AI Image Worker**: ResNet152 기반 낱알약 이미지 분류 및 약품 정보 조회
-- **TTS Worker**: OpenAI TTS API 기반 음성 파일(MP3) 생성 및 AWS S3 업로드
+- **TTS Worker**: OpenAI TTS API 기반 음성 파일(MP3) 생성 및 bytes 직접 반환
 - **OCR**: CLOVA OCR 기반 처방전/약봉투 텍스트 추출
 - **KCD 질병분류기호 변환**: 건강보험심사평가원 기반 200개+ KCD 사전 → 정확한 진단명 제공 (HIRA API 연동 대비)
 - **Celery + Redis**: 비동기 태스크 처리 및 스케줄링 (복약 알림 Beat 스케줄러 포함)
@@ -38,9 +38,7 @@ FastAPI API 서버, LLM 워커, AI 이미지 워커, TTS 워커를 통합한 서
 │   ├── tasks/                  # Celery 태스크
 │   │   ├── llm_task.py         # LLM 가이드 생성, 챗봇, 데일리 TIP, 복약 알림
 │   │   ├── image_task.py       # 낱알약 이미지 분류 (ResNet152)
-│   │   ├── tts_task.py         # TTS 변환 및 S3 업로드
 │   │   ├── ocr_task.py         # OCR 처리
-│   │   ├── card_news_task.py   # 카드뉴스 생성
 │   │   └── ai_task.py          # 건강 데이터 분석
 │   ├── tts/                    # TTS 모듈
 │   ├── celery_app.py           # Celery 앱 + Beat 스케줄러
@@ -124,7 +122,7 @@ FastAPI API 서버, LLM 워커, AI 이미지 워커, TTS 워커를 통합한 서
   Consumer Group - Celery Workers
     ├── LLM Worker   → LangChain RAG + ChromaDB + KCD 질병분류기호 변환
     ├── Image Worker → Pillow + 약학정보 API
-    ├── TTS Worker   → OpenAI TTS → MP3
+    ├── TTS Worker   → OpenAI TTS → MP3 bytes 직접 반환
     ├── OCR Worker   → CLOVA OCR + OpenAI 파싱
     └── Celery Beat  → 복약 알림 스케줄러 (매 분 실행)
 
@@ -134,8 +132,6 @@ FastAPI API 서버, LLM 워커, AI 이미지 워커, TTS 워커를 통합한 서
   ChromaDB (벡터 DB + sentence-transformers)
 
 [AWS S3]
-  TTS MP3 음성 가이드
-  카드뉴스 PNG 가이드 이미지
   낱알약 이미지
   처방전 PDF 원본 파일
   Static 파일 (React 빌드)
@@ -174,7 +170,7 @@ cp envs/example.local.env .env
 | `REDIS_URL` | Redis 접속 URL |
 | `OPENAI_API_KEY` | OpenAI API 키 (TTS, LLM) |
 | `CLOVA_OCR_URL`, `CLOVA_OCR_SECRET` | CLOVA OCR API 정보 |
-| `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`, `S3_BUCKET_NAME` | AWS S3 접속 정보 |
+| `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`, `S3_BUCKET_NAME` | AWS S3 접속 정보 (TTS/카드뉴스 제외, 이미지 업로드용) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | Google OAuth 정보 |
 | `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`, `KAKAO_REDIRECT_URI` | Kakao OAuth 정보 |
 | `PILL_MODEL_PATH`, `PILL_LABEL_PATH` | 낱알약 분류 모델 경로 |
