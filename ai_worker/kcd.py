@@ -17,16 +17,17 @@ _KCD_PATTERN = re.compile(r"(?<![A-Za-z\d])[A-Z]\d{2,4}(?![A-Za-z\d])")
 def _load() -> dict[str, list[str]]:
     global _KCD_DICT
     if _KCD_DICT is None:
-        _KCD_DICT = {}
+        data: dict[str, list[str]] = {}
         with open(_CSV_PATH, encoding="utf-8-sig", newline="") as f:
             for row in csv.DictReader(f):
                 code = row["상병기호"].strip()
                 name = row["한글명"].strip()
                 if code and name:
-                    if code not in _KCD_DICT:
-                        _KCD_DICT[code] = [name]
+                    if code not in data:
+                        data[code] = [name]
                     else:
-                        _KCD_DICT[code].append(name)
+                        data[code].append(name)
+        _KCD_DICT = data
     return _KCD_DICT
 
 
