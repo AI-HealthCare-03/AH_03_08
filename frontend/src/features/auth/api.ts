@@ -10,8 +10,8 @@ export const loginSchema = z.object({
 export type LoginFormValues = z.infer<typeof loginSchema>
 
 export async function login(values: LoginFormValues) {
-  const { data } = await apiClient.post<{ access_token: string }>('/auth/login', values)
-  useAuthStore.getState().setTokens(data.access_token)
+  const { data } = await apiClient.post('/auth/login', values)
+  useAuthStore.getState().setTokens(data.data.access_token)
 }
 
 export async function logout() {

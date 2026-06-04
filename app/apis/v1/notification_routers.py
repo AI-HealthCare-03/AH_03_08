@@ -42,12 +42,31 @@ async def list_notifications(current_user=Depends(get_request_user)):
 @notification_router.post("", summary="Create notification", status_code=status.HTTP_201_CREATED)
 async def create_notification(body: NotificationCreateRequest, current_user=Depends(get_request_user)):
     from app.models.medications import Medication
-    med = await Medication.filter(id=body.medication_id).prefetch_related("medical_record").first()
-    if not med or med.medical_record.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication not found.")
-    row = await Notification.create(user_id=current_user.id, medication_id=body.medication_id, title=body.title, type=body.type, scheduled_time=body.scheduled_time, is_active=True)
-    return _ok(NotificationResponse(id=str(row.id), medication_id=str(row.medication_id), title=row.title, type=row.type, scheduled_time=str(row.scheduled_time), is_active=row.is_active, created_at=str(row.created_at)))
+    from app.models.medical_records import MedicalRecord
 
+    med = await Medication.filter(id=body.medication_id).first()
+    if not med:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication not found.")
+    record = await MedicalRecord.filter(id=med.medical_record_id, user_id=current_user.id).first()
+    if not record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication not found.")
+    row = await Notification.create(
+        user_id=current_user.id,
+        medication_id=body.medication_id,
+        title=body.title,
+        type=body.type,
+        scheduled_time=body.scheduled_time,
+        is_active=True,
+    )
+    return _ok(NotificationResponse(
+        id=str(row.id),
+        medication_id=str(row.medication_id),
+        title=row.title,
+        type=row.type,
+        scheduled_time=str(row.scheduled_time),
+        is_active=row.is_active,
+        created_at=str(row.created_at),
+    ))
 
 @notification_router.put("/{notification_id}", summary="Toggle notification")
 async def update_notification(notification_id: str, body: NotificationUpdateRequest, current_user=Depends(get_request_user)):

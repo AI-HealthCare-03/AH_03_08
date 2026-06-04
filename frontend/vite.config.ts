@@ -10,4 +10,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  cacheDir: '/tmp/vite-cache',
+  server: {
+    watch: {
+      usePolling: true,
+    },
+  },
 })

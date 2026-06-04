@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from app.dependencies.security import get_request_user
 from app.models.calendar_events import CalendarEvent
+from datetime import date
+
 
 calendar_router = APIRouter(prefix="/calendars", tags=["calendars"])
 
@@ -40,9 +42,16 @@ def _to_resp(r):
 
 
 @calendar_router.get("", summary="List monthly calendar")
-async def list_calendar_month(year: int = Query(...), month: int = Query(...), current_user=Depends(get_request_user)):
-    rows = await CalendarEvent.filter(user_id=current_user.id, event_date__year=year, event_date__month=month).order_by("event_date", "scheduled_time")
-    return _ok({"year": year, "month": month, "total": len(rows), "items": [_to_resp(r) for r in rows]})
+async def list_calendar_month(year: str = Query(...), month: str = Query(...), current_user=Depends(get_request_user)):
+    y, m = int(year), int(month)
+    first_day = date(y, m, 1)
+    last_day = date(y, m+1, 1) if m < 12 else date(y+1, 1, 1)
+    rows = await CalendarEvent.filter(
+        user_id=current_user.id,
+        event_date__gte=first_day,
+        event_date__lt=last_day,
+    ).order_by("event_date", "scheduled_time")
+    return _ok({"year": y, "month": m, "total": len(rows), "items": [_to_resp(r) for r in rows]})
 
 
 @calendar_router.get("/{event_date}", summary="List daily calendar")

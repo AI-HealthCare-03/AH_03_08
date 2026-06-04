@@ -39,14 +39,14 @@ class AuthService:
         user = await self.user_repo.get_user_by_email(email)
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="?대찓???먮뒗 鍮꾨?踰덊샇媛 ?щ컮瑜댁? ?딆뒿?덈떎."
+                status_code=status.HTTP_400_BAD_REQUEST, detail="이메일 또는 비밀번호가 올바르지 않습니다."
             )
         if not verify_password(data.password, user.hashed_password):
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="?대찓???먮뒗 鍮꾨?踰덊샇媛 ?щ컮瑜댁? ?딆뒿?덈떎."
+                status_code=status.HTTP_400_BAD_REQUEST, detail="이메일 또는 비밀번호가 올바르지 않습니다."
             )
         if not user.is_active:
-            raise HTTPException(status_code=status.HTTP_423_LOCKED, detail="鍮꾪솢?깊솕??怨꾩젙?낅땲??")
+            raise HTTPException(status_code=status.HTTP_423_LOCKED, detail="비활성화된 계정입니다.")
         return user
 
     async def login(self, user: User) -> dict[str, AccessToken | RefreshToken]:
@@ -55,11 +55,11 @@ class AuthService:
 
     async def check_email_exists(self, email: str | EmailStr) -> None:
         if await self.user_repo.exists_by_email(email):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="?대? ?ъ슜以묒씤 ?대찓?쇱엯?덈떎.")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 사용중인 이메일입니다.")
 
     async def check_phone_number_exists(self, phone_number: str) -> None:
         if await self.user_repo.exists_by_phone_number(phone_number):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="?대? ?ъ슜以묒씤 ?대???踰덊샇?낅땲??")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 사용중인 전화번호입니다.")
 
 
 class GoogleAuthService:
@@ -86,7 +86,7 @@ class GoogleAuthService:
             access_token = token_data.get("access_token")
 
             if not access_token:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="援ш? ?몄쬆???ㅽ뙣?덉뒿?덈떎.")
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="구글 토큰 교환에 실패했습니다.")
 
             user_response = await client.get(
                 self.GOOGLE_USERINFO_URL,
@@ -102,7 +102,7 @@ class GoogleAuthService:
         name = user_info.get("name", "")
 
         if not google_id or not email:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="援ш? ?좎? ?뺣낫瑜?媛?몄삱 ???놁뒿?덈떎.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="구글 사용자 정보를 가져올 수 없습니다.")
 
         user = await self.user_repo.get_user_by_oauth("google", google_id)
 
@@ -152,7 +152,7 @@ class KakaoAuthService:
             access_token = token_data.get("access_token")
 
             if not access_token:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Kakao token exchange failed.")
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="카카오 토큰 교환에 실패했습니다.")
 
             user_response = await client.get(
                 self.KAKAO_USERINFO_URL,
@@ -169,7 +169,7 @@ class KakaoAuthService:
         name = kakao_account.get("profile", {}).get("nickname", f"kakao_{kakao_id[:6]}")
 
         if not kakao_id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to retrieve Kakao user info.")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="카카오 사용자 정보를 가져올 수 없습니다.")
 
         user = await self.user_repo.get_user_by_oauth("kakao", kakao_id)
 

@@ -20,8 +20,6 @@ services:
     container_name: mysql
     restart: always
     environment:
-    # ${환경변수명} 문법은 OS 환경변수 혹은 .env에서 해당 환경변수명과 일치하는 항목이 있으면 대입합니다.
-    # 반드시 사전에 .env에 해당 항목이 존재하는지 확인해야 합니다.
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
       MYSQL_USER: ${DB_USER}
@@ -32,8 +30,8 @@ services:
     networks:
       - ws
     volumes:
-      - mysql_data:/var/lib/mysql  # 컨테이너가 삭제돼도 데이터는 호스트 파일시스템에 남음
-    command: # 한글 저장을 위한 문자셋 설정 (필수!)
+      - mysql_data:/var/lib/mysql
+    command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --port=${DB_PORT}
@@ -47,19 +45,22 @@ services:
   fastapi:
     container_name: fastapi
     build:
-      context: .  # 프로젝트 루트를 빌드 컨텍스트로 지정
-      dockerfile: app/Dockerfile  # Dockerfile 위치 지정
+      context: .
+      dockerfile: app/Dockerfile
       platforms:
         - linux/amd64
         - linux/arm64
-    image: ${DOCKER_USER}/${DOCKER_REPOSITORY}:app-${APP_VERSION}  # APP_VERSION은 빌드된 이미지의 버전관리를 위함입니다. v1.0.0 형식으로 사용합니다.
+    image: ${DOCKER_USER}/${DOCKER_REPOSITORY}:app-${APP_VERSION}
     env_file: .env
-    command: | 
+    environment:
+      - PYTHONIOENCODING=utf-8
+      - PYTHONUTF8=1
+    command: |
       sh -c "uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
-      - ./app:/app/app  # 로컬의 app 디렉토리를 컨테이너의 /app/app에 마운트(수정사항 즉시 반영)
+      - ./app:/app/app
       - static_volume:/app/templates
-      - /tmp/uploads:/tmp/uploads  # 로컬 워커와 업로드 파일 공유
+      - /tmp/uploads:/tmp/uploads
     restart: always
     ports:
       - "8000:8000"
@@ -75,13 +76,16 @@ services:
   ai-worker:
     container_name: ai-worker
     build:
-      context: .  # 프로젝트 루트를 빌드 컨텍스트로 지정
-      dockerfile: ai_worker/Dockerfile  # Dockerfile 위치 지정
+      context: .
+      dockerfile: ai_worker/Dockerfile
       platforms:
         - linux/amd64
         - linux/arm64
-    image: ${DOCKER_USER}/${DOCKER_REPOSITORY}:ai-${AI_WORKER_VERSION}  # AI_WORKER_VERSION은 빌드된 이미지의 버전관리를 위함입니다. V1.0.0 형식으로 사용합니다.
+    image: ${DOCKER_USER}/${DOCKER_REPOSITORY}:ai-${AI_WORKER_VERSION}
     env_file: .env
+    environment:
+      - PYTHONIOENCODING=utf-8
+      - PYTHONUTF8=1
     command: uv run --no-sync celery -A ai_worker.celery_app worker -Q image -c 2 --loglevel=info
     restart: always
     mem_limit: 4G
@@ -90,7 +94,7 @@ services:
     volumes:
       - ${PILL_MODEL_BASE_PATH}:/app/models
       - /tmp/uploads:/tmp/uploads
-      - ./ai_worker:/app/ai_worker  # 소스코드 실시간 반영
+      - ./ai_worker:/app/ai_worker
     depends_on:
       mysql:
         condition: service_healthy
@@ -108,14 +112,18 @@ services:
         - linux/arm64
     image: ${DOCKER_USER}/${DOCKER_REPOSITORY}:ai-${AI_WORKER_VERSION}
     env_file: .env
+    environment:
+      - PYTHONIOENCODING=utf-8
+      - PYTHONUTF8=1
     command: uv run --no-sync celery -A ai_worker.celery_app worker -Q llm,tts -c 2 --loglevel=info
     restart: always
     mem_limit: 4G
     volumes:
       - chroma_data:/data/chromadb
       - ./data:/app/data
-      - ./ai_worker:/app/ai_worker  # 소스코드 실시간 반영
-      - ./scripts:/app/scripts      # ingest 스크립트 실시간 반영
+      - ./ai_worker:/app/ai_worker
+      - ./scripts:/app/scripts
+      - ./app:/app/app
     networks:
       - ws
     depends_on:
@@ -132,16 +140,19 @@ services:
       dockerfile: ai_worker/Dockerfile
     image: ${DOCKER_USER}/${DOCKER_REPOSITORY}:ai-${AI_WORKER_VERSION}
     env_file: .env
+    environment:
+      - PYTHONIOENCODING=utf-8
+      - PYTHONUTF8=1
     command: uv run --no-sync celery -A ai_worker.celery_app beat --loglevel=info
     restart: always
     networks:
       - ws
     volumes:
-      - ./ai_worker:/app/ai_worker  # 소스코드 실시간 반영
+      - ./ai_worker:/app/ai_worker
     depends_on:
       - redis
 
-  # 5. Nginx (웹 서버 - 요청 리버스 프록시로 전달)
+  # 7. Nginx (웹 서버 - 요청 리버스 프록시로 전달)
   nginx:
     container_name: nginx
     image: nginx:latest
@@ -150,6 +161,20 @@ services:
       - static_volume:/vol/web/static
     ports:
       - "80:80"
+    networks:
+      - ws
+    depends_on:
+      - fastapi
+
+  frontend:
+    container_name: frontend
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm install && npm run dev -- --host"
+    ports:
+      - "5173:5173"
     networks:
       - ws
     depends_on:
