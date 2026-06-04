@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 
 from app.application.medical_record.dto.record_dto import UpdateRecordCommand, UploadRecordCommand
+from app.application.medical_record.use_cases.delete_record import DeleteRecordUseCase
 from app.application.medical_record.use_cases.get_record import GetRecordUseCase
 from app.application.medical_record.use_cases.list_records import ListRecordsUseCase
 from app.application.medical_record.use_cases.update_record import UpdateRecordUseCase
@@ -51,6 +52,12 @@ def get_update_use_case(
     repo: Annotated[AbstractRecordRepository, Depends(get_record_repository)],
 ) -> UpdateRecordUseCase:
     return UpdateRecordUseCase(repo)
+
+
+def get_delete_use_case(
+    repo: Annotated[AbstractRecordRepository, Depends(get_record_repository)],
+) -> DeleteRecordUseCase:
+    return DeleteRecordUseCase(repo)
 
 
 @records_router.post("/upload", response_model=RecordResponseSchema, status_code=status.HTTP_202_ACCEPTED)
@@ -102,6 +109,15 @@ async def get_record(
 ) -> RecordResponseSchema:
     record = await use_case.execute(record_id=record_id, user_id=user.id)
     return RecordResponseSchema.model_validate(record)
+
+
+@records_router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_record(
+    record_id: UUID,
+    user: Annotated[User, Depends(get_request_user)],
+    use_case: Annotated[DeleteRecordUseCase, Depends(get_delete_use_case)],
+) -> None:
+    await use_case.execute(record_id=record_id, user_id=user.id)
 
 
 @records_router.put("/{record_id}", response_model=RecordResponseSchema, status_code=status.HTTP_200_OK)

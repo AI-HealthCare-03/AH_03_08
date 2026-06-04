@@ -15,3 +15,4 @@ class MedicalRecord:
     ocr_raw_text: str | None = None
     parsed_data: dict[str, Any] | None = None
     created_at: datetime = field(default_factory=datetime.now)
+    guide_id: UUID | None = None

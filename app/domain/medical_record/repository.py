@@ -18,3 +18,6 @@ class AbstractRecordRepository(ABC):
 
     @abstractmethod
     async def update_parsed_data(self, record_id: UUID, parsed_data: dict) -> MedicalRecord: ...
+
+    @abstractmethod
+    async def delete_by_id(self, record_id: UUID) -> None: ...
