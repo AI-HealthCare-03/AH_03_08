@@ -18,13 +18,13 @@ _PARSE_SYSTEM_PROMPT = (
     "주어진 텍스트에서 정보를 추출하여 지정된 JSON 스키마에 맞게 반환하세요. "
     "확인할 수 없는 값은 null로 반환하세요.\n\n"
     "질병분류기호(disease_code) 추출 규칙:\n"
-    "- 형식: 영문자 1자리 + 숫자 2자리 + 선택적으로 소수점 + 숫자 1~2자리 (예: J18.0, K29.10, N30)\n"
-    "- OCR 오류 보정: 공백 제거, 숫자 자리의 'o'/'O'는 '0'으로, 'l'/'I'는 '1'으로 교체\n"
+    "- 형식: 영문자 1자리 + 숫자 2~4자리 (예: J18, K291, N30, H664). 소수점 없이 반환하세요.\n"
+    "- OCR 오류 보정: 공백·소수점 제거, 숫자 자리의 'o'/'O'는 '0'으로, 'l'/'I'는 '1'으로 교체\n"
     "- 처방전에 없거나 불확실하면 null로 반환하세요."
 )
 
 
-_DISEASE_CODE_RE = re.compile(r"^[A-Z]\d{2}(\.\d{1,2})?$")
+_DISEASE_CODE_RE = re.compile(r"^[A-Z]\d{2,4}$")
 
 
 def _normalize_disease_code(code: str | None) -> str | None:
@@ -41,10 +41,14 @@ def _normalize_disease_code(code: str | None) -> str | None:
             normalized += "1"
         else:
             normalized += ch
-    if _DISEASE_CODE_RE.fullmatch(normalized):
-        return normalized
-    # 패턴 불일치라도 공백·대소문자만 정리한 값을 돌려줘 사용자가 폼에서 수정 가능하게
-    return s[0].upper() + s[1:] if s else None
+    # CSV uses no-dot format (H664 not H66.4) — strip dot before validation
+    no_dot = normalized.replace(".", "")
+    if _DISEASE_CODE_RE.fullmatch(no_dot):
+        from ai_worker.kcd import synonyms as kcd_synonyms
+        if kcd_synonyms(no_dot):
+            return no_dot
+        logger.warning(f"[OCR Task] 질병분류기호 '{no_dot}' — KCD 사전에 없는 코드, 무시")
+    return None
 
 
 class OcrTask(Task):
