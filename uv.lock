@@ -88,6 +88,11 @@ dev = [
     { name = "types-passlib" },
     { name = "types-python-dateutil" },
 ]
+eval = [
+    { name = "langchain-core" },
+    { name = "langchain-openai" },
+    { name = "python-dotenv" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -148,6 +153,11 @@ dev = [
     { name = "ruff", specifier = ">=0.14.14" },
     { name = "types-passlib", specifier = ">=1.7.7.20250602" },
     { name = "types-python-dateutil", specifier = ">=2.9.0.20260124" },
+]
+eval = [
+    { name = "langchain-core", specifier = ">=0.3.59" },
+    { name = "langchain-openai", specifier = ">=0.3.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
 ]
 
 [[package]]

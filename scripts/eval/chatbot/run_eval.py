@@ -19,7 +19,7 @@ load_dotenv(Path(__file__).parents[3] / "envs" / ".local.env")
 
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
-from ai_worker.kcd import lookup as kcd_lookup
+from ai_worker.kcd import lookup as kcd_lookup, synonyms as kcd_synonyms
 from ai_worker.prompts.llm_prompts import build_chat_system_prompt
 
 TESTCASES_PATH = Path(__file__).parent / "testcases.json"
@@ -44,7 +44,9 @@ def _run_case(case: dict, llm: ChatOpenAI) -> dict:
     response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=question)])
     answer = response.content
 
-    name_matched = expected_name in answer
+    # KCD 동의어 중 하나라도 답변에 포함되면 통과
+    all_names = kcd_synonyms(expected_code) or [expected_name]
+    name_matched = any(name in answer for name in all_names)
 
     return {
         "id": case["id"],

@@ -7,11 +7,6 @@
 - 일일 팁 개인화 지원
 """
 
-from langchain_core.documents import Document
-from ai_worker.services.disease_code_service import (
-    lookup_disease_name_async,
-    lookup_disease_name_sync,
-)
 
 # ─────────────────────────────────────────────────────────────────
 # 복약 가이드 생성 프롬프트 (개선)
@@ -359,28 +354,19 @@ def build_chat_system_prompt(
     user_health: dict,
     rag_docs: list,
     current_record: dict | None = None,
-    disease_name: str | None = None,   # ← OCR 완료 시점에 미리 조회한 진단명
+    disease_name: str | None = None,
 ) -> str:
-    """
-    챗봇 시스템 프롬프트 동적 생성
- 
-    disease_name 파라미터:
-    - _do_process_chat에서 HIRA API로 미리 조회한 진단명을 전달
-    - None이면 동기 fallback 사전 사용
-    """
     parts = [CHAT_BASE_SYSTEM]
- 
-    # ── 현재 진료기록 컨텍스트 ──────────────────────────────────
+
     if current_record:
         disease_code = current_record.get("disease_code")
-        # 미리 조회한 진단명 우선, 없으면 동기 fallback
         if not disease_name:
             from ai_worker.services.disease_code_service import lookup_disease_name_sync
             disease_name = lookup_disease_name_sync(disease_code)
- 
+
         medications = current_record.get("medications", [])
         med_names = [m.get("drug_name", "") for m in medications if m.get("drug_name")]
- 
+
         record_lines = [
             "",
             "## ⚕️ 현재 진료기록 (반드시 이 정보를 기반으로 답변하세요)",
@@ -394,8 +380,8 @@ def build_chat_system_prompt(
             f"- 예: '{disease_code}'는 '{disease_name}'입니다. 다른 진단명으로 안내하지 마세요.",
         ]
         parts.append("\n".join(record_lines))
- 
-    # ── 사용자 건강 프로필 (기존 코드 유지) ─────────────────────
+
+
     if user_health:
         lines = ["", "## 현재 사용자 건강 프로필 (개인화 참고)"]
         age = user_health.get("age")
@@ -425,8 +411,7 @@ def build_chat_system_prompt(
  
         lines.append("※ 위 건강 정보와 연관된 약물 위험 언급 시 반드시 경고를 포함하세요.")
         parts.append("\n".join(lines))
- 
-    # ── RAG 참고 문서 (기존 코드 유지) ──────────────────────────
+
     if rag_docs:
         lines = ["", "## 참고 의약 문서 (RAG)"]
         for i, doc in enumerate(rag_docs, 1):
