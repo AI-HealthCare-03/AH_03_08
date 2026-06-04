@@ -153,10 +153,20 @@ async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
         if isinstance(lifestyle_guide, dict):
             lifestyle_guide = _format_lifestyle_guide(lifestyle_guide)
 
+        medication_guide = parsed.get("medication_guide", "")
+        if isinstance(medication_guide, dict):
+            medication_guide = medication_guide.get("raw", "") or str(medication_guide)
+        if isinstance(medication_guide, list):
+            medication_guide = "\n".join(str(item) for item in medication_guide)
+        elif isinstance(medication_guide, dict):
+            medication_guide = "\n".join(f"{k}: {v}" for k, v in medication_guide.items())
+        elif not isinstance(medication_guide, str):
+            medication_guide = str(medication_guide)
+
         ok = guide_done(
             guide_id=guide_id,
             user_id=user_id,
-            medication_guide=parsed.get("medication_guide", ""),
+            medication_guide=medication_guide,
             lifestyle_guide=lifestyle_guide,
             summary_text=summary_text,
             allergy_warnings=parsed.get("allergy_warnings", []),
@@ -609,12 +619,7 @@ async def _do_check_notifications():
     # ai_worker 전용 DB URL 사용 (app.models 직접 접근)
     await Tortoise.init(
         db_url=_db_url(),
-        modules={"models": [
-            "app.models.users",
-            "app.models.medications",
-            "app.models.medical_records",
-            "app.models.notifications",
-        ]},
+        modules={"models": ["ai_worker.models"]},
     )
     try:
         from app.models.notifications import Notification
