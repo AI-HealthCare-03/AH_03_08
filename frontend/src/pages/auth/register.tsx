@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { register as registerApi, registerSchema, type RegisterFormValues } from '@/features/auth/register-api'
 
@@ -11,6 +12,8 @@ export function RegisterPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
 
   const {
     register,
@@ -103,26 +106,46 @@ export function RegisterPage() {
 
                 <Field label="비밀번호" error={errors.password?.message}
                   hint="대·소문자·숫자·특수문자 각 1개 이상, 8자 이상">
-                  <input
-                    {...register('password')}
-                    type="password"
-                    placeholder="비밀번호 입력"
-                    autoComplete="new-password"
-                    className={inputCls(!!errors.password)}
-                  />
+                  <div className="relative">
+                    <input
+                      {...register('password')}
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="비밀번호 입력"
+                      autoComplete="new-password"
+                      className={inputCls(!!errors.password) + ' pr-10'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </Field>
 
                 <Field
                   label="비밀번호 확인"
                   error={passwordMismatch ? '비밀번호가 일치하지 않습니다' : errors.passwordConfirm?.message}
                 >
-                  <input
-                    {...register('passwordConfirm')}
-                    type="password"
-                    placeholder="비밀번호 재입력"
-                    autoComplete="new-password"
-                    className={inputCls(passwordMismatch || !!errors.passwordConfirm)}
-                  />
+                  <div className="relative">
+                    <input
+                      {...register('passwordConfirm')}
+                      type={showPasswordConfirm ? 'text' : 'password'}
+                      placeholder="비밀번호 재입력"
+                      autoComplete="new-password"
+                      className={inputCls(passwordMismatch || !!errors.passwordConfirm) + ' pr-10'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordConfirm(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      tabIndex={-1}
+                    >
+                      {showPasswordConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </Field>
 
                 <Button
