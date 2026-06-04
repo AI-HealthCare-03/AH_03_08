@@ -5,7 +5,7 @@ import { GUIDE_TABS, type GuideContentTab } from './constants'
 import { splitBulletLines } from './guide-utils'
 import { useRecord } from '@/entities/medical-record/api'
 import { toast } from '@/shared/lib/toast'
-import { useCreateAsset } from '@/entities/guide/api'
+import { apiClient } from '@/shared/api/client'
 
 interface GuideContentTabsProps {
   guide: Guide
@@ -23,7 +23,8 @@ function WarningBox({ children }: { children: React.ReactNode }) {
 /** 와이어프레임 — 복약 / 생활 / 카드뉴스 탭 */
 export function GuideContentTabs({ guide }: GuideContentTabsProps) {
   const [tab, setTab] = useState<GuideContentTab>('medication')
-  const createAsset = useCreateAsset(guide.id)
+  const [isCardNewsLoading, setIsCardNewsLoading] = useState(false)
+  const [cardNewsUrl, setCardNewsUrl] = useState<string | null>(null)
   const { data: record } = useRecord(guide.record_id)
   const meds = record?.parsed_data?.medications ?? []
 
@@ -52,10 +53,19 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
 
   async function handleCreateCardNews() {
     try {
-      await createAsset.mutateAsync('card_news')
-      toast.success('카드뉴스 생성을 요청했습니다.')
+      setIsCardNewsLoading(true)
+      const response = await apiClient.post(
+        `/guides/${guide.id}/assets`,
+        { asset_type: 'card_news' },
+        { responseType: 'blob' },
+      )
+      const url = URL.createObjectURL(response.data)
+      setCardNewsUrl(url)
+      toast.success('카드뉴스가 생성되었습니다.')
     } catch {
       toast.error('카드뉴스 생성 요청에 실패했습니다.')
+    } finally {
+      setIsCardNewsLoading(false)
     }
   }
 
@@ -160,12 +170,18 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
             <button
               type="button"
               onClick={handleCreateCardNews}
-              disabled={createAsset.isPending}
+              disabled={isCardNewsLoading}
               className="w-full rounded-xl border-2 border-dashed border-brand-primary py-4 text-sm font-semibold text-brand-primary hover:bg-brand-lightest transition-colors disabled:opacity-50"
             >
-              {createAsset.isPending ? '생성 중...' : '카드뉴스 생성'}
+              {isCardNewsLoading ? '생성 중...' : '카드뉴스 생성'}
             </button>
-            {/* TODO: 백엔드 bytes 직접 반환 구조 변경 후 이미지 표시 연결 */}
+            {cardNewsUrl && (
+              <img
+                src={cardNewsUrl}
+                alt="카드뉴스"
+                className="mt-4 w-full rounded-xl border border-gray-100"
+              />
+            )}
           </article>
         </div>
       )}
