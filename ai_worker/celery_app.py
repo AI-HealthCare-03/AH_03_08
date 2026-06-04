@@ -1,5 +1,4 @@
 import os
-
 from celery import Celery
 from dotenv import load_dotenv
 
@@ -15,10 +14,8 @@ celery_app = Celery(
     include=[
         "ai_worker.tasks.ocr_task",
         "ai_worker.tasks.llm_task",
-        "ai_worker.tasks.tts_task",
         "ai_worker.tasks.image_task",
         "ai_worker.tasks.ai_task",
-        "ai_worker.tasks.card_news_task",
     ],
 )
 
@@ -35,10 +32,8 @@ celery_app.conf.update(
     task_routes={
         "ai_worker.tasks.ocr_task.*": {"queue": "image"},
         "ai_worker.tasks.llm_task.*": {"queue": "llm"},
-        "ai_worker.tasks.tts_task.*": {"queue": "tts"},
         "ai_worker.tasks.image_task.*": {"queue": "image"},
         "ai_worker.tasks.ai_task.*": {"queue": "llm"},
-        "ai_worker.tasks.card_news_task.*": {"queue": "image"},
     },
 )
 
