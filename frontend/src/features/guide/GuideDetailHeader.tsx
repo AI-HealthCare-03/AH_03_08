@@ -13,6 +13,7 @@ interface GuideDetailHeaderProps {
 
 export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
   const navigate = useNavigate()
+
   async function handleShare() {
     const url = `${window.location.origin}/guide?id=${guide.id}`
     try {
@@ -29,10 +30,14 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
 
   async function handleTts() {
     try {
-      await apiClient.post(`/guides/${guide.id}/assets`, { asset_type: 'tts' })
-      toast.success('음성 변환을 요청했습니다.', {
-        description: '준비되면 재생 기능이 연결됩니다.',
-      })
+      const response = await apiClient.post(
+        `/guides/${guide.id}/assets`,
+        { asset_type: 'tts' },
+        { responseType: 'blob' },
+      )
+      const url = URL.createObjectURL(response.data)
+      const audio = new Audio(url)
+      audio.play()
     } catch {
       toast.error('음성 요청에 실패했습니다.')
     }
