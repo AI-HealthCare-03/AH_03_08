@@ -4,7 +4,7 @@ import { EmptyState } from '@/shared/ui/EmptyState'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { PollingStatus } from '@/shared/ui/PollingStatus'
 import { toast } from '@/shared/lib/toast'
-import { useCurrentUser } from '@/entities/user/api'
+import { useDashboard } from '@/entities/dashboard/api'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface StatCardProps {
@@ -36,7 +36,7 @@ function StatCard({ icon, label, count, isLoading }: StatCardProps) {
 }
 
 export function HomePage() {
-  const { data: user, isLoading } = useCurrentUser()
+  const { data: dashboard, isLoading } = useDashboard()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   const greeting = (() => {
@@ -63,7 +63,7 @@ export function HomePage() {
             <div className="h-5 w-40 rounded bg-white/20 animate-pulse" />
           ) : (
             <p className="text-white font-semibold text-base">
-              {greeting}, {user?.name ?? '사용자'}님!
+              {greeting}, {dashboard?.user.name ?? '사용자'}님!
             </p>
           )}
           <p className="text-white/80 text-xs mt-1">
@@ -87,10 +87,10 @@ export function HomePage() {
             나의 현황
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatCard icon={<MedicalIcon />} label="의료기록" count={undefined} isLoading={isLoading} />
-            <StatCard icon={<BookIcon />} label="가이드" count={undefined} isLoading={isLoading} />
-            <StatCard icon={<BellIcon />} label="활성 알림" count={undefined} isLoading={isLoading} />
-            <StatCard icon={<ChatIcon />} label="챗봇 세션" count={undefined} isLoading={isLoading} />
+            <StatCard icon={<MedicalIcon />} label="의료기록" count={dashboard?.summary.record_count}               isLoading={isLoading} />
+            <StatCard icon={<BookIcon />}    label="가이드"   count={undefined}                                     isLoading={isLoading} />
+            <StatCard icon={<BellIcon />}    label="활성 알림" count={dashboard?.summary.active_notification_count}  isLoading={isLoading} />
+            <StatCard icon={<ChatIcon />}    label="챗봇 세션" count={undefined}                                     isLoading={isLoading} />
           </div>
         </section>
 
@@ -100,13 +100,11 @@ export function HomePage() {
             공통 컴포넌트 데모
           </p>
 
-          {/* PollingStatus */}
           <div>
             <p className="text-xs text-gray-400 mb-2">PollingStatus</p>
             <PollingStatus message="AI가 의료기록을 분석 중입니다..." />
           </div>
 
-          {/* EmptyState */}
           <div>
             <p className="text-xs text-gray-400 mb-2">EmptyState</p>
             <div className="rounded-2xl bg-white border border-gray-100 shadow-sm">
@@ -119,7 +117,6 @@ export function HomePage() {
             </div>
           </div>
 
-          {/* ConfirmDialog */}
           <div>
             <p className="text-xs text-gray-400 mb-2">ConfirmDialog</p>
             <button

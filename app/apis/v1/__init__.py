@@ -14,6 +14,7 @@ from app.presentation.api.v1.chats.router import chats_router
 from app.presentation.api.v1.records.router import records_router
 from app.apis.v1.notification_routers import notification_router
 from app.apis.v1.calendar_routers import calendar_router
+from app.apis.v1.dashboard_routers import dashboard_router
 
 v1_routers = APIRouter(prefix="/api/v1")
 v1_routers.include_router(auth_router)
@@ -32,3 +33,4 @@ v1_routers.include_router(feedback_router)
 v1_routers.include_router(internal_router)  # Worker 콜백 + SSE
 v1_routers.include_router(notification_router)
 v1_routers.include_router(calendar_router)
+v1_routers.include_router(dashboard_router)
