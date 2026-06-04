@@ -74,7 +74,7 @@ def get_stream_message_use_case(
     return StreamMessageUseCase(session_repo, message_repo, llm_client)
 
 
-async def _build_guide_context(session_id: UUID) -> str:
+async def _build_guide_context(session_id: int) -> str:
     from app.models.chat_sessions import ChatSession as ChatSessionORM
     from app.models.guide import Guide
 
@@ -150,7 +150,7 @@ async def list_sessions(
 
 @chats_router.get("/{session_id}", response_model=SessionResponseSchema, status_code=status.HTTP_200_OK)
 async def get_session(
-    session_id: UUID,
+    session_id: int,
     user: Annotated[User, Depends(get_request_user)],
     use_case: Annotated[GetSessionUseCase, Depends(get_get_session_use_case)],
 ) -> SessionResponseSchema:
@@ -160,7 +160,7 @@ async def get_session(
 
 @chats_router.get("/{session_id}/messages", response_model=MessageListResponseSchema, status_code=status.HTTP_200_OK)
 async def list_messages(
-    session_id: UUID,
+    session_id: int,
     user: Annotated[User, Depends(get_request_user)],
     session_repo: Annotated[AbstractChatSessionRepository, Depends(get_chat_session_repository)],
     message_repo: Annotated[AbstractChatMessageRepository, Depends(get_chat_message_repository)],
@@ -175,7 +175,7 @@ async def list_messages(
 
 @chats_router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_session(
-    session_id: UUID,
+    session_id: int,
     user: Annotated[User, Depends(get_request_user)],
     use_case: Annotated[DeleteSessionUseCase, Depends(get_delete_session_use_case)],
 ) -> None:
@@ -185,7 +185,7 @@ async def delete_session(
 @chats_router.websocket("/{session_id}/ws")
 async def chat_websocket(
     websocket: WebSocket,
-    session_id: UUID,
+    session_id: int,
     token: str,
 ) -> None:
     """

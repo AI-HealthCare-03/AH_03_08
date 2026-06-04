@@ -1,7 +1,6 @@
 from tortoise import fields
 from tortoise.models import Model
 
-
 class Guide(Model):
     id = fields.UUIDField(pk=True)
     user = fields.ForeignKeyField("models.User", related_name="guides", on_delete=fields.CASCADE)
@@ -13,8 +12,8 @@ class Guide(Model):
     )
     status = fields.CharField(max_length=20, default="processing")
     title = fields.CharField(max_length=200, null=True)
-    medication_guide = fields.TextField(null=True)
-    lifestyle_guide = fields.TextField(null=True)
+    medication_guide = fields.JSONField(null=True)
+    lifestyle_guide = fields.JSONField(null=True)
     summary_text = fields.TextField(null=True)
     allergy_warnings = fields.JSONField(default=list)
     condition_interactions = fields.JSONField(default=list)

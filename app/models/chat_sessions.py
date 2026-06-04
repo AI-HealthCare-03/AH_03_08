@@ -1,8 +1,7 @@
 from tortoise import fields, models
 
-
 class ChatSession(models.Model):
-    id = fields.UUIDField(primary_key=True)
+    id = fields.BigIntField(pk=True, generated=True)
     user = fields.ForeignKeyField("models.User", related_name="chat_sessions")
     guide = fields.ForeignKeyField("models.Guide", related_name="chat_sessions", null=True)
     title = fields.CharField(max_length=200, null=True)

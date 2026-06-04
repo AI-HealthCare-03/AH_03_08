@@ -29,7 +29,16 @@ export const useAuthStore = create<AuthState>()(
         set({ user: null, accessToken: null })
       },
 
-      isAuthenticated: () => !!get().accessToken,
+      isAuthenticated: () => {
+        const token = get().accessToken
+        if (!token) return false
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]))
+          return payload.exp * 1000 > Date.now()
+        } catch {
+        return false
+        }
+      },
     }),
     { name: 'auth-storage', partialize: (s) => ({ user: s.user, accessToken: s.accessToken }) },
   ),

@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from app.domain.chat.entity import ChatMessage, ChatSession
 from app.domain.chat.repository import AbstractChatMessageRepository, AbstractChatSessionRepository
 from app.models.chat_messages import ChatMessage as ChatMessageORM
@@ -19,14 +17,13 @@ class TortoiseChatSessionRepository(AbstractChatSessionRepository):
 
     async def save(self, session: ChatSession) -> ChatSession:
         orm = await ChatSessionORM.create(
-            id=session.id,
             user_id=session.user_id,
             guide_id=session.guide_id,
             title=session.title,
         )
         return self._to_domain(orm)
 
-    async def find_by_id(self, session_id: UUID, user_id: int) -> ChatSession | None:
+    async def find_by_id(self, session_id: int, user_id: int) -> ChatSession | None:
         orm = await ChatSessionORM.get_or_none(id=session_id, user_id=user_id)
         return self._to_domain(orm) if orm else None
 
@@ -36,7 +33,7 @@ class TortoiseChatSessionRepository(AbstractChatSessionRepository):
         sessions = await qs.offset((page - 1) * limit).limit(limit)
         return [self._to_domain(s) for s in sessions], total
 
-    async def delete(self, session_id: UUID, user_id: int) -> bool:
+    async def delete(self, session_id: int, user_id: int) -> bool:
         deleted = await ChatSessionORM.filter(id=session_id, user_id=user_id).delete()
         return deleted > 0
 
@@ -60,6 +57,6 @@ class TortoiseChatMessageRepository(AbstractChatMessageRepository):
         )
         return self._to_domain(orm)
 
-    async def find_recent_by_session_id(self, session_id: UUID, limit: int) -> list[ChatMessage]:
+    async def find_recent_by_session_id(self, session_id: int, limit: int) -> list[ChatMessage]:
         rows = await ChatMessageORM.filter(session_id=session_id).order_by("-created_at").limit(limit)
         return [self._to_domain(r) for r in rows]

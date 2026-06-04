@@ -606,15 +606,23 @@ async def _do_check_notifications():
     from datetime import datetime, timedelta, timezone
     from tortoise import Tortoise
 
-    await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
+    # ai_worker 전용 DB URL 사용 (app.models 직접 접근)
+    await Tortoise.init(
+        db_url=_db_url(),
+        modules={"models": [
+            "app.models.users",
+            "app.models.medications",
+            "app.models.medical_records",
+            "app.models.notifications",
+        ]},
+    )
     try:
-        from ai_worker.models import Notification
+        from app.models.notifications import Notification
 
         now = datetime.now(timezone.utc)
         trigger_window = (now + timedelta(minutes=10)).time()
         now_time = now.time()
 
-        # 현재 시각 ~ 10분 후 사이에 예정된 활성 알림 조회
         due = await Notification.filter(
             is_active=True,
             scheduled_time__gte=now_time,
@@ -626,10 +634,6 @@ async def _do_check_notifications():
                 f"[notification] 알림 트리거: user_id={notif.user_id} "
                 f"title={notif.title} type={notif.type}"
             )
-            # push 알림은 SSE/WebSocket 채널로 전달 (추후 구현)
-            # email 알림은 아래 주석 해제 후 SMTP 서비스 연동
-            # if notif.type == "email":
-            #     await _send_email_notification(notif)
 
     finally:
         await Tortoise.close_connections()

@@ -94,12 +94,23 @@ class AssetCallbackRequest(BaseModel):
 
 @internal_router.post("/callback/guide", dependencies=[InternalAuth])
 async def guide_callback(body: GuideCallbackRequest, request: Request):
-    """LLM Worker가 가이드 생성 완료/실패 시 호출."""
+    """LLM Worker가 가이드 생성 완료/실패 후 호출."""
     if body.status == "done":
+
+        def _to_json(val):
+            if val is None:
+                return None
+            if isinstance(val, (dict, list)):
+                return val
+            try:
+                return json.loads(val)
+            except (json.JSONDecodeError, TypeError):
+                return {"raw": val}
+
         await Guide.filter(id=body.guide_id).update(
             status="done",
-            medication_guide=body.medication_guide,
-            lifestyle_guide=body.lifestyle_guide,
+            medication_guide=_to_json(body.medication_guide),
+            lifestyle_guide=_to_json(body.lifestyle_guide),
             summary_text=body.summary_text,
             allergy_warnings=body.allergy_warnings,
             condition_interactions=body.condition_interactions,
@@ -112,7 +123,6 @@ async def guide_callback(body: GuideCallbackRequest, request: Request):
     else:
         await Guide.filter(id=body.guide_id).update(status="failed")
 
-    # [13] SSE 클라이언트에 완료 알림 (Redis Pub/Sub)
     redis = request.app.state.redis
     await redis.publish(
         f"guide:done:{body.user_id}",

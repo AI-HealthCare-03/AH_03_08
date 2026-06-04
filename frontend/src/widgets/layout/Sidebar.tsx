@@ -58,7 +58,7 @@ export function Sidebar() {
               className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-sm font-semibold"
               style={{ background: '#E1F5EE', color: '#0F6E56' }}
             >
-              {user ? user.name.charAt(0) : '?'}
+              {user ? (user.name?.charAt(0) ?? '?') : '?'}
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-800 truncate">

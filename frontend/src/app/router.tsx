@@ -16,12 +16,12 @@ import { NutritionPage } from '@/pages/nutrition'
 
 function ProtectedRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
-  return isAuthenticated ? <Outlet /> : <Navigate to="/" replace />
+  return isAuthenticated ? <Outlet /> : <Navigate to="/auth/login" replace />
 }
 
 function RootRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
-  return isAuthenticated ? <Navigate to="/home" replace /> : <LandingPage />
+  return isAuthenticated ? <Navigate to="/home" replace /> : <Navigate to="/auth/login" replace />
 }
 
 export const router = createBrowserRouter([

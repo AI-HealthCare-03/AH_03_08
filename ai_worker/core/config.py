@@ -93,6 +93,9 @@ class Config(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = ""
+    
+    #
+    HIRA_API_KEY: str = ""
 
     # [12] Worker → FastAPI 내부 콜백 인증 시크릿
     # 운영 환경에서는 .env에 강력한 랜덤 문자열로 설정
