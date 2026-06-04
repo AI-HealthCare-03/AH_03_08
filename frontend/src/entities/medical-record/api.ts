@@ -51,6 +51,10 @@ async function uploadRecord(payload: { file: File; record_type: RecordType }): P
   return data
 }
 
+async function deleteRecord(id: string): Promise<void> {
+  await apiClient.delete(`/records/${id}`)
+}
+
 async function updateRecord(payload: { id: string; parsed_data: ParsedData }): Promise<MedicalRecord> {
   const { data } = await apiClient.put<MedicalRecord>(`/records/${payload.id}`, {
     parsed_data: payload.parsed_data,
@@ -69,6 +73,12 @@ export function useMedicalRecords() {
   return useQuery({
     queryKey: KEYS.list(),
     queryFn: fetchRecords,
+    refetchInterval: (query) => {
+      const records = query.state.data
+      if (!records) return false
+      const hasPending = records.some(r => r.status === 'pending' || r.status === 'processing')
+      return hasPending ? 3000 : false
+    },
   })
 }
 
@@ -95,11 +105,19 @@ export function useUploadRecord() {
   })
 }
 
+export function useDeleteRecord() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: deleteRecord,
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.list() }),
+  })
+}
+
 export function useUpdateRecord() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: updateRecord,
-    onSuccess: (data) => qc.setQueryData(KEYS.detail(data.id), data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.list() }),
   })
 }
 

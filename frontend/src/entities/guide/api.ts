@@ -86,6 +86,11 @@ export function useGuides() {
   return useQuery({
     queryKey: KEYS.list(),
     queryFn: fetchGuides,
+    refetchInterval: (query) => {
+      const guides = query.state.data
+      if (!guides) return false
+      return guides.some(g => g.status === 'processing') ? 3000 : false
+    },
   })
 }
 
