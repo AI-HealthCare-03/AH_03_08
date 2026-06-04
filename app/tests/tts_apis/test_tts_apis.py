@@ -34,7 +34,7 @@ class TestCreateGuideAssetAPI(TestCase):
         """tts 타입 TTS 생성 요청 테스트"""
         with (
             patch("app.apis.v1.asset_routers.Guide.get_or_none", new=AsyncMock(return_value=_mock_guide())),
-            patch("app.services.tts.celery_app.send_task") as mock_task,
+            patch("app.services.tts.TtsService.create_tts_asset", new=AsyncMock(return_value=b"mock_audio")),
         ):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
@@ -44,22 +44,18 @@ class TestCreateGuideAssetAPI(TestCase):
                     json={"asset_type": "tts"},
                 )
 
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        data = response.json()
-        assert "asset_id" in data
-        assert data["status"] == "processing"
-        mock_task.assert_called_once()
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers["content-type"] == "audio/mpeg"
 
     async def test_create_invalid_asset_type(self):
         """잘못된 asset_type 요청 시 422 반환 테스트"""
-        with patch("app.services.tts.celery_app.send_task"):
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-                headers = await _get_auth_headers(client)
-                response = await client.post(
-                    "/api/v1/guides/00000000-0000-0000-0000-000000000001/assets",
-                    headers=headers,
-                    json={"asset_type": "invalid_type"},
-                )
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            headers = await _get_auth_headers(client)
+            response = await client.post(
+                "/api/v1/guides/00000000-0000-0000-0000-000000000001/assets",
+                headers=headers,
+                json={"asset_type": "invalid_type"},
+            )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
