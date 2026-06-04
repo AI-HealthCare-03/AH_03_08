@@ -387,9 +387,9 @@ def _extract_condition_keywords(medications: list) -> list[str]:
     found: list[str] = []
     for med in medications:
         combined = " ".join([
-            med.get("drug_name", ""),
-            med.get("category", ""),
-            med.get("instructions", ""),
+            med.get("drug_name", "") or "",
+            med.get("category", "") or "",
+            med.get("instructions", "") or "",
         ])
         for hint, label in condition_hints.items():
             if hint in combined and label not in found:
