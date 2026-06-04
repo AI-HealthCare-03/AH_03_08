@@ -40,8 +40,9 @@ class Guide(models.Model):
 
 
 class ChatSession(models.Model):
-    id = fields.BigIntField(primary_key=True)
+    id = fields.UUIDField(primary_key=True)
     user = fields.ForeignKeyField("models.User", related_name="chat_sessions")
+    guide = fields.ForeignKeyField("models.Guide", null=True, related_name="chat_sessions")
 
     class Meta:
         table = "chat_sessions"
