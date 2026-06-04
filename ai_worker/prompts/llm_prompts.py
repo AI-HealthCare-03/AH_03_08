@@ -5,6 +5,7 @@
 - Few-shot 예시 추가로 출력 일관성 확보
 - 약물 상호작용, 부작용 조기 감지 강화
 - 일일 팁 개인화 지원
+- [수정] JSON 스키마 강제 지시문 강화 (raw 키 방지)
 """
 
 from langchain_core.documents import Document
@@ -14,7 +15,7 @@ from ai_worker.services.disease_code_service import (
 )
 
 # ─────────────────────────────────────────────────────────────────
-# 복약 가이드 생성 프롬프트 (개선)
+# 복약 가이드 생성 프롬프트
 # ─────────────────────────────────────────────────────────────────
 
 GUIDE_SYSTEM = """\
@@ -40,10 +41,16 @@ GUIDE_SYSTEM = """\
 3. **안전 우선**: 잠재적 위험은 ⚠️ 아이콘과 함께 강조하고 "의사·약사 상담 필요" 문구를 포함합니다.
 4. **언어**: 전문용어는 괄호 안에 쉬운 설명을 병기합니다. 예: 뇌하수체호르몬제(호르몬 분비 조절제)
 
-## 출력 형식 (반드시 순수 JSON, 마크다운 코드 펜스 없이)
+## ⚠️ 출력 형식 엄수 사항
+- 반드시 아래 JSON 스키마 그대로 응답하세요.
+- "raw", "text", "result", "content" 같은 임의 키를 절대 사용하지 마세요.
+- medication_guide, lifestyle_guide, summary 키가 반드시 포함되어야 합니다.
+- 마크다운 코드 펜스(```) 없이 순수 JSON만 출력하세요.
+
+## 출력 JSON 스키마
 {
   "guide_type": "prescription | pill_scan | mixed",
-  "medication_guide": "약품별 안내 (처방전: 복약법, 낱알약: 약품정보·주의사항)",
+  "medication_guide": "약품별 안내 (처방전: 복약법, 낱알약: 약품정보·주의사항) - 반드시 string",
   "lifestyle_guide": {
     "diet": "식이 지침 (금기 식품, 권장 식품, 수분 섭취)",
     "exercise": "운동 지침 (권장 운동, 강도, 주의사항)",
@@ -66,7 +73,7 @@ GUIDE_SYSTEM = """\
   "medication_schedule": [
     {"time": "아침 식후 30분", "drugs": ["약품명1"], "notes": "복용 메모"}
   ],
-  "summary": "전체 가이드 3줄 요약 (TTS 변환용, 150자 이내, 가장 중요한 주의사항 포함)"
+  "summary": "전체 가이드 3줄 요약 (TTS 변환용, 150자 이내, 가장 중요한 주의사항 포함) - 반드시 string"
 }
 
 ## Few-shot 예시 — 낱알약 스캔
@@ -79,6 +86,15 @@ GUIDE_SYSTEM = """\
 복용 방법·용량은 처방 의사 또는 약사에게 반드시 확인하세요."
 """
 
+# [수정] JSON 강제 지시문 (세 프롬프트 빌더 공통 사용)
+_JSON_ENFORCE = """\
+⚠️ 출력 규칙 (반드시 준수):
+1. 위 GUIDE_SYSTEM에 정의된 JSON 스키마 형식 그대로 응답하세요.
+2. "raw", "text", "result" 같은 임의 키를 사용하지 마세요.
+3. medication_guide와 summary는 반드시 string 타입으로 작성하세요.
+4. 마크다운 코드 펜스(```) 없이 순수 JSON만 출력하세요.\
+"""
+
 
 def _is_pill_scan(med: dict) -> bool:
     """
@@ -89,8 +105,8 @@ def _is_pill_scan(med: dict) -> bool:
     return not med.get("dosage")
 
 
-def _build_user_profile(user_health: dict) -> tuple[str, str, str, str, str]:
-    """공통 사용자 프로필 문자열 반환 (gender_str, allergies, conditions, bmi_str, h, w)."""
+def _build_user_profile(user_health: dict) -> tuple[str, str, str, str, str, str]:
+    """공통 사용자 프로필 문자열 반환."""
     gender_map = {"MALE": "남성", "FEMALE": "여성"}
     gender_str = gender_map.get(user_health.get("gender", ""), "미입력")
     allergies = (
@@ -119,12 +135,6 @@ def _build_user_profile(user_health: dict) -> tuple[str, str, str, str, str]:
 def build_guide_user_prompt(medications: list, user_health: dict, rag_context: str) -> str:
     """
     처방전 vs 낱알약을 자동 분기하여 최적의 프롬프트 생성.
-
-    분기 기준:
-    - dosage 있음 → 처방전/약봉투 → 복약 방법 중심 가이드
-    - dosage 없음 → 낱알약 스캔 → 약품 정보(성분·분류·OTC) 중심 가이드
-
-    복합 처방(처방전 + 낱알약 혼재)은 각각 분리하여 섹션별 안내.
     """
     prescription_meds = [m for m in medications if not _is_pill_scan(m)]
     pill_meds = [m for m in medications if _is_pill_scan(m)]
@@ -143,22 +153,11 @@ def build_guide_user_prompt(medications: list, user_health: dict, rag_context: s
 ## 의약품 참고 문서 (RAG 검색 결과)
 {rag_context or "검색된 참고 문서 없음 — AI 일반 지식 기반으로 작성하세요."}"""
 
-    # ── 케이스 A: 처방전만 ──────────────────────────────────────────
     if prescription_meds and not pill_meds:
-        return _build_prescription_prompt(
-            prescription_meds, user_profile_block, rag_block, conditions
-        )
-
-    # ── 케이스 B: 낱알약만 ──────────────────────────────────────────
+        return _build_prescription_prompt(prescription_meds, user_profile_block, rag_block, conditions)
     if pill_meds and not prescription_meds:
-        return _build_pill_prompt(
-            pill_meds, user_profile_block, rag_block, conditions, allergies
-        )
-
-    # ── 케이스 C: 혼재 (처방전 + 낱알약) ───────────────────────────
-    return _build_mixed_prompt(
-        prescription_meds, pill_meds, user_profile_block, rag_block, conditions, allergies
-    )
+        return _build_pill_prompt(pill_meds, user_profile_block, rag_block, conditions, allergies)
+    return _build_mixed_prompt(prescription_meds, pill_meds, user_profile_block, rag_block, conditions, allergies)
 
 
 def _build_prescription_prompt(
@@ -196,13 +195,14 @@ def _build_prescription_prompt(
 {rag_block}
 
 ---
-아래 지침에 따라 JSON을 작성하세요:
+작성 지침:
 1. medication_guide: 각 약품의 복용 시간(아침/점심/저녁/취침 전), 용량, 식전·식후 여부, 보관법을 구체적으로 기술합니다.
 2. medication_schedule: 시간대별 복약 시간표를 구성합니다.
 3. lifestyle_guide: 기저질환({conditions})을 고려한 식이·운동·수면 지침을 작성합니다.
 4. 알러지·기저질환 위험을 최우선으로 점검하고 allergy_warnings, condition_interactions를 채웁니다.
 5. side_effects_watch: 각 약품의 주요 부작용과 대처법을 기술합니다.
-반드시 순수 JSON으로만 응답하세요.\
+
+{_JSON_ENFORCE}\
 """
 
 
@@ -213,12 +213,7 @@ def _build_pill_prompt(
     conditions: str,
     allergies: str,
 ) -> str:
-    """
-    낱알약 스캔 기반 약품 정보 중심 프롬프트.
-
-    dosage/frequency/duration이 없으므로 복약 방법 대신
-    성분·분류·OTC 여부를 바탕으로 주의사항·생활 가이드를 생성.
-    """
+    """낱알약 스캔 기반 약품 정보 중심 프롬프트."""
     pill_lines = []
     for i, m in enumerate(medications, 1):
         otc_label = _otc_label(m.get("otc_code"))
@@ -246,19 +241,14 @@ def _build_pill_prompt(
 
 ---
 낱알약 스캔 가이드 작성 지침:
-1. medication_guide:
-   - 약품 분류(category)와 주성분(instructions) 기반으로 약효·용도를 설명합니다.
-   - OTC(일반의약품)/전문의약품 여부에 따른 주의사항을 안내합니다.
-   - 전문의약품은 "반드시 의사 처방에 따라 복용, 임의 중단 금지" 문구를 포함합니다.
-   - 용량·복용 횟수는 명시하지 말고 "처방 의사·약사 확인 필요"로 안내합니다.
-2. lifestyle_guide:
-   - 해당 약품 계열의 일반적인 생활 주의사항을 기술합니다.
-   - 기저질환({conditions})과 해당 약품 계열의 상호작용 주의사항을 포함합니다.
+1. medication_guide: 약품 분류(category)와 주성분 기반으로 약효·용도를 설명합니다. OTC/전문의약품 주의사항 포함.
+2. lifestyle_guide: 해당 약품 계열의 일반적인 생활 주의사항을 기술합니다.
 3. allergy_warnings: 알러지({allergies})와 약품 성분 교차반응 위험을 점검합니다.
 4. condition_interactions: 기저질환({conditions})과 해당 약품 계열의 주의사항을 분석합니다.
 5. side_effects_watch: 해당 약품 계열의 주요 부작용과 즉시 병원 방문 기준을 기술합니다.
-6. medication_schedule은 빈 배열([])로 반환합니다 (복약 정보 없음).
-반드시 순수 JSON으로만 응답하세요.\
+6. medication_schedule은 빈 배열([])로 반환합니다.
+
+{_JSON_ENFORCE}\
 """
 
 
@@ -308,7 +298,8 @@ def _build_mixed_prompt(
 3. lifestyle_guide: 기저질환({conditions})을 고려한 통합 생활 가이드를 작성합니다.
 4. allergy_warnings / condition_interactions: 전체 약품 대상으로 분석합니다.
 5. drug_interactions: 처방 약품 간, 처방 약품 ↔ 낱알약 간 상호작용을 모두 분석합니다.
-반드시 순수 JSON으로만 응답하세요.\
+
+{_JSON_ENFORCE}\
 """
 
 
@@ -327,7 +318,7 @@ def _otc_label(otc_code: str | None) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────
-# 챗봇 System Prompt (개선)
+# 챗봇 System Prompt
 # ─────────────────────────────────────────────────────────────────
 
 CHAT_BASE_SYSTEM = """\
@@ -359,28 +350,19 @@ def build_chat_system_prompt(
     user_health: dict,
     rag_docs: list,
     current_record: dict | None = None,
-    disease_name: str | None = None,   # ← OCR 완료 시점에 미리 조회한 진단명
+    disease_name: str | None = None,
 ) -> str:
-    """
-    챗봇 시스템 프롬프트 동적 생성
- 
-    disease_name 파라미터:
-    - _do_process_chat에서 HIRA API로 미리 조회한 진단명을 전달
-    - None이면 동기 fallback 사전 사용
-    """
+    """챗봇 시스템 프롬프트 동적 생성."""
     parts = [CHAT_BASE_SYSTEM]
- 
-    # ── 현재 진료기록 컨텍스트 ──────────────────────────────────
+
     if current_record:
         disease_code = current_record.get("disease_code")
-        # 미리 조회한 진단명 우선, 없으면 동기 fallback
         if not disease_name:
-            from ai_worker.services.disease_code_service import lookup_disease_name_sync
             disease_name = lookup_disease_name_sync(disease_code)
- 
+
         medications = current_record.get("medications", [])
         med_names = [m.get("drug_name", "") for m in medications if m.get("drug_name")]
- 
+
         record_lines = [
             "",
             "## ⚕️ 현재 진료기록 (반드시 이 정보를 기반으로 답변하세요)",
@@ -394,8 +376,7 @@ def build_chat_system_prompt(
             f"- 예: '{disease_code}'는 '{disease_name}'입니다. 다른 진단명으로 안내하지 마세요.",
         ]
         parts.append("\n".join(record_lines))
- 
-    # ── 사용자 건강 프로필 (기존 코드 유지) ─────────────────────
+
     if user_health:
         lines = ["", "## 현재 사용자 건강 프로필 (개인화 참고)"]
         age = user_health.get("age")
@@ -407,7 +388,7 @@ def build_chat_system_prompt(
                 f" | 키 {user_health.get('height_cm', '-')}cm"
                 f" | 체중 {user_health.get('weight_kg', '-')}kg"
             )
- 
+
         allergies = user_health.get("allergies", [])
         if allergies:
             high_risk = [a for a in allergies if a.get("severity") in ("severe", "high")]
@@ -418,39 +399,30 @@ def build_chat_system_prompt(
             if normal:
                 n_str = ", ".join(f"{a['name']}({a.get('severity', 'unknown')})" for a in normal)
                 lines.append(f"- 알러지: {n_str}")
- 
+
         conditions = user_health.get("conditions", [])
         if conditions:
             lines.append(f"- 기저질환: {', '.join(c['name'] for c in conditions)}")
- 
+
         lines.append("※ 위 건강 정보와 연관된 약물 위험 언급 시 반드시 경고를 포함하세요.")
         parts.append("\n".join(lines))
- 
-    # ── RAG 참고 문서 (기존 코드 유지) ──────────────────────────
+
     if rag_docs:
         lines = ["", "## 참고 의약 문서 (RAG)"]
         for i, doc in enumerate(rag_docs, 1):
             lines.append(f"[{i}] {doc.page_content[:1000]}")
         lines.append("답변 말미에 '[참고 문서 N]' 형태로 출처를 명시하세요.")
         parts.append("\n".join(lines))
- 
+
     return "\n".join(parts)
 
 
 # ─────────────────────────────────────────────────────────────────
-# 일일 건강 팁 프롬프트 (개선: 개인화 + 한국어)
+# 일일 건강 팁 프롬프트
 # ─────────────────────────────────────────────────────────────────
 
 def build_daily_tip_prompt(user_health: dict | None = None, season: str | None = None) -> str:
-    """
-    개인화된 일일 건강 팁 프롬프트
-
-    개선사항:
-    - 영어 → 한국어 출력
-    - 사용자 기저질환 기반 팁 생성
-    - 계절/날씨 컨텍스트 추가
-    - 카테고리 다양화
-    """
+    """개인화된 일일 건강 팁 프롬프트."""
     context_parts = []
 
     if user_health:
@@ -495,7 +467,7 @@ def build_daily_tip_prompt(user_health: dict | None = None, season: str | None =
 
 
 # ─────────────────────────────────────────────────────────────────
-# 약물 상호작용 체크 프롬프트 (신규 추가)
+# 약물 상호작용 체크 프롬프트
 # ─────────────────────────────────────────────────────────────────
 
 INTERACTION_CHECK_SYSTEM = """\

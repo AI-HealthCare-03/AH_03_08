@@ -98,15 +98,27 @@ async def guide_callback(body: GuideCallbackRequest, request: Request):
     if body.status == "done":
 
         def _to_json(val):
+            """
+            - dict/list → 그대로
+            - JSON string (배열/객체) → 파싱
+            - 일반 text string → {"text": val} 대신 그냥 string 유지
+            - None → None
+            """
             if val is None:
                 return None
             if isinstance(val, (dict, list)):
                 return val
-            try:
-                return json.loads(val)
-            except (json.JSONDecodeError, TypeError):
-                return {"raw": val}
-
+            if isinstance(val, str):
+                stripped = val.strip()
+            # JSON 객체/배열인 경우만 파싱
+                if stripped.startswith(('{', '[')):
+                    try:
+                        return json.loads(stripped)
+                    except json.JSONDecodeError:
+                        pass
+        # 일반 텍스트 string은 그대로 저장
+                return val
+            return val
         await Guide.filter(id=body.guide_id).update(
             status="done",
             medication_guide=_to_json(body.medication_guide),

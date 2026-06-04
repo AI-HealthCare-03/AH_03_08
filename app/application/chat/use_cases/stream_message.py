@@ -45,19 +45,28 @@ class StreamMessageUseCase:
         self.message_repo = message_repo
         self.llm_client = llm_client
 
-    async def execute(self, command: SendMessageCommand) -> AsyncGenerator[str, None]:
-        session = await self.session_repo.find_by_id(command.session_id, command.user_id)
-        if not session:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="채팅 세션을 찾을 수 없습니다.")
+        async def execute(self, command: SendMessageCommand) -> AsyncGenerator[str, None]:
+            session = await self.session_repo.find_by_id(command.session_id, command.user_id)
+            if not session:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="채팅 세션을 찾을 수 없습니다.")
 
-        await self.message_repo.save(ChatMessage(session_id=command.session_id, role="user", content=command.content))
+            await self.message_repo.save(ChatMessage(session_id=command.session_id, role="user", content=command.content))
 
-        recent = await self.message_repo.find_recent_by_session_id(command.session_id, limit=_CONTEXT_TURNS)
-        history = [{"role": m.role, "content": m.content} for m in reversed(recent)]
-        system_prompt = _build_system_prompt(command.allergies, command.underlying_diseases, command.guide_context)
+            recent = await self.message_repo.find_recent_by_session_id(command.session_id, limit=_CONTEXT_TURNS)
+            history = [{"role": m.role, "content": m.content} for m in reversed(recent)]
+            # ── RAG 검색 추가 ──
+            rag_context = ""
+            if _RAG_AVAILABLE:
+                docs, used = search_docs_with_scores(command.content)
+                if used:
+                    rag_context = "\n\n".join(d.page_content for d in docs)
 
-        return self._stream_and_save(command, history, system_prompt)
+            # guide_context 우선, 없으면 RAG 결과 사용
+            final_context = command.guide_context or rag_context
 
+            system_prompt = _build_system_prompt(command.allergies, command.underlying_diseases, final_context)
+
+            return self._stream_and_save(command, history, system_prompt)
     async def _stream_and_save(
         self, command: SendMessageCommand, history: list[dict], system_prompt: str
     ) -> AsyncGenerator[str, None]:
@@ -68,3 +77,9 @@ class StreamMessageUseCase:
 
         full_reply = "".join(tokens)
         await self.message_repo.save(ChatMessage(session_id=command.session_id, role="assistant", content=full_reply))
+
+try:
+    from ai_worker.rag.chroma_store import search_docs_with_scores
+    _RAG_AVAILABLE = True
+except ImportError:
+    _RAG_AVAILABLE = False

@@ -8,6 +8,10 @@
 4. 신규: check_drug_interactions_task (약물 상호작용 전용 태스크)
 5. 재시도 지수 백오프(exponential backoff) 적용
 6. 응답 검증 강화 (필수 키 존재 여부 체크)
+7. [수정] chroma_store 검색 시 instructions None → "" 처리
+8. [수정] medication_guide/lifestyle_guide dict 타입 → string 직렬화
+9. [수정] _do_check_notifications: app.models.* → ai_worker.models, Notification 없으면 skip
+10. [수정] _parse_and_validate_guide: {"raw": "..."} 응답 리매핑 fallback 추가
 """
 
 import asyncio
@@ -49,7 +53,7 @@ def _get_llm() -> ChatOpenAI:
     if _llm is None:
         _llm = ChatOpenAI(
             model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            temperature=0.1,       # 개선: 0 → 0.1 (약간의 다양성, 더 자연스러운 문장)
+            temperature=0.1,
             max_tokens=4096,
             api_key=os.getenv("OPENAI_API_KEY", ""),
         )
@@ -80,7 +84,7 @@ def _db_url() -> str:
 
 
 # ─────────────────────────────────────────────────────────────────
-# 복약 가이드 생성 태스크 (개선)
+# 복약 가이드 생성 태스크
 # ─────────────────────────────────────────────────────────────────
 
 @celery_app.task(
@@ -134,10 +138,8 @@ async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
         if len(medications) >= 2:
             interaction_result = _check_interactions(medications, user_health)
             if interaction_result:
-                # 기존 파싱 결과에 상호작용 정보 병합
                 existing = parsed.get("drug_interactions", [])
                 new_interactions = interaction_result.get("interactions", [])
-                # 중복 제거 후 병합
                 merged = _merge_interactions(existing, new_interactions)
                 parsed["drug_interactions"] = merged
 
@@ -148,20 +150,28 @@ async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
 
         summary_text = (parsed.get("summary") or "").strip()
 
-        # lifestyle_guide가 dict인 경우 텍스트로 직렬화 (콜백 호환성)
+        # [수정] medication_guide dict → string 직렬화
+        medication_guide = parsed.get("medication_guide", "")
+        if isinstance(medication_guide, dict):
+            medication_guide = _format_medication_guide(medication_guide)
+        elif not isinstance(medication_guide, str):
+            medication_guide = str(medication_guide)
+
+        # [수정] lifestyle_guide dict → string 직렬화
         lifestyle_guide = parsed.get("lifestyle_guide", "")
         if isinstance(lifestyle_guide, dict):
             lifestyle_guide = _format_lifestyle_guide(lifestyle_guide)
+        elif not isinstance(lifestyle_guide, str):
+            lifestyle_guide = str(lifestyle_guide)
 
         ok = guide_done(
             guide_id=guide_id,
             user_id=user_id,
-            medication_guide=parsed.get("medication_guide", ""),
+            medication_guide=medication_guide,
             lifestyle_guide=lifestyle_guide,
             summary_text=summary_text,
             allergy_warnings=parsed.get("allergy_warnings", []),
             condition_interactions=parsed.get("condition_interactions", []),
-            # 신규 필드 (콜백에서 선택적 처리)
             drug_interactions=parsed.get("drug_interactions", []),
             side_effects_watch=parsed.get("side_effects_watch", []),
             medication_schedule=parsed.get("medication_schedule", []),
@@ -175,7 +185,6 @@ async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
     except Exception as exc:
         guide_failed(guide_id, user_id)
         logger.error(f"[generate_guide] 실패: {exc}", exc_info=True)
-        # 지수 백오프: 30s, 60s, 120s
         countdown = 30 * (2 ** task.request.retries)
         raise task.retry(exc=exc, countdown=countdown) from exc
 
@@ -207,6 +216,19 @@ def _merge_interactions(existing: list, new_items: list) -> list:
     return merged
 
 
+def _format_medication_guide(guide_dict: dict) -> str:
+    """medication_guide dict → 포맷된 텍스트 변환."""
+    lines = []
+    for drug_name, info in guide_dict.items():
+        if isinstance(info, dict):
+            lines.append(f"💊 {drug_name}")
+            for k, v in info.items():
+                lines.append(f"  - {k}: {v}")
+        else:
+            lines.append(f"💊 {drug_name}: {info}")
+    return "\n".join(lines)
+
+
 def _format_lifestyle_guide(guide_dict: dict) -> str:
     """lifestyle_guide dict → 포맷된 텍스트 변환."""
     sections = {
@@ -224,7 +246,7 @@ def _format_lifestyle_guide(guide_dict: dict) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────
-# 챗봇 태스크 (개선)
+# 챗봇 태스크
 # ─────────────────────────────────────────────────────────────────
 
 @celery_app.task(
@@ -254,12 +276,11 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
     from ai_worker.models import ChatMessage, ChatSession, User
     from ai_worker.prompts.llm_prompts import build_chat_system_prompt
     from ai_worker.services.disease_code_service import lookup_disease_name_async
- 
+
     try:
         user = await User.get_or_none(id=user_id)
         user_health = await load_user_health(user_id, user)
- 
-        # ── 현재 세션의 진료기록 + HIRA API 진단명 조회 ──────────
+
         current_record = None
         disease_name = None
         try:
@@ -275,8 +296,7 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
                         "hospital_name": record.parsed_data.get("hospital_name"),
                         "prescription_date": record.parsed_data.get("prescription_date"),
                     }
- 
-                    # HIRA API로 정확한 진단명 조회
+
                     if disease_code:
                         disease_name = await lookup_disease_name_async(disease_code)
                         logger.info(
@@ -284,11 +304,10 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
                             f"{disease_code} → {disease_name} "
                             f"session={session_id}"
                         )
- 
+
         except Exception as rec_exc:
             logger.warning(f"[chat] 진료기록/HIRA 조회 실패 (무시): {rec_exc}")
-        # ──────────────────────────────────────────────────────────
- 
+
         if _is_off_topic(user_message):
             answer = (
                 "MediLog 복약 도우미입니다. 의약품 복용, 건강 관리, 약물 상호작용, "
@@ -298,24 +317,23 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
             _save_and_publish(session_id, message_id, user_message, answer)
             await ChatMessage.filter(id=message_id).update(content=answer, status="DONE")
             return
- 
+
         rag_docs, rag_used = search_docs_with_scores(user_message)
         history = _get_history(session_id)
- 
-        # HIRA API로 조회한 disease_name 전달
+
         system_prompt = build_chat_system_prompt(
             user_health,
             rag_docs,
             current_record=current_record,
             disease_name=disease_name,
         )
- 
+
         messages = [SystemMessage(content=system_prompt)]
         for turn in history:
             messages.append(HumanMessage(content=turn["user"]))
             messages.append(SystemMessage(content=turn["assistant"]))
         messages.append(HumanMessage(content=user_message))
- 
+
         full_response = ""
         for chunk in _get_llm_stream().stream(messages):
             token = chunk.content
@@ -324,17 +342,17 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
                 f"chat:stream:{session_id}",
                 json.dumps({"token": token, "message_id": message_id}),
             )
- 
+
         if not rag_used:
             full_response += "\n\n*참고 문서 없음 — AI 일반 지식 기반 답변입니다. 중요한 사항은 약사에게 확인하세요.*"
- 
+
         warning = _drug_interaction_check(user_message, user_health)
         if warning:
             full_response += f"\n\n⚠️ **주의**: {warning}"
- 
+
         _save_and_publish(session_id, message_id, user_message, full_response)
         await ChatMessage.filter(id=message_id).update(content=full_response, status="DONE")
- 
+
     except Exception as exc:
         _redis.publish(
             f"chat:stream:{session_id}",
@@ -342,11 +360,10 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
         )
         logger.error(f"[chat] 실패: {exc}", exc_info=True)
         raise task.retry(exc=exc) from exc
- 
 
 
 # ─────────────────────────────────────────────────────────────────
-# 일일 건강 팁 태스크 (개선: 한국어 + 개인화)
+# 일일 건강 팁 태스크
 # ─────────────────────────────────────────────────────────────────
 
 @celery_app.task(bind=True, name="ai_worker.tasks.llm_task.generate_daily_tip_task", max_retries=2)
@@ -371,7 +388,6 @@ async def _do_generate_daily_tip(task, tip_id: str, user_id: int):
         except Exception as exc:
             logger.warning(f"[daily_tip] 사용자 정보 로드 실패 (기본값 사용): {exc}")
 
-    # 계절 자동 판단
     month = datetime.now().month
     season = (
         "봄" if month in (3, 4, 5) else
@@ -399,14 +415,12 @@ async def _do_generate_daily_tip(task, tip_id: str, user_id: int):
         )
         tip_data = _parse_json(response.content)
 
-        # 응답 검증
         required_keys = {"title", "subtitle", "body", "highlight", "category"}
         if tip_data is None or not required_keys.issubset(tip_data.keys()):
             raise ValueError(f"daily_tip 응답 키 부족: {tip_data}")
 
         _redis.set(f"daily_tip:{tip_id}", json.dumps(tip_data, ensure_ascii=False), ex=86400)
 
-        # 개인화 팁인 경우 user_id별 캐시에도 저장
         if user_id and user_id > 0:
             _redis.set(
                 f"daily_tip:user:{user_id}",
@@ -477,7 +491,6 @@ async def _load_health_only(user_id: int) -> dict:
 # 유틸리티
 # ─────────────────────────────────────────────────────────────────
 
-# 개선: 확장된 오프토픽 키워드 + 한국어 의료 키워드 허용 목록
 _OFF_TOPIC_KEYWORDS = {
     "en": ["stock", "crypto", "weather", "sports", "game", "politics", "entertainment"],
     "ko": ["주식", "코인", "투자", "날씨", "스포츠", "게임", "정치", "연예", "영화", "쇼핑", "부동산", "음악", "드라마"],
@@ -490,18 +503,12 @@ _MEDICAL_KEYWORDS = [
 
 
 def _is_off_topic(message: str) -> bool:
-    """
-    개선: 의료 키워드가 포함된 경우 오프토픽으로 판단하지 않음.
-    """
-    # 의료 관련 키워드가 있으면 오프토픽 아님
     if any(kw in message for kw in _MEDICAL_KEYWORDS):
         return False
-
     all_off = _OFF_TOPIC_KEYWORDS["en"] + _OFF_TOPIC_KEYWORDS["ko"]
     return any(kw in message for kw in all_off)
 
 
-# 개선: 더 많은 약물-질환 위험 조합 커버
 _DRUG_CONDITION_DANGER_MAP = {
     "아스피린": ["혈우병", "위궤양", "출혈성 질환", "임신 3분기"],
     "이부프로펜": ["신부전", "고혈압", "심부전", "위궤양"],
@@ -514,7 +521,6 @@ _DRUG_CONDITION_DANGER_MAP = {
 
 
 def _drug_interaction_check(message: str, user_health: dict) -> str | None:
-    """개선된 약물-기저질환 위험 체크."""
     conditions = [c["name"] for c in user_health.get("conditions", [])]
     allergies = [a["name"] for a in user_health.get("allergies", [])]
     all_conditions = conditions + allergies
@@ -576,11 +582,19 @@ def _parse_and_validate_guide(raw: str) -> dict | None:
     """
     가이드 응답 파싱 + 필수 키 검증.
 
+    [수정] LLM이 {"raw": "..."} 형태로 응답한 경우 medication_guide로 리매핑.
     필수 키가 없으면 None 반환 (guide_failed 처리).
     """
     parsed = _parse_json(raw)
     if parsed is None:
         return None
+
+    # [수정] {"raw": "..."} fallback 리매핑
+    if "raw" in parsed and "medication_guide" not in parsed:
+        logger.warning("[_parse_and_validate_guide] 'raw' 키 감지 → medication_guide로 리매핑")
+        parsed["medication_guide"] = parsed.pop("raw")
+        parsed.setdefault("summary", "")
+        parsed.setdefault("lifestyle_guide", "")
 
     required_keys = {"medication_guide", "summary"}
     missing = required_keys - parsed.keys()
@@ -590,7 +604,10 @@ def _parse_and_validate_guide(raw: str) -> dict | None:
 
     return parsed
 
-# ai_worker/tasks/llm_task.py 파일 끝에 추가
+
+# ─────────────────────────────────────────────────────────────────
+# 복약 알림 태스크 (Celery Beat 주기 실행)
+# ─────────────────────────────────────────────────────────────────
 
 @celery_app.task(
     name="ai_worker.tasks.llm_task.check_and_send_notifications",
@@ -606,18 +623,19 @@ async def _do_check_notifications():
     from datetime import datetime, timedelta, timezone
     from tortoise import Tortoise
 
-    # ai_worker 전용 DB URL 사용 (app.models 직접 접근)
+    # [수정] Notification 모델 없으면 조용히 skip
+    try:
+        from ai_worker.models import Notification  # noqa: F401
+    except ImportError:
+        logger.warning("[notification] Notification 모델이 ai_worker.models에 없음 — 태스크 스킵")
+        return
+
     await Tortoise.init(
         db_url=_db_url(),
-        modules={"models": [
-            "app.models.users",
-            "app.models.medications",
-            "app.models.medical_records",
-            "app.models.notifications",
-        ]},
+        modules={"models": ["ai_worker.models"]},
     )
     try:
-        from app.models.notifications import Notification
+        from ai_worker.models import Notification
 
         now = datetime.now(timezone.utc)
         trigger_window = (now + timedelta(minutes=10)).time()

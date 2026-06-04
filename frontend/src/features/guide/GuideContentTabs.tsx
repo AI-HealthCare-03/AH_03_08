@@ -11,6 +11,20 @@ interface GuideContentTabsProps {
   guide: Guide
 }
 
+/** unknown 값을 안전하게 string으로 변환 */
+function toStr(val: unknown): string {
+  if (typeof val === 'string') return val
+  if (val == null) return ''
+  if (typeof val === 'object') {
+    const obj = val as Record<string, unknown>
+    // {"text": "..."} 또는 {"raw": "..."} 형태
+    if (typeof obj.text === 'string') return obj.text
+    if (typeof obj.raw === 'string') return obj.raw
+    return JSON.stringify(val, null, 2)
+  }
+  return String(val)
+}
+
 function WarningBox({ children }: { children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-amber-200 bg-status-amber-bg px-4 py-3 flex gap-2">
@@ -96,7 +110,7 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
                       {meta && <p className="text-xs font-medium text-gray-500">{meta}</p>}
                     </div>
                     <p className="mt-3 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-                      {m.instructions?.trim() || guide.medication_guide?.trim() || ''}
+                      {m.instructions?.trim() || toStr(guide.medication_guide).trim() || ''}
                     </p>
                     {warn && (
                       <div className="mt-4 rounded-xl bg-status-amber-bg px-4 py-3">
@@ -115,7 +129,7 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
                 <h3 className="text-sm font-semibold text-gray-900">복약 안내</h3>
               </div>
               <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-                {guide.medication_guide?.trim() || '복약 안내 내용이 없습니다.'}
+                {toStr(guide.medication_guide).trim() || '복약 안내 내용이 없습니다.'}
               </p>
             </article>
           )}
@@ -136,15 +150,15 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
             <HeartPulse className="h-5 w-5 text-brand-primary" />
             <h3 className="text-sm font-semibold text-gray-900">생활습관 가이드</h3>
           </div>
-          {splitBulletLines(guide.lifestyle_guide).length > 0 ? (
+          {splitBulletLines(toStr(guide.lifestyle_guide)).length > 0 ? (
             <ul className="space-y-2 text-sm text-gray-700 list-disc pl-5">
-              {splitBulletLines(guide.lifestyle_guide).map((line) => (
+              {splitBulletLines(toStr(guide.lifestyle_guide)).map((line) => (
                 <li key={line}>{line}</li>
               ))}
             </ul>
           ) : (
             <p className="text-sm text-gray-700 whitespace-pre-wrap">
-              {guide.lifestyle_guide?.trim() || '생활 가이드 내용이 없습니다.'}
+              {toStr(guide.lifestyle_guide).trim() || '생활 가이드 내용이 없습니다.'}
             </p>
           )}
         </article>

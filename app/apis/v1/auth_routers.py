@@ -1,5 +1,5 @@
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, status
 from typing import Annotated
-from fastapi import APIRouter, Cookie, Depends, HTTPException, status
 from fastapi.responses import JSONResponse as Response
 from app.core.config import Env, config
 from app.dtos.auth import GoogleLoginRequest, KakaoLoginRequest, LoginRequest, LoginResponse, SignUpRequest, TokenRefreshResponse
@@ -115,4 +115,28 @@ async def kakao_login(
         domain=config.COOKIE_DOMAIN or None,
         expires=tokens["access_token"].payload["exp"],
     )
+    return resp
+
+@auth_router.post("/logout", status_code=status.HTTP_200_OK)
+async def logout(
+    request: Request,
+    jwt_service: Annotated[JwtService, Depends(JwtService)],
+    refresh_token: Annotated[str | None, Cookie()] = None,
+) -> Response:
+    if refresh_token:
+        try:
+            verified = jwt_service.verify_jwt(refresh_token, token_type="refresh")
+            exp = verified.payload.get("exp", 0)
+            ttl = max(int(exp - __import__("time").time()), 0)
+            if ttl > 0:
+                redis = request.app.state.redis
+                await redis.setex(f"blacklist:{refresh_token}", ttl, "1")
+        except HTTPException:
+            pass  # 이미 만료된 토큰은 무시
+
+    resp = Response(
+        content=BaseResponse(success=True, data=None, message="Logout successful.").model_dump(),
+        status_code=status.HTTP_200_OK,
+    )
+    resp.delete_cookie(key="refresh_token")
     return resp

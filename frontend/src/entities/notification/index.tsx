@@ -1,4 +1,4 @@
-import { useNotifications, useToggleNotification, useDeleteNotification } from '@/entities/api'
+import { useNotifications, useToggleNotification, useDeleteNotification } from '@/entities/notification/api'
 
 export function NotificationPage() {
   const { data: notifications, isLoading } = useNotifications()
