@@ -1,50 +1,28 @@
-# 표준 라이브러리
-import uuid
-
-# 서드파티 라이브러리
-from celery import Celery
+# app/services/card_news.py
 
 # 로컬 모듈
-from app.core.config import config
-from app.dtos.asset import GuideAssetCreateResponse
-
-celery_app = Celery(broker=config.CELERY_BROKER_URL, backend=config.CELERY_RESULT_BACKEND)
+from ai_worker.card_news import get_card_news_generator
+from ai_worker.core.config import Config
 
 
 class CardNewsService:
+    def __init__(self):
+        self.generator = get_card_news_generator(Config())
+
     async def create_card_news_asset(
         self,
-        guide_id: str,
-        user_id: str,
         summary_text: str,
-    ) -> GuideAssetCreateResponse:
+    ) -> bytes:
         """
-        카드뉴스 이미지 생성 요청을 처리하고 Celery Task를 등록한다.
+        카드뉴스 이미지 생성 요청을 처리하고 PNG bytes를 반환한다.
 
         Args:
-            guide_id: GUIDES 테이블의 guide_id
-            user_id: 요청한 사용자 ID
             summary_text: GUIDES.summary_text (복약+생활 통합 요약)
 
         Returns:
-            GuideAssetCreateResponse: { asset_id, status }
+            bytes: PNG 이미지 데이터
 
         Note:
             - 개인정보 보호: 의료 데이터(summary_text) 로그 직접 출력 금지
-            - app과 ai_worker가 별도 컨테이너라 send_task()로 Redis에 등록
         """
-        asset_id = str(uuid.uuid4())
-
-        celery_app.send_task(
-            "ai_worker.tasks.card_news_task.generate_card_news_task",
-            kwargs={
-                "asset_id": asset_id,
-                "guide_id": guide_id,
-                "text": summary_text,
-                "user_id": user_id,
-            },
-        )
-        return GuideAssetCreateResponse(
-            asset_id=asset_id,
-            status="processing",
-        )
+        return self.generator.generate(summary_text)
