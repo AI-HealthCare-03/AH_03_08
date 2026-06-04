@@ -601,7 +601,6 @@ def _parse_and_validate_guide(raw: str) -> dict | None:
     return parsed
 
 # ai_worker/tasks/llm_task.py 파일 끝에 추가
-
 @celery_app.task(
     name="ai_worker.tasks.llm_task.check_and_send_notifications",
     bind=True,
@@ -616,13 +615,12 @@ async def _do_check_notifications():
     from datetime import datetime, timedelta, timezone
     from tortoise import Tortoise
 
-    # ai_worker 전용 DB URL 사용 (app.models 직접 접근)
     await Tortoise.init(
         db_url=_db_url(),
         modules={"models": ["ai_worker.models"]},
     )
     try:
-        from app.models.notifications import Notification
+        from ai_worker.models import Notification
 
         now = datetime.now(timezone.utc)
         trigger_window = (now + timedelta(minutes=10)).time()
