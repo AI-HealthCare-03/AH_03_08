@@ -56,8 +56,15 @@ async def create_guide_asset(
         audio_bytes = await tts_service.create_tts_asset(summary_text=summary_text)
         return Response(content=audio_bytes, media_type="audio/mpeg")
 
+
     elif request.asset_type == AssetType.card_news:
-        image_bytes = await card_news_service.create_card_news_asset(summary_text=summary_text)
+
+        image_bytes = await card_news_service.create_card_news_asset(
+            summary_text=summary_text,
+            medication_guide=guide.medication_guide,
+            lifestyle_guide=guide.lifestyle_guide,
+        )
+
         return Response(content=image_bytes, media_type="image/png")
 
     else:
