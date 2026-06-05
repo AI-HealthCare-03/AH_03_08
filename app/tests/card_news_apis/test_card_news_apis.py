@@ -34,7 +34,7 @@ class TestCreateCardNewsAPI(TestCase):
         """card_news 타입 카드뉴스 생성 요청 테스트"""
         with (
             patch("app.apis.v1.asset_routers.Guide.get_or_none", new=AsyncMock(return_value=_mock_guide())),
-            patch("app.services.card_news.celery_app.send_task") as mock_task,
+            patch("app.services.card_news.CardNewsService.create_card_news_asset", new=AsyncMock(return_value=b"mock_image")),
         ):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
@@ -44,11 +44,8 @@ class TestCreateCardNewsAPI(TestCase):
                     json={"asset_type": "card_news"},
                 )
 
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        data = response.json()
-        assert "asset_id" in data
-        assert data["status"] == "processing"
-        mock_task.assert_called_once()
+        assert response.status_code == status.HTTP_200_OK
+        assert response.headers["content-type"] == "image/png"
 
     async def test_create_card_news_guide_not_found(self):
         """존재하지 않는 guide_id로 요청 시 404 반환 테스트"""
