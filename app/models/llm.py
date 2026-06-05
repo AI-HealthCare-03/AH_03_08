@@ -126,7 +126,7 @@ class GuideAsset(models.Model):
 
 
 class ChatSession(models.Model):
-    id = fields.BigIntField(primary_key=True, generated=True)
+    id = fields.UUIDField(primary_key=True)
     user = fields.ForeignKeyField("models.User", related_name="chat_sessions", on_delete=fields.CASCADE)
     guide = fields.ForeignKeyField("models.Guide", related_name="chat_sessions", on_delete=fields.CASCADE, null=True)
     title = fields.CharField(max_length=200, null=True)
@@ -138,7 +138,7 @@ class ChatSession(models.Model):
 
 
 class ChatMessage(models.Model):
-    id = fields.BigIntField(primary_key=True, generated=True)
+    id = fields.UUIDField(primary_key=True)
     session = fields.ForeignKeyField("models.ChatSession", related_name="messages", on_delete=fields.CASCADE)
     role = fields.CharField(max_length=10)
     content = fields.TextField(default="")
