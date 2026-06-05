@@ -102,16 +102,20 @@ def _draw_lifestyle_section(
     draw.text((PADDING + 30, current_y), "생활습관 안내", font=label_font, fill=GREEN_COLOR)
     current_y += 35
 
-    raw_text = lifestyle_guide.get("raw", "")
-    if not raw_text:
+    if lifestyle_guide.get("raw"):
+        raw_text = re.sub(r'\*\*.*?\*\*\n?', '', lifestyle_guide["raw"]).strip()
+        sentences = [s.strip() + '.' for s in raw_text.split('.') if s.strip()][:3]
+    else:
+        sentences = [v for v in lifestyle_guide.values() if isinstance(v, str) and v.strip()][:3]
+
+    if not sentences:
         return current_y
 
-    raw_text = re.sub(r'\*\*.*?\*\*\n?', '', raw_text).strip()
-    sentences = [s.strip() + '.' for s in raw_text.split('.') if s.strip()][:3]
     for sentence in sentences:
-        sentence = sentence[:40]
+        sentence = sentence[:80]
         wrapped = _wrap_text(sentence, max_chars)
-        box_h = 70
+        line_count = wrapped.count('\n') + 1
+        box_h = max(70, 30 + line_count * (FONT_SIZE_BODY + 4))
         _draw_rounded_rect(draw, (PADDING, current_y, CARD_WIDTH - PADDING, current_y + box_h), 16, GREEN_BG)
         draw.rectangle([PADDING, current_y, PADDING + 6, current_y + box_h], fill=GREEN_COLOR)
         draw.text((PADDING + 20, current_y + 18), wrapped, font=body_font, fill=TEXT_COLOR)
@@ -153,7 +157,7 @@ class CardNewsService:
             label_font = ImageFont.load_default()
             body_font = ImageFont.load_default()
 
-        max_chars = (CARD_WIDTH - PADDING * 2 - 60) // (FONT_SIZE_BODY // 2)
+        max_chars = (CARD_WIDTH - PADDING * 2 - 60) // FONT_SIZE_BODY
 
         # ── 상단 헤더 ────────────────────────────────────────────
         _draw_rounded_rect(draw, (PADDING, PADDING, CARD_WIDTH - PADDING, 185), CORNER_RADIUS, ACCENT_COLOR)
