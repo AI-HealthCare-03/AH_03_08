@@ -1,7 +1,6 @@
 # app/services/tts.py
 
 # 서드파티 라이브러리
-import asyncio
 from openai import AsyncOpenAI
 
 # 로컬 모듈

@@ -5,27 +5,6 @@ from functools import lru_cache
 from typing import Annotated
 from uuid import UUID
 
-_KCD_CSV = "/app/data/kcd/건강보험심사평가원_상병마스터.csv"
-
-
-@lru_cache(maxsize=1)
-def _load_kcd() -> dict[str, str]:
-    if not os.path.exists(_KCD_CSV):
-        return {}
-    result: dict[str, str] = {}
-    with open(_KCD_CSV, encoding="utf-8-sig", newline="") as f:
-        for row in csv.DictReader(f):
-            code = row["상병기호"].strip()
-            if code and code not in result:
-                result[code] = row["한글명"].strip()
-    return result
-
-
-def _kcd_name(code: str) -> str | None:
-    return _load_kcd().get(code)
-
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
 
 from app.application.chat.dto.chat_dto import CreateSessionCommand, SendMessageCommand
@@ -50,6 +29,26 @@ from app.presentation.api.v1.chats.schemas import (
     SessionResponseSchema,
 )
 from app.services.jwt import JwtService
+
+_KCD_CSV = "/app/data/kcd/건강보험심사평가원_상병마스터.csv"
+
+
+@lru_cache(maxsize=1)
+def _load_kcd() -> dict[str, str]:
+    if not os.path.exists(_KCD_CSV):
+        return {}
+    result: dict[str, str] = {}
+    with open(_KCD_CSV, encoding="utf-8-sig", newline="") as f:
+        for row in csv.DictReader(f):
+            code = row["상병기호"].strip()
+            if code and code not in result:
+                result[code] = row["한글명"].strip()
+    return result
+
+
+def _kcd_name(code: str) -> str | None:
+    return _load_kcd().get(code)
+
 
 chats_router = APIRouter(prefix="/chats", tags=["chats"])
 

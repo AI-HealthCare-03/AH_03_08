@@ -14,7 +14,7 @@ import asyncio
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 
 import redis
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -49,7 +49,7 @@ def _get_llm() -> ChatOpenAI:
     if _llm is None:
         _llm = ChatOpenAI(
             model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            temperature=0.1,       # 개선: 0 → 0.1 (약간의 다양성, 더 자연스러운 문장)
+            temperature=0.1,  # 개선: 0 → 0.1 (약간의 다양성, 더 자연스러운 문장)
             max_tokens=4096,
             api_key=os.getenv("OPENAI_API_KEY", ""),
         )
@@ -82,6 +82,7 @@ def _db_url() -> str:
 # ─────────────────────────────────────────────────────────────────
 # 복약 가이드 생성 태스크 (개선)
 # ─────────────────────────────────────────────────────────────────
+
 
 @celery_app.task(
     bind=True,
@@ -174,7 +175,7 @@ async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
         guide_failed(guide_id, user_id)
         logger.error(f"[generate_guide] 실패: {exc}", exc_info=True)
         # 지수 백오프: 30s, 60s, 120s
-        countdown = 30 * (2 ** task.request.retries)
+        countdown = 30 * (2**task.request.retries)
         raise task.retry(exc=exc, countdown=countdown) from exc
 
 
@@ -225,6 +226,7 @@ def _format_lifestyle_guide(guide_dict: dict) -> str:
 # 챗봇 태스크 (개선)
 # ─────────────────────────────────────────────────────────────────
 
+
 @celery_app.task(
     bind=True,
     name="ai_worker.tasks.llm_task.process_chat_message_task",
@@ -248,15 +250,14 @@ async def _process_chat(task, session_id: int, message_id: int, user_id: int, us
         await Tortoise.close_connections()
 
 
-async def _do_process_chat(task, session_id: int, message_id: int, user_id: int, user_message: str):
+async def _do_process_chat(task, session_id: int, message_id: int, user_id: int, user_message: str):  # noqa: C901
     from ai_worker.models import ChatMessage, ChatSession, User
-    from ai_worker.prompts.llm_prompts import build_chat_system_prompt
     from ai_worker.services.disease_code_service import lookup_disease_name_async
- 
+
     try:
         user = await User.get_or_none(id=user_id)
         user_health = await load_user_health(user_id, user)
- 
+
         # ── 현재 세션의 진료기록 + HIRA API 진단명 조회 ──────────
         current_record = None
         disease_name = None
@@ -264,6 +265,7 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
             session = await ChatSession.get_or_none(id=session_id)
             if session and session.record_id:
                 from ai_worker.models import MedicalRecord
+
                 record = await MedicalRecord.get_or_none(id=session.record_id)
                 if record and record.parsed_data:
                     disease_code = record.parsed_data.get("disease_code")
@@ -273,20 +275,18 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
                         "hospital_name": record.parsed_data.get("hospital_name"),
                         "prescription_date": record.parsed_data.get("prescription_date"),
                     }
- 
+
                     # HIRA API로 정확한 진단명 조회
                     if disease_code:
                         disease_name = await lookup_disease_name_async(disease_code)
                         logger.info(
-                            f"[chat] HIRA 진단명 조회 완료 "
-                            f"{disease_code} → {disease_name} "
-                            f"session={session_id}"
+                            f"[chat] HIRA 진단명 조회 완료 {disease_code} → {disease_name} session={session_id}"
                         )
- 
+
         except Exception as rec_exc:
             logger.warning(f"[chat] 진료기록/HIRA 조회 실패 (무시): {rec_exc}")
         # ──────────────────────────────────────────────────────────
- 
+
         if _is_off_topic(user_message):
             answer = (
                 "MediLog 복약 도우미입니다. 의약품 복용, 건강 관리, 약물 상호작용, "
@@ -296,10 +296,10 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
             _save_and_publish(session_id, message_id, user_message, answer)
             await ChatMessage.filter(id=message_id).update(content=answer, status="DONE")
             return
- 
+
         rag_docs, rag_used = search_docs_with_scores(user_message)
         history = _get_history(session_id)
- 
+
         # HIRA API로 조회한 disease_name 전달
         system_prompt = build_chat_system_prompt(
             user_health,
@@ -307,13 +307,13 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
             current_record=current_record,
             disease_name=disease_name,
         )
- 
+
         messages = [SystemMessage(content=system_prompt)]
         for turn in history:
             messages.append(HumanMessage(content=turn["user"]))
             messages.append(SystemMessage(content=turn["assistant"]))
         messages.append(HumanMessage(content=user_message))
- 
+
         full_response = ""
         for chunk in _get_llm_stream().stream(messages):
             token = chunk.content
@@ -322,17 +322,17 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
                 f"chat:stream:{session_id}",
                 json.dumps({"token": token, "message_id": message_id}),
             )
- 
+
         if not rag_used:
             full_response += "\n\n*참고 문서 없음 — AI 일반 지식 기반 답변입니다. 중요한 사항은 약사에게 확인하세요.*"
- 
+
         warning = _drug_interaction_check(user_message, user_health)
         if warning:
             full_response += f"\n\n⚠️ **주의**: {warning}"
- 
+
         _save_and_publish(session_id, message_id, user_message, full_response)
         await ChatMessage.filter(id=message_id).update(content=full_response, status="DONE")
- 
+
     except Exception as exc:
         _redis.publish(
             f"chat:stream:{session_id}",
@@ -340,12 +340,12 @@ async def _do_process_chat(task, session_id: int, message_id: int, user_id: int,
         )
         logger.error(f"[chat] 실패: {exc}", exc_info=True)
         raise task.retry(exc=exc) from exc
- 
 
 
 # ─────────────────────────────────────────────────────────────────
 # 일일 건강 팁 태스크 (개선: 한국어 + 개인화)
 # ─────────────────────────────────────────────────────────────────
+
 
 @celery_app.task(bind=True, name="ai_worker.tasks.llm_task.generate_daily_tip_task", max_retries=2)
 def generate_daily_tip_task(self, tip_id: str, user_id: int):
@@ -362,6 +362,7 @@ async def _do_generate_daily_tip(task, tip_id: str, user_id: int):
             await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
             try:
                 from ai_worker.models import User
+
                 user = await User.get_or_none(id=user_id)
                 user_health = await load_user_health(user_id, user)
             finally:
@@ -372,10 +373,7 @@ async def _do_generate_daily_tip(task, tip_id: str, user_id: int):
     # 계절 자동 판단
     month = datetime.now().month
     season = (
-        "봄" if month in (3, 4, 5) else
-        "여름" if month in (6, 7, 8) else
-        "가을" if month in (9, 10, 11) else
-        "겨울"
+        "봄" if month in (3, 4, 5) else "여름" if month in (6, 7, 8) else "가을" if month in (9, 10, 11) else "겨울"
     )
 
     try:
@@ -423,6 +421,7 @@ async def _do_generate_daily_tip(task, tip_id: str, user_id: int):
 def generate_daily_tip_scheduled():
     """스케줄 기반 일일 팁 생성 (전체 사용자 공통)."""
     import uuid
+
     tip_id = str(uuid.uuid4())
     generate_daily_tip_task.apply_async(
         kwargs={"tip_id": tip_id, "user_id": 0},
@@ -433,6 +432,7 @@ def generate_daily_tip_scheduled():
 # ─────────────────────────────────────────────────────────────────
 # 신규: 약물 상호작용 전용 태스크
 # ─────────────────────────────────────────────────────────────────
+
 
 @celery_app.task(
     bind=True,
@@ -463,6 +463,7 @@ async def _load_health_only(user_id: int) -> dict:
     from tortoise import Tortoise
 
     from ai_worker.models import User
+
     await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
     try:
         user = await User.get_or_none(id=user_id)
@@ -478,12 +479,43 @@ async def _load_health_only(user_id: int) -> dict:
 # 개선: 확장된 오프토픽 키워드 + 한국어 의료 키워드 허용 목록
 _OFF_TOPIC_KEYWORDS = {
     "en": ["stock", "crypto", "weather", "sports", "game", "politics", "entertainment"],
-    "ko": ["주식", "코인", "투자", "날씨", "스포츠", "게임", "정치", "연예", "영화", "쇼핑", "부동산", "음악", "드라마"],
+    "ko": [
+        "주식",
+        "코인",
+        "투자",
+        "날씨",
+        "스포츠",
+        "게임",
+        "정치",
+        "연예",
+        "영화",
+        "쇼핑",
+        "부동산",
+        "음악",
+        "드라마",
+    ],
 }
 
 _MEDICAL_KEYWORDS = [
-    "약", "복용", "처방", "부작용", "건강", "병원", "의사", "약사", "질환", "증상",
-    "mg", "ml", "투약", "치료", "진단", "혈압", "혈당", "콜레스테롤", "알러지",
+    "약",
+    "복용",
+    "처방",
+    "부작용",
+    "건강",
+    "병원",
+    "의사",
+    "약사",
+    "질환",
+    "증상",
+    "mg",
+    "ml",
+    "투약",
+    "치료",
+    "진단",
+    "혈압",
+    "혈당",
+    "콜레스테롤",
+    "알러지",
 ]
 
 
@@ -588,6 +620,7 @@ def _parse_and_validate_guide(raw: str) -> dict | None:
 
     return parsed
 
+
 # ai_worker/tasks/llm_task.py 파일 끝에 추가
 @celery_app.task(
     name="ai_worker.tasks.llm_task.check_and_send_notifications",
@@ -600,7 +633,8 @@ def check_and_send_notifications(self):
 
 
 async def _do_check_notifications():
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
+
     from tortoise import Tortoise
 
     await Tortoise.init(
@@ -610,7 +644,7 @@ async def _do_check_notifications():
     try:
         from ai_worker.models import Notification
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         trigger_window = (now + timedelta(minutes=10)).time()
         now_time = now.time()
 
@@ -621,10 +655,7 @@ async def _do_check_notifications():
         )
 
         for notif in due:
-            logger.info(
-                f"[notification] 알림 트리거: user_id={notif.user_id} "
-                f"title={notif.title} type={notif.type}"
-            )
+            logger.info(f"[notification] 알림 트리거: user_id={notif.user_id} title={notif.title} type={notif.type}")
 
     finally:
         await Tortoise.close_connections()

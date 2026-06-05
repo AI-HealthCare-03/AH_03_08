@@ -45,6 +45,7 @@ def _normalize_disease_code(code: str | None) -> str | None:
     no_dot = normalized.replace(".", "")
     if _DISEASE_CODE_RE.fullmatch(no_dot):
         from ai_worker.kcd import synonyms as kcd_synonyms
+
         if kcd_synonyms(no_dot):
             return no_dot
         logger.warning(f"[OCR Task] 질병분류기호 '{no_dot}' — KCD 사전에 없는 코드, 무시")

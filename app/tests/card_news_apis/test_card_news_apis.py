@@ -34,7 +34,10 @@ class TestCreateCardNewsAPI(TestCase):
         """card_news 타입 카드뉴스 생성 요청 테스트"""
         with (
             patch("app.apis.v1.asset_routers.Guide.get_or_none", new=AsyncMock(return_value=_mock_guide())),
-            patch("app.services.card_news.CardNewsService.create_card_news_asset", new=AsyncMock(return_value=b"mock_image")),
+            patch(
+                "app.services.card_news.CardNewsService.create_card_news_asset",
+                new=AsyncMock(return_value=b"mock_image"),
+            ),
         ):
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)

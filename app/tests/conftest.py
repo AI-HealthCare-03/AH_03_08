@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 from collections.abc import Generator
 from typing import Any
 from unittest.mock import Mock, patch
@@ -56,4 +56,3 @@ def initialize(request: FixtureRequest) -> Generator[None, None]:
 @pytest_asyncio.fixture(autouse=True, scope="session")  # type: ignore[type-var]
 def event_loop() -> None:
     pass
-

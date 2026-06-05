@@ -43,5 +43,3 @@ class GuideAsset(models.Model):
 
     class Meta:
         table = "guide_assets"
-
-

@@ -7,9 +7,7 @@ import re
 # {코드: [주명칭, 동의어1, 동의어2, ...]} — 첫 번째가 공식 주명칭
 _KCD_DICT: dict[str, list[str]] | None = None
 
-_CSV_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "data", "kcd", "건강보험심사평가원_상병마스터.csv"
-)
+_CSV_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "kcd", "건강보험심사평가원_상병마스터.csv")
 
 _KCD_PATTERN = re.compile(r"(?<![A-Za-z\d])[A-Z]\d{2,4}(?![A-Za-z\d])")
 

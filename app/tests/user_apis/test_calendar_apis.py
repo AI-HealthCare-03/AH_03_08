@@ -1,6 +1,7 @@
 from httpx import ASGITransport, AsyncClient
 from starlette import status
 from tortoise.contrib.test import TestCase
+
 from app.main import app
 
 SIGNUP_DATA = {
@@ -47,7 +48,11 @@ class TestCalendarAPI(TestCase):
             token = await _get_token(c)
             resp = await c.post(
                 "/api/v1/calendars",
-                json={"medication_id": "00000000-0000-0000-0000-000000000000", "event_date": "2026-06-15", "scheduled_time": "09:00:00"},
+                json={
+                    "medication_id": "00000000-0000-0000-0000-000000000000",
+                    "event_date": "2026-06-15",
+                    "scheduled_time": "09:00:00",
+                },
                 headers={"Authorization": f"Bearer {token}"},
             )
         assert resp.status_code == status.HTTP_404_NOT_FOUND

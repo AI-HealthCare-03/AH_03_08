@@ -23,7 +23,6 @@ label.json 형식:
 
 import asyncio
 import json
-import os
 import sys
 from datetime import datetime
 from difflib import SequenceMatcher
@@ -35,9 +34,9 @@ load_dotenv(Path(__file__).parents[3] / "envs" / ".local.env")
 
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
-from ai_worker.core.config import Config
-from ai_worker.ocr import get_ocr_provider
-from ai_worker.tasks.ocr_task import _parse_with_openai
+from ai_worker.core.config import Config  # noqa: E402
+from ai_worker.ocr import get_ocr_provider  # noqa: E402
+from ai_worker.tasks.ocr_task import _parse_with_openai  # noqa: E402
 
 TESTCASES_DIR = Path(__file__).parent / "testcases"
 RESULTS_DIR = Path(__file__).parent / "results"
@@ -106,9 +105,7 @@ async def _run_case(case_dir: Path, config: Config) -> dict:
     label_path = case_dir / "label.json"
     label = json.loads(label_path.read_text(encoding="utf-8"))
 
-    image_path = next(
-        (case_dir / f for f in ["image.jpg", "image.jpeg", "image.png"] if (case_dir / f).exists()), None
-    )
+    image_path = next((case_dir / f for f in ["image.jpg", "image.jpeg", "image.png"] if (case_dir / f).exists()), None)
     if image_path is None:
         return {"case": case_dir.name, "error": "이미지 파일 없음", "skipped": True}
 
@@ -176,11 +173,11 @@ async def main():
     filename = RESULTS_DIR / f"{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.json"
     filename.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print(f"  필드 정확도     : {avg_field:.4f}")
     print(f"  약물 정확도     : {avg_med:.4f}")
     print(f"  종합 정확도     : {avg_overall:.4f}")
-    print(f"{'='*50}")
+    print(f"{'=' * 50}")
     print(f"\n결과 저장: {filename}")
 
 
