@@ -8,7 +8,7 @@ class CreateSessionRequestSchema(BaseModel):
 
 class SessionResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: int
+    id: UUID
     user_id: int
     guide_id: UUID | None = None
     title: str | None = None
@@ -28,7 +28,7 @@ class SendMessageRequestSchema(BaseModel):
 class MessageResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
-    session_id: int
+    session_id: UUID
     role: str
     content: str
     created_at: datetime
