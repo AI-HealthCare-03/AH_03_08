@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, HeartPulse, Newspaper, Pill } from 'lucide-react'
 import type { Guide } from '@/entities/guide/model'
 import { GUIDE_TABS, type GuideContentTab } from './constants'
@@ -36,6 +36,11 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
   const [tab, setTab] = useState<GuideContentTab>('medication')
   const [isCardNewsLoading, setIsCardNewsLoading] = useState(false)
   const [cardNewsUrl, setCardNewsUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    setTab('medication')
+    setCardNewsUrl(null)
+  }, [guide.id])
   const { data: record } = useRecord(guide.record_id)
   const meds = record?.parsed_data?.medications ?? []
 

@@ -58,11 +58,15 @@ async def create_guide_asset(
 
 
     elif request.asset_type == AssetType.card_news:
+        from app.models.medical_records import MedicalRecord
+        record = await MedicalRecord.get_or_none(id=guide.record_id)
+        medications = (record.parsed_data or {}).get("medications", []) if record else []
 
         image_bytes = await card_news_service.create_card_news_asset(
             summary_text=summary_text,
             medication_guide=guide.medication_guide,
             lifestyle_guide=guide.lifestyle_guide,
+            medications=medications,
         )
 
         return Response(content=image_bytes, media_type="image/png")
