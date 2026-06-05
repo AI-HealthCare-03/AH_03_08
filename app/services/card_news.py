@@ -22,7 +22,7 @@ WHITE = (255, 255, 255)
 PADDING = 50
 FONT_SIZE_TITLE = 38
 FONT_SIZE_LABEL = 20
-FONT_SIZE_BODY = 26
+FONT_SIZE_BODY = 22
 CORNER_RADIUS = 30
 
 
@@ -134,6 +134,7 @@ class CardNewsService:
                     raw_text = re.sub(r'\*\*.*?\*\*\n?', '', raw_text).strip()
                     sentences = [s.strip() + '.' for s in raw_text.split('.') if s.strip()][:3]
                     for sentence in sentences:
+                        sentence = sentence[:40]  # 40자 제한
                         wrapped = _wrap_text(sentence, max_chars)
                         box_h = 70
                         _draw_rounded_rect(draw, (PADDING, current_y, CARD_WIDTH - PADDING, current_y + box_h), 16, GREEN_BG)
