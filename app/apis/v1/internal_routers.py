@@ -55,8 +55,8 @@ class GuideCallbackRequest(BaseModel):
     guide_id: str
     user_id: int
     status: str  # "done" | "failed"
-    medication_guide: str | None = None
-    lifestyle_guide: str | None = None
+    medication_guide: list | dict | str | None = None
+    lifestyle_guide: dict | str | None = None
     summary_text: str | None = None
     allergy_warnings: list = []
     condition_interactions: list = []
