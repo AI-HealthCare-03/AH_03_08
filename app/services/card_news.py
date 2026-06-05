@@ -100,16 +100,6 @@ class CardNewsService:
             spacing=12,
         )
 
-        # ── 하단 푸터 ───────────────────────────────────────────
-        footer_y = CARD_HEIGHT - PADDING - 10
-        draw.text(
-            (CARD_WIDTH // 2, footer_y),
-            "MediLog • 복약 안내 서비스",
-            font=label_font,
-            fill=SUBTEXT_COLOR,
-            anchor="mm",
-        )
-
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         return buf.getvalue()
