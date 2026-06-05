@@ -10,3 +10,4 @@ class ChatMessage(models.Model):
 
     class Meta:
         table = "chat_messages"
+        ordering = ["created_at"]

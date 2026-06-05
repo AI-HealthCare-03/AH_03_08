@@ -1,11 +1,11 @@
 from datetime import datetime
 
 from app.core import config
+from app.models.chat_messages import ChatMessage
+from app.models.chat_sessions import ChatSession
 from app.models.guide import Guide
 from app.models.llm import (
     AssetType,
-    ChatMessage,
-    ChatSession,
     GuideAsset,
     GuideStatus,
     RecordStatus,
