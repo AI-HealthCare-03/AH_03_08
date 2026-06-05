@@ -18,8 +18,8 @@ TEST_DB_TZ = "Asia/Seoul"
 
 
 def get_test_db_config() -> dict[str, Any]:
-    # .env ??DB_HOST=mysql(Docker) ????뚯뒪?몃뒗 localhost MySQL ?ъ슜 (CI쨌濡쒖뺄 docker compose)
-    test_host = "mysql"
+    # .env 의 DB_HOST=mysql(Docker) 대신 테스트는 localhost MySQL 사용 (CI·로컬 docker compose)
+    test_host = "127.0.0.1"
     tortoise_config = generate_config(
         db_url=f"mysql://{config.DB_USER}:{config.DB_PASSWORD}@{test_host}:{config.DB_PORT}/test",
         app_modules={TEST_DB_LABEL: TORTOISE_APP_MODELS},
