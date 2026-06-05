@@ -1,50 +1,61 @@
+# app/services/card_news.py
+
 # 표준 라이브러리
-import uuid
+import io
+import textwrap
 
 # 서드파티 라이브러리
-from celery import Celery
+from PIL import Image, ImageDraw, ImageFont
 
-# 로컬 모듈
-from app.core.config import config
-from app.dtos.asset import GuideAssetCreateResponse
-
-celery_app = Celery(broker=config.CELERY_BROKER_URL, backend=config.CELERY_RESULT_BACKEND)
+# 카드 이미지 스펙
+CARD_WIDTH = 800
+CARD_HEIGHT = 800
+BG_COLOR = (255, 255, 255)
+TITLE_COLOR = (34, 139, 230)
+TEXT_COLOR = (50, 50, 50)
+PADDING = 60
+FONT_SIZE_TITLE = 36
+FONT_SIZE_BODY = 28
+LINE_SPACING = 10
 
 
 class CardNewsService:
     async def create_card_news_asset(
         self,
-        guide_id: str,
-        user_id: str,
         summary_text: str,
-    ) -> GuideAssetCreateResponse:
+    ) -> bytes:
         """
-        카드뉴스 이미지 생성 요청을 처리하고 Celery Task를 등록한다.
+        카드뉴스 이미지 생성 요청을 처리하고 PNG bytes를 반환한다.
 
         Args:
-            guide_id: GUIDES 테이블의 guide_id
-            user_id: 요청한 사용자 ID
             summary_text: GUIDES.summary_text (복약+생활 통합 요약)
 
         Returns:
-            GuideAssetCreateResponse: { asset_id, status }
+            bytes: PNG 이미지 데이터
 
         Note:
             - 개인정보 보호: 의료 데이터(summary_text) 로그 직접 출력 금지
-            - app과 ai_worker가 별도 컨테이너라 send_task()로 Redis에 등록
         """
-        asset_id = str(uuid.uuid4())
+        img = Image.new("RGB", (CARD_WIDTH, CARD_HEIGHT), color=BG_COLOR)
+        draw = ImageDraw.Draw(img)
 
-        celery_app.send_task(
-            "ai_worker.tasks.card_news_task.generate_card_news_task",
-            kwargs={
-                "asset_id": asset_id,
-                "guide_id": guide_id,
-                "text": summary_text,
-                "user_id": user_id,
-            },
-        )
-        return GuideAssetCreateResponse(
-            asset_id=asset_id,
-            status="processing",
-        )
+        try:
+            title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", FONT_SIZE_TITLE)
+            body_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", FONT_SIZE_BODY)
+        except OSError:
+            title_font = ImageFont.load_default()
+            body_font = ImageFont.load_default()
+
+        title = "MediLog 복약 가이드"
+        draw.text((PADDING, PADDING), title, font=title_font, fill=TITLE_COLOR)
+
+        line_y = PADDING + FONT_SIZE_TITLE + 20
+        draw.line([(PADDING, line_y), (CARD_WIDTH - PADDING, line_y)], fill=TITLE_COLOR, width=2)
+
+        max_chars = (CARD_WIDTH - PADDING * 2) // (FONT_SIZE_BODY // 2)
+        wrapped = textwrap.fill(summary_text, width=max_chars)
+        draw.text((PADDING, line_y + 30), wrapped, font=body_font, fill=TEXT_COLOR, spacing=LINE_SPACING)
+
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return buf.getvalue()
