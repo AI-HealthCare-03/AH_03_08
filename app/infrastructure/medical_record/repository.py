@@ -35,7 +35,7 @@ class TortoiseRecordRepository(AbstractRecordRepository):
         return self._to_domain(orm) if orm else None
 
     async def find_by_user_id_paginated(self, user_id: int, page: int, limit: int) -> tuple[list[MedicalRecord], int]:
-        from app.models.guides import Guide as GuideORM
+        from app.models.guide import Guide as GuideORM
 
         qs = MedicalRecordORM.filter(user_id=user_id).order_by("-created_at")
         total = await qs.count()

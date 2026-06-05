@@ -148,20 +148,8 @@ async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
 
         summary_text = (parsed.get("summary") or "").strip()
 
-        # lifestyle_guide가 dict인 경우 텍스트로 직렬화 (콜백 호환성)
-        lifestyle_guide = parsed.get("lifestyle_guide", "")
-        if isinstance(lifestyle_guide, dict):
-            lifestyle_guide = _format_lifestyle_guide(lifestyle_guide)
-
-        medication_guide = parsed.get("medication_guide", "")
-        if isinstance(medication_guide, dict):
-            medication_guide = medication_guide.get("raw", "") or str(medication_guide)
-        if isinstance(medication_guide, list):
-            medication_guide = "\n".join(str(item) for item in medication_guide)
-        elif isinstance(medication_guide, dict):
-            medication_guide = "\n".join(f"{k}: {v}" for k, v in medication_guide.items())
-        elif not isinstance(medication_guide, str):
-            medication_guide = str(medication_guide)
+        medication_guide = parsed.get("medication_guide")
+        lifestyle_guide = parsed.get("lifestyle_guide")
 
         ok = guide_done(
             guide_id=guide_id,
