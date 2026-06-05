@@ -23,9 +23,9 @@ logger = logging.getLogger(__name__)
 
 COLLECTION_NAME = "medical_knowledge"
 DEFAULT_PERSIST_DIR = "/data/chromadb"
-DEFAULT_RELEVANCE_THRESHOLD = 0.55   # 기존 0.6 → 0.55 (약학 도메인은 임베딩 거리 편차가 큼)
-MMR_FETCH_K = 20                     # MMR 후보 풀 크기
-MMR_LAMBDA = 0.6                     # 관련성(1.0) ↔ 다양성(0.0) 균형
+DEFAULT_RELEVANCE_THRESHOLD = 0.55  # 기존 0.6 → 0.55 (약학 도메인은 임베딩 거리 편차가 큼)
+MMR_FETCH_K = 20  # MMR 후보 풀 크기
+MMR_LAMBDA = 0.6  # 관련성(1.0) ↔ 다양성(0.0) 균형
 
 _embeddings = None
 _vectorstore = None
@@ -34,6 +34,7 @@ _vectorstore = None
 # ─────────────────────────────────────────────────────────────────
 # 싱글톤 초기화
 # ─────────────────────────────────────────────────────────────────
+
 
 def get_vectorstore(*, force_reinit: bool = False):
     """
@@ -70,7 +71,8 @@ def get_vectorstore(*, force_reinit: bool = False):
 # 가이드 생성용 검색 (약품별 개별 쿼리 → 병합)
 # ─────────────────────────────────────────────────────────────────
 
-def search_text_for_medications(
+
+def search_text_for_medications(  # noqa: C901
     medications: list,
     *,
     k_per_drug: int = 3,
@@ -173,6 +175,7 @@ def search_text_for_medications(
 # 챗봇용 검색 (MMR + score 필터)
 # ─────────────────────────────────────────────────────────────────
 
+
 def search_docs_with_scores(
     query: str,
     *,
@@ -216,21 +219,18 @@ def search_docs_with_scores(
             # MMR은 score를 반환하지 않으므로, 선택된 문서를 그대로 사용
             # (threshold 필터는 similarity_search_with_scores로 별도 수행)
             scored = vs.similarity_search_with_relevance_scores(query, k=MMR_FETCH_K)
-            score_map = {
-                _content_uid(doc.page_content): score
-                for doc, score in scored
-            }
-            filtered = [
-                doc for doc in docs
-                if score_map.get(_content_uid(doc.page_content), 0.0) >= threshold
-            ]
+            score_map = {_content_uid(doc.page_content): score for doc, score in scored}
+            filtered = [doc for doc in docs if score_map.get(_content_uid(doc.page_content), 0.0) >= threshold]
         else:
             results = vs.similarity_search_with_relevance_scores(query, k=k)
             filtered = [doc for doc, score in results if score >= threshold]
 
         logger.debug(
             "RAG chat search: query='%s...' → %d/%d 문서 통과 (threshold=%.2f)",
-            query[:30], len(filtered), k, threshold,
+            query[:30],
+            len(filtered),
+            k,
+            threshold,
         )
         return filtered, bool(filtered)
 
@@ -242,6 +242,7 @@ def search_docs_with_scores(
 # ─────────────────────────────────────────────────────────────────
 # 카테고리 필터 검색 (신규)
 # ─────────────────────────────────────────────────────────────────
+
 
 def search_by_category(
     query: str,
@@ -279,6 +280,7 @@ def search_by_category(
 # 인제스트 (청크 분할 지원)
 # ─────────────────────────────────────────────────────────────────
 
+
 def ingest_text_documents(
     documents: list[Any],
     *,
@@ -310,7 +312,7 @@ def ingest_text_documents(
 
     total = 0
     for i in range(0, len(documents), batch_size):
-        batch = documents[i: i + batch_size]
+        batch = documents[i : i + batch_size]
         vs.add_documents(batch)
         total += len(batch)
         logger.info("ChromaDB 인제스트: %d/%d 완료", total, len(documents))
@@ -324,6 +326,7 @@ def ingest_text_documents(
 def load_documents_from_dir(source_dir: Path) -> list[Any]:
     """data/rag 디렉터리에서 CSV·JSON·TXT 로드."""
     from ai_worker.rag.loaders import load_documents_from_rag_dir
+
     return load_documents_from_rag_dir(source_dir)
 
 
@@ -371,6 +374,7 @@ def _query_cache_clear() -> None:
 # 유틸리티
 # ─────────────────────────────────────────────────────────────────
 
+
 def _extract_condition_keywords(medications: list) -> list[str]:
     """
     약품 카테고리/분류에서 생활습관 검색에 쓸 키워드 추출.
@@ -386,11 +390,13 @@ def _extract_condition_keywords(medications: list) -> list[str]:
     }
     found: list[str] = []
     for med in medications:
-        combined = " ".join([
-            med.get("drug_name", "") or "",
-            med.get("category", "") or "",
-            med.get("instructions", "") or "",
-        ])
+        combined = " ".join(
+            [
+                med.get("drug_name", "") or "",
+                med.get("category", "") or "",
+                med.get("instructions", "") or "",
+            ]
+        )
         for hint, label in condition_hints.items():
             if hint in combined and label not in found:
                 found.append(label)
@@ -416,6 +422,7 @@ def _deduplicate_documents(documents: list[Any]) -> list[Any]:
 # 진단 유틸 (개발/운영 디버깅용)
 # ─────────────────────────────────────────────────────────────────
 
+
 def get_collection_stats() -> dict:
     """
     ChromaDB 컬렉션 통계 반환.
@@ -435,4 +442,3 @@ def get_collection_stats() -> dict:
         }
     except Exception as exc:
         return {"status": "error", "detail": str(exc)}
-

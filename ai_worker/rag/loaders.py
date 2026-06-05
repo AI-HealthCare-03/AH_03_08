@@ -32,8 +32,8 @@ _DUMMY_PATTERNS = [
 ]
 
 # 청크 설정 (임베딩 품질 최적화)
-CHUNK_SIZE = 400        # 문자 단위 (한국어 기준 약 200단어)
-CHUNK_OVERLAP = 60      # 청크 간 겹침 (문맥 연속성 보장)
+CHUNK_SIZE = 400  # 문자 단위 (한국어 기준 약 200단어)
+CHUNK_OVERLAP = 60  # 청크 간 겹침 (문맥 연속성 보장)
 
 # 약물 카테고리 자동 분류 맵
 _DRUG_CATEGORY_MAP = {
@@ -64,8 +64,10 @@ _DRUG_CATEGORY_MAP = {
 # 핵심 변환
 # ─────────────────────────────────────────────────────────────────
 
+
 def _make_document(content: str, metadata: dict) -> Any:
     from langchain_core.documents import Document
+
     return Document(page_content=content, metadata=metadata)
 
 
@@ -77,11 +79,13 @@ def _is_dummy(content: str) -> bool:
 
 def _infer_category(row: dict) -> str:
     """drug_name 또는 content에서 카테고리 자동 추론."""
-    combined = " ".join([
-        str(row.get("drug_name", "")),
-        str(row.get("content", "")),
-        str(row.get("category", "")),
-    ])
+    combined = " ".join(
+        [
+            str(row.get("drug_name", "")),
+            str(row.get("content", "")),
+            str(row.get("category", "")),
+        ]
+    )
     for keyword, category in _DRUG_CATEGORY_MAP.items():
         if keyword in combined:
             return category
@@ -106,9 +110,9 @@ def _row_to_documents(row: dict, source: str) -> list[Any]:
         "drug_name": row.get("drug_name", ""),
         "category": row.get("category") or _infer_category(row),
         **{
-            k: v for k, v in row.items()
-            if k not in (*CONTENT_FIELDS, "source", "drug_name", "category")
-            and v not in (None, "")
+            k: v
+            for k, v in row.items()
+            if k not in (*CONTENT_FIELDS, "source", "drug_name", "category") and v not in (None, "")
         },
     }
 
@@ -143,10 +147,7 @@ def _split_text(text: str) -> list[str]:
         return _merge_sentences(sentences)
 
     # 강제 분할 (문장 구분 불가 시)
-    return [
-        text[i: i + CHUNK_SIZE]
-        for i in range(0, len(text), CHUNK_SIZE - CHUNK_OVERLAP)
-    ]
+    return [text[i : i + CHUNK_SIZE] for i in range(0, len(text), CHUNK_SIZE - CHUNK_OVERLAP)]
 
 
 def _merge_paragraphs(paragraphs: list[str]) -> list[str]:
@@ -183,6 +184,7 @@ def _merge_sentences(sentences: list[str]) -> list[str]:
 # ─────────────────────────────────────────────────────────────────
 # 파일 타입별 로더
 # ─────────────────────────────────────────────────────────────────
+
 
 def load_documents_from_csv(path: Path) -> list[Any]:
     """
@@ -237,10 +239,12 @@ def load_documents_from_txt(path: Path) -> list[Any]:
     for i, para in enumerate(paragraphs):
         if len(para) < 20:  # 너무 짧은 문단 건너뜀
             continue
-        docs.append(_make_document(
-            para,
-            {"source": path.name, "category": "기타", "paragraph_index": i},
-        ))
+        docs.append(
+            _make_document(
+                para,
+                {"source": path.name, "category": "기타", "paragraph_index": i},
+            )
+        )
     logger.debug("TXT '%s': %d개 Document 로드", path.name, len(docs))
     return docs
 

@@ -148,4 +148,3 @@ def asset_failed(asset_id: str, guide_id: str) -> bool:
             "status": "FAILED",
         },
     )
-

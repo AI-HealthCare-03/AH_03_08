@@ -1,6 +1,7 @@
 from httpx import ASGITransport, AsyncClient
 from starlette import status
 from tortoise.contrib.test import TestCase
+
 from app.main import app
 
 SIGNUP_DATA = {
@@ -31,7 +32,11 @@ class TestUserMeAPI(TestCase):
     async def test_update_my_profile(self):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             token = await _get_token(c)
-            resp = await c.patch("/api/v1/users/me", json={"name": "updated", "height_cm": 175.0, "weight_kg": 70.0}, headers={"Authorization": f"Bearer {token}"})
+            resp = await c.patch(
+                "/api/v1/users/me",
+                json={"name": "updated", "height_cm": 175.0, "weight_kg": 70.0},
+                headers={"Authorization": f"Bearer {token}"},
+            )
         assert resp.status_code == status.HTTP_200_OK
         assert resp.json()["success"] is True
 
@@ -49,7 +54,11 @@ class TestAllergyAPI(TestCase):
             resp = await c.get("/api/v1/users/me/allergies", headers=headers)
             assert resp.status_code == status.HTTP_200_OK
             assert resp.json()["data"] == []
-            resp = await c.post("/api/v1/users/me/allergies", json={"allergen_name": "penicillin", "severity": "severe"}, headers=headers)
+            resp = await c.post(
+                "/api/v1/users/me/allergies",
+                json={"allergen_name": "penicillin", "severity": "severe"},
+                headers=headers,
+            )
             assert resp.status_code == status.HTTP_201_CREATED
             allergy_id = resp.json()["data"]["id"]
             resp = await c.get("/api/v1/users/me/allergies", headers=headers)
@@ -62,13 +71,20 @@ class TestAllergyAPI(TestCase):
     async def test_allergy_delete_not_found(self):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             token = await _get_token(c)
-            resp = await c.delete("/api/v1/users/me/allergies/00000000-0000-0000-0000-000000000000", headers={"Authorization": f"Bearer {token}"})
+            resp = await c.delete(
+                "/api/v1/users/me/allergies/00000000-0000-0000-0000-000000000000",
+                headers={"Authorization": f"Bearer {token}"},
+            )
         assert resp.status_code == status.HTTP_404_NOT_FOUND
 
     async def test_allergy_invalid_severity(self):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             token = await _get_token(c)
-            resp = await c.post("/api/v1/users/me/allergies", json={"allergen_name": "aspirin", "severity": "invalid"}, headers={"Authorization": f"Bearer {token}"})
+            resp = await c.post(
+                "/api/v1/users/me/allergies",
+                json={"allergen_name": "aspirin", "severity": "invalid"},
+                headers={"Authorization": f"Bearer {token}"},
+            )
         assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -80,7 +96,11 @@ class TestConditionAPI(TestCase):
             resp = await c.get("/api/v1/users/me/conditions", headers=headers)
             assert resp.status_code == status.HTTP_200_OK
             assert resp.json()["data"] == []
-            resp = await c.post("/api/v1/users/me/conditions", json={"condition_name": "hypertension", "severity": "moderate"}, headers=headers)
+            resp = await c.post(
+                "/api/v1/users/me/conditions",
+                json={"condition_name": "hypertension", "severity": "moderate"},
+                headers=headers,
+            )
             assert resp.status_code == status.HTTP_201_CREATED
             condition_id = resp.json()["data"]["id"]
             resp = await c.get("/api/v1/users/me/conditions", headers=headers)
@@ -93,5 +113,8 @@ class TestConditionAPI(TestCase):
     async def test_condition_delete_not_found(self):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             token = await _get_token(c)
-            resp = await c.delete("/api/v1/users/me/conditions/00000000-0000-0000-0000-000000000000", headers={"Authorization": f"Bearer {token}"})
+            resp = await c.delete(
+                "/api/v1/users/me/conditions/00000000-0000-0000-0000-000000000000",
+                headers={"Authorization": f"Bearer {token}"},
+            )
         assert resp.status_code == status.HTTP_404_NOT_FOUND

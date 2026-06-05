@@ -56,9 +56,9 @@ async def create_guide_asset(
         audio_bytes = await tts_service.create_tts_asset(summary_text=summary_text)
         return Response(content=audio_bytes, media_type="audio/mpeg")
 
-
     elif request.asset_type == AssetType.card_news:
         from app.models.medical_records import MedicalRecord
+
         record = await MedicalRecord.get_or_none(id=guide.record_id)
         medications = (record.parsed_data or {}).get("medications", []) if record else []
 

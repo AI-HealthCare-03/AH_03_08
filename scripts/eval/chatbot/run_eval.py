@@ -19,8 +19,9 @@ load_dotenv(Path(__file__).parents[3] / "envs" / ".local.env")
 
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
-from ai_worker.kcd import lookup as kcd_lookup, synonyms as kcd_synonyms
-from ai_worker.prompts.llm_prompts import build_chat_system_prompt
+from ai_worker.kcd import lookup as kcd_lookup  # noqa: E402
+from ai_worker.kcd import synonyms as kcd_synonyms  # noqa: E402
+from ai_worker.prompts.llm_prompts import build_chat_system_prompt  # noqa: E402
 
 TESTCASES_PATH = Path(__file__).parent / "testcases.json"
 RESULTS_DIR = Path(__file__).parent / "results"
@@ -109,13 +110,13 @@ def main():
     filename = RESULTS_DIR / f"{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.json"
     filename.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print(f"  F1 Score     : {metrics['f1_score']:.4f}")
     print(f"  Precision    : {metrics['precision']:.4f}")
     print(f"  Recall       : {metrics['recall']:.4f}")
     print(f"  코드 감지율  : {metrics['code_detection_rate']:.4f}")
     print(f"  명칭 정확도  : {metrics['name_accuracy']:.4f}")
-    print(f"{'='*50}")
+    print(f"{'=' * 50}")
     print(f"\n결과 저장: {filename}")
 
 

@@ -39,23 +39,23 @@ def _draw_rounded_rect(draw: ImageDraw.ImageDraw, xy: tuple, radius: int, fill: 
 
 
 def _extract_first_sentence(text: str) -> str:
-    text = re.sub(r'\*\*.*?\*\*\n?', '', text).strip()
-    text = re.sub(r'\n+', ' ', text).strip()
+    text = re.sub(r"\*\*.*?\*\*\n?", "", text).strip()
+    text = re.sub(r"\n+", " ", text).strip()
     # "1. xxx. 2. yyy." 형식 번호 목록 → 첫 항목만 추출
-    parts = re.split(r'(?<!\d)\d+\.\s+', text)
-    parts = [p.strip().rstrip('.') for p in parts if p.strip()]
+    parts = re.split(r"(?<!\d)\d+\.\s+", text)
+    parts = [p.strip().rstrip(".") for p in parts if p.strip()]
     if parts:
-        return parts[0] + '.'
+        return parts[0] + "."
     return text[:60]
 
 
 def _wrap_text(text: str, font: ImageFont.FreeTypeFont, max_width_px: int) -> str:
     """실제 픽셀 너비 기준 줄바꿈."""
-    words = text.split(' ')
+    words = text.split(" ")
     lines: list[str] = []
-    current = ''
+    current = ""
     for word in words:
-        candidate = (current + ' ' + word).strip()
+        candidate = (current + " " + word).strip()
         if font.getlength(candidate) <= max_width_px:
             current = candidate
         else:
@@ -64,11 +64,11 @@ def _wrap_text(text: str, font: ImageFont.FreeTypeFont, max_width_px: int) -> st
             current = word
     if current:
         lines.append(current)
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
 def _box_height(wrapped: str, base: int = 80) -> int:
-    line_count = wrapped.count('\n') + 1
+    line_count = wrapped.count("\n") + 1
     return max(base, 36 + line_count * (FONT_SIZE_BODY + 4))
 
 
@@ -93,13 +93,15 @@ def _draw_medication_section(
             freq_str = f"하루 {int(frequency)}회" if frequency else ""
             detail = "  /  ".join(filter(None, [freq_str, instructions]))
             detail_wrapped = _wrap_text(detail, body_font, TEXT_MAX_WIDTH) if detail else ""
-            line_count = detail_wrapped.count('\n') + 1 if detail_wrapped else 0
+            line_count = detail_wrapped.count("\n") + 1 if detail_wrapped else 0
             box_h = max(70, 14 + FONT_SIZE_LABEL + 6 + line_count * (FONT_SIZE_BODY + 4) + 12)
             _draw_rounded_rect(draw, (PADDING, current_y, CARD_WIDTH - PADDING, current_y + box_h), 16, WHITE)
             draw.rectangle([PADDING, current_y, PADDING + 6, current_y + box_h], fill=ACCENT_COLOR)
             draw.text((TEXT_X, current_y + 12), drug_name, font=label_font, fill=ACCENT_COLOR)
             if detail_wrapped:
-                draw.text((TEXT_X, current_y + 12 + FONT_SIZE_LABEL + 6), detail_wrapped, font=body_font, fill=TEXT_COLOR)
+                draw.text(
+                    (TEXT_X, current_y + 12 + FONT_SIZE_LABEL + 6), detail_wrapped, font=body_font, fill=TEXT_COLOR
+                )
             current_y += box_h + 10
     elif isinstance(medication_guide, dict):
         raw_text = medication_guide.get("raw", "")
@@ -125,7 +127,7 @@ def _draw_lifestyle_section(
     draw.text((PADDING + 30, current_y), "생활습관 안내", font=label_font, fill=GREEN_COLOR)
     current_y += 35
 
-    KEY_LABELS = {
+    key_labels = {
         "diet": "식단",
         "sleep": "수면",
         "exercise": "운동",
@@ -134,14 +136,10 @@ def _draw_lifestyle_section(
     }
 
     if lifestyle_guide.get("raw"):
-        raw_text = re.sub(r'\*\*.*?\*\*\n?', '', lifestyle_guide["raw"]).strip()
-        items = [(None, s.strip() + '.') for s in raw_text.split('.') if s.strip()][:3]
+        raw_text = re.sub(r"\*\*.*?\*\*\n?", "", lifestyle_guide["raw"]).strip()
+        items = [(None, s.strip() + ".") for s in raw_text.split(".") if s.strip()][:3]
     else:
-        items = [
-            (KEY_LABELS.get(k), v)
-            for k, v in lifestyle_guide.items()
-            if isinstance(v, str) and v.strip()
-        ][:3]
+        items = [(key_labels.get(k), v) for k, v in lifestyle_guide.items() if isinstance(v, str) and v.strip()][:3]
 
     if not items:
         return current_y
@@ -199,7 +197,9 @@ class CardNewsService:
 
         # ── 복약 안내 섹션 ───────────────────────────────────────
         if medication_guide or medications:
-            current_y = _draw_medication_section(draw, medication_guide or {}, current_y, label_font, body_font, medications or [])
+            current_y = _draw_medication_section(
+                draw, medication_guide or {}, current_y, label_font, body_font, medications or []
+            )
 
         # ── 생활습관 섹션 ────────────────────────────────────────
         if lifestyle_guide:
@@ -210,7 +210,11 @@ class CardNewsService:
             current_y += 10
             _draw_rounded_rect(draw, (PADDING, current_y, CARD_WIDTH - PADDING, current_y + 160), CORNER_RADIUS, WHITE)
             draw.text((PADDING + 30, current_y + 20), "오늘의 건강 요약", font=label_font, fill=ACCENT_COLOR)
-            draw.line([(PADDING + 30, current_y + 50), (CARD_WIDTH - PADDING - 30, current_y + 50)], fill=ACCENT_LIGHT, width=2)
+            draw.line(
+                [(PADDING + 30, current_y + 50), (CARD_WIDTH - PADDING - 30, current_y + 50)],
+                fill=ACCENT_LIGHT,
+                width=2,
+            )
             wrapped = _wrap_text(_extract_first_sentence(summary_text), body_font, TEXT_MAX_WIDTH)
             draw.text((PADDING + 30, current_y + 60), wrapped, font=body_font, fill=TEXT_COLOR)
 
