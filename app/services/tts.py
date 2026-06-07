@@ -9,7 +9,13 @@ from app.core.config import config
 
 class TtsService:
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=config.OPENAI_API_KEY)
+        self._client: AsyncOpenAI | None = None
+
+    @property
+    def client(self) -> AsyncOpenAI:
+        if self._client is None:
+            self._client = AsyncOpenAI(api_key=config.OPENAI_API_KEY)
+        return self._client
 
     async def create_tts_asset(
         self,
