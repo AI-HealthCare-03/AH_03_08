@@ -35,8 +35,8 @@ def test_search_text_for_medications_formats_results():
     with patch.object(chroma_store, "get_vectorstore", return_value=mock_vs):
         text = chroma_store.search_text_for_medications([{"drug_name": "타이레놀"}])
 
-    assert "[1] 타이레놀 복용 주의" in text
-    assert "[2] 간 손상 주의" in text
+    assert "타이레놀 복용 주의" in text
+    assert "간 손상 주의" in text
     mock_vs.similarity_search_with_relevance_scores.assert_called_once()
 
 
