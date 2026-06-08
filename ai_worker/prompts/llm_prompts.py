@@ -176,7 +176,7 @@ def _build_prescription_prompt(medications: list, user_profile_block: str, rag_b
 
 ---
 아래 지침에 따라 JSON을 작성하세요:
-1. medication_guide: 각 약품의 복용 시간(아침/점심/저녁/취침 전), 용량, 식전·식후 여부, 보관법을 구체적으로 기술합니다.
+1. medication_guide: 각 약품을 "■ 약품명" 형식으로 개별 단락 구분하여 작성합니다. 각 단락에는 해당 약품의 복용 시간(아침/점심/저녁/취침 전), 용량, 식전·식후 여부, 보관법을 구체적으로 기술합니다.
 2. medication_schedule: 시간대별 복약 시간표를 구성합니다.
 3. lifestyle_guide: 기저질환({conditions})을 고려한 식이·운동·수면 지침을 작성합니다.
 4. 알러지·기저질환 위험을 최우선으로 점검하고 allergy_warnings, condition_interactions를 채웁니다.
