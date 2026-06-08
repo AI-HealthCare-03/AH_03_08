@@ -26,7 +26,7 @@ export function GuideListCard({ guide, selected, onSelect }: GuideListCardProps)
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-sm font-semibold text-gray-900">{guideDisplayTitle(guide)}</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{guideDisplayTitle(guide, record)}</h3>
             <GuideStatusBadge status={guide.status} />
           </div>
           <p className="text-xs text-gray-400">
