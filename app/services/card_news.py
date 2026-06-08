@@ -79,6 +79,7 @@ def _draw_medication_section(
     label_font: ImageFont.FreeTypeFont,
     body_font: ImageFont.FreeTypeFont,
     medications: list[dict],
+    summary_text: str = "",  # ← 추가
 ) -> int:
     draw.text((PADDING + 30, current_y + 10), "복약 안내", font=label_font, fill=ACCENT_COLOR)
     current_y += 45
@@ -93,9 +94,8 @@ def _draw_medication_section(
             detail = freq_str
 
             # 낱알약(frequency 없음)이면 medication_guide raw 내용 표시
-            if not frequency and isinstance(medication_guide, dict):
-                raw = medication_guide.get("raw", "")
-                detail = _extract_first_sentence(raw) if raw else ""
+            if not frequency:
+                detail = summary_text[:60] if summary_text else ""
 
             detail_wrapped = _wrap_text(detail, body_font, TEXT_MAX_WIDTH) if detail else ""
             line_count = detail_wrapped.count("\n") + 1 if detail_wrapped else 0
@@ -203,7 +203,7 @@ class CardNewsService:
         # ── 복약 안내 섹션 ───────────────────────────────────────
         if medication_guide or medications:
             current_y = _draw_medication_section(
-                draw, medication_guide or {}, current_y, label_font, body_font, medications or []
+                draw, medication_guide or {}, current_y, label_font, body_font, medications or [], summary_text
             )
 
         # ── 생활습관 섹션 ────────────────────────────────────────
