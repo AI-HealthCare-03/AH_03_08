@@ -19,6 +19,7 @@ export const parsedDataSchema = z.object({
   doctor: z.string().nullish(),
   pharmacist: z.string().nullish(),
   disease_code: z.string().nullish(),
+  disease_name: z.string().nullish(),
   medications: z.array(medicationSchema).default([]),
 })
 

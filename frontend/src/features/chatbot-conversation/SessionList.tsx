@@ -10,17 +10,6 @@ import { SkeletonList } from '@/shared/ui/SkeletonList'
 import { SessionCard } from './SessionCard'
 import { GuideSelectCard } from './GuideSelectCard'
 
-function useGuideTitle(guideId: string | null, guides: ReturnType<typeof useGuides>['data'], records: ReturnType<typeof useMedicalRecords>['data']) {
-  if (!guideId || !guides || !records) return null
-  const guide = guides.find((g) => g.id === guideId)
-  if (!guide) return null
-  const record = records.find((r) => r.id === guide.record_id)
-  if (!record) return null
-  const meta = RECORD_TYPE_META[record.record_type]
-  const hospital = record.parsed_data?.hospital
-  return hospital ? `${hospital} ${meta.label}` : meta.label
-}
-
 interface SessionListProps {
   selectedSessionId?: string
 }
@@ -139,7 +128,7 @@ export function SessionList({ selectedSessionId }: SessionListProps) {
                 session={session}
                 isActive={session.id === selectedSessionId}
                 medicationCount={record?.parsed_data?.medications?.length ?? 0}
-                diseaseCode={record?.parsed_data?.disease_code ?? null}
+                diseaseCode={record?.parsed_data?.disease_name ?? record?.parsed_data?.disease_code ?? null}
                 onClick={() => navigate(`/chatbot/${session.id}`)}
               />
             )
