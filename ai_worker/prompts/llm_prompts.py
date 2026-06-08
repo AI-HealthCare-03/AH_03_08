@@ -146,7 +146,7 @@ def _build_prescription_prompt(medications: list, user_profile_block: str, rag_b
     med_lines = []
     for i, m in enumerate(medications, 1):
         line = (
-            f"{i}. {m.get('drug_name', '알 수 없음')}"
+            f"{i}. {m.get('name', '알 수 없음')}"
             f" | 용량: {m.get('dosage')}"
             f" | 일 투여횟수: {m.get('frequency', '-')}"
             f" | 기간: {m.get('duration', '-')}"
@@ -201,7 +201,7 @@ def _build_pill_prompt(
     pill_lines = []
     for i, m in enumerate(medications, 1):
         otc_label = _otc_label(m.get("otc_code"))
-        line = f"{i}. {m.get('drug_name', '알 수 없음')} | {otc_label}"
+        line = f"{i}. {m.get('name', '알 수 없음')} | {otc_label}"
         if m.get("category"):
             line += f" | 분류번호: {m['category']}"
         if m.get("instructions"):
@@ -253,7 +253,7 @@ def _build_mixed_prompt(
     rx_lines = []
     for i, m in enumerate(prescription_meds, 1):
         rx_lines.append(
-            f"{i}. {m.get('drug_name', '알 수 없음')}"
+            f"{i}. {m.get('name', '알 수 없음')}"
             f" | 용량: {m.get('dosage')}"
             f" | {m.get('frequency', '-')} | {m.get('duration', '-')}"
         )
@@ -262,7 +262,7 @@ def _build_mixed_prompt(
     for i, m in enumerate(pill_meds, 1):
         otc_label = _otc_label(m.get("otc_code"))
         pill_lines.append(
-            f"{i}. {m.get('drug_name', '알 수 없음')} | {otc_label}"
+            f"{i}. {m.get('name', '알 수 없음')} | {otc_label}"
             + (f" | 주성분: {m['instructions']}" if m.get("instructions") else "")
         )
 
@@ -350,7 +350,7 @@ def build_chat_system_prompt(  # noqa: C901
             disease_name = lookup_disease_name_sync(disease_code)
 
         medications = current_record.get("medications", [])
-        med_names = [m.get("drug_name", "") for m in medications if m.get("drug_name")]
+        med_names = [m.get("name", "") for m in medications if m.get("name")]
 
         record_lines = [
             "",
@@ -491,7 +491,7 @@ INTERACTION_CHECK_SYSTEM = """\
 
 
 def build_interaction_check_prompt(medications: list, user_health: dict) -> str:
-    med_names = [m.get("drug_name", "") for m in medications if m.get("drug_name")]
+    med_names = [m.get("name", "") for m in medications if m.get("name")]
     conditions = [c["name"] for c in user_health.get("conditions", [])]
     allergies = [a["name"] for a in user_health.get("allergies", [])]
 
