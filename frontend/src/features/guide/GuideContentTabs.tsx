@@ -110,7 +110,7 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
             <div className="space-y-4">
               {meds.map((m) => {
                 const warn = warningsByDrug.get(m.name)?.[0]
-                const meta = [m.frequency, m.instructions].filter(Boolean).join(' · ')
+                const meta = [m.frequency].filter(Boolean).join(' · ')
                 return (
                   <article key={m.name} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
@@ -122,7 +122,12 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
                       {meta && <p className="text-xs font-medium text-gray-500">{meta}</p>}
                     </div>
                     <p className="mt-3 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-                      {m.instructions?.trim() || toStr(guide.medication_guide).trim() || ''}
+                      {(() => {
+                        const full = toStr(guide.medication_guide).trim()
+                        const sections = full.split(/■\s*/).filter(Boolean)
+                        const matched = sections.find(s => s.startsWith(m.name)) ?? sections[0] ?? full
+                        return matched.replace(m.name, '').trim()
+                      })()}
                     </p>
                     {warn && (
                       <div className="mt-4 rounded-xl bg-status-amber-bg px-4 py-3">
