@@ -127,8 +127,11 @@ export function UploadHistoryList() {
                     const name = record.record_type === 'medicine_bag'
                       ? record.parsed_data?.pharmacy
                       : record.parsed_data?.hospital
+                    const diseaseName = record.parsed_data?.disease_name
                     return name
-                      ? <span className="truncate text-sm font-medium text-gray-800">{name}</span>
+                      ? <span className="truncate text-sm font-medium text-gray-800">
+                          {name}{diseaseName ? ` (${diseaseName})` : ''}
+                        </span>
                       : null
                   })()}
                 </div>
