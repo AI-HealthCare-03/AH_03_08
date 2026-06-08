@@ -101,6 +101,11 @@ def _parse_with_openai(raw_text: str) -> ParsedRecord:
         logger.warning("[OCR Task] OpenAI 파싱 결과 없음, 빈 ParsedRecord 반환")
         return ParsedRecord()
     parsed.disease_code = _normalize_disease_code(parsed.disease_code)
+    if parsed.disease_code:
+        from ai_worker.kcd import synonyms as kcd_synonyms
+
+        names = kcd_synonyms(parsed.disease_code)
+        parsed.disease_name = names[0] if names else None
     logger.info(f"[OCR Task] 파싱 완료: 약품 {len(parsed.medications)}개, 질병분류기호={parsed.disease_code}")
     return parsed
 

@@ -11,7 +11,25 @@ export function formatGuideDate(iso: string | null | undefined): string {
   })
 }
 
-export function guideDisplayTitle(guide?: Guide): string {
+export function guideDisplayTitle(guide?: Guide, record?: any): string {
+  if (record) {
+    const type = record.record_type
+    const hospital = record.parsed_data?.hospital ?? ''
+    const diseaseName = record.parsed_data?.disease_name ?? ''
+    const firstMed = record.parsed_data?.medications?.[0]?.name ?? ''
+
+    if (type === 'prescription') {
+      const disease = diseaseName ? ` (${diseaseName})` : ''
+      return `처방전 ${hospital}${disease}`.trim()
+    }
+    if (type === 'medicine_bag') {
+      return `약봉투 ${hospital}`.trim()
+    }
+    if (type === 'pill_photo') {
+      return firstMed ? `낱알약 ${firstMed}` : '낱알약'
+    }
+  }
+
   const title = guide?.title?.trim()
   if (title) return title
   const fromSummary = guide?.summary_text?.trim().slice(0, 15)
