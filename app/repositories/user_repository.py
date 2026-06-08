@@ -29,6 +29,8 @@ class UserRepository:
         gender: Gender,
         birth_date: date,
         *,
+        height_cm: float | None = None,
+        weight_kg: float | None = None,
         is_active: bool = True,
         is_admin: bool = False,
     ) -> User:
@@ -39,6 +41,8 @@ class UserRepository:
             phone_number=phone_number,
             gender=gender,
             birth_date=birth_date,
+            height_cm=height_cm,
+            weight_kg=weight_kg,
             is_active=is_active,
             is_admin=is_admin,
         )
