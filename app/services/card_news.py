@@ -8,18 +8,18 @@ from PIL import Image, ImageDraw, ImageFont
 CARD_WIDTH = 800
 CARD_HEIGHT = 1100
 BG_COLOR = (245, 247, 250)
-HEADER_COLOR = (15, 110, 86)        # #0F6E56
+HEADER_COLOR = (15, 110, 86)  # #0F6E56
 
 # 복약 안내 - 파란색
-MED_COLOR = (55, 138, 221)          # #378ADD
-MED_LIGHT = (230, 241, 251)         # #E6F1FB
-MED_DARK = (12, 68, 124)            # #0C447C
-MED_LABEL = (24, 95, 165)          # #185FA5
+MED_COLOR = (55, 138, 221)  # #378ADD
+MED_LIGHT = (230, 241, 251)  # #E6F1FB
+MED_DARK = (12, 68, 124)  # #0C447C
+MED_LABEL = (24, 95, 165)  # #185FA5
 
 # 생활습관 - 초록색
-GREEN_COLOR = (15, 110, 86)         # #0F6E56
-GREEN_BG = (225, 245, 238)          # #E1F5EE
-GREEN_DARK = (8, 80, 65)           # #085041
+GREEN_COLOR = (15, 110, 86)  # #0F6E56
+GREEN_BG = (225, 245, 238)  # #E1F5EE
+GREEN_DARK = (8, 80, 65)  # #085041
 
 TEXT_COLOR = (40, 40, 40)
 TEXT_MUTED = (100, 100, 100)
@@ -77,7 +77,9 @@ def _box_height(wrapped: str, base: int = 80) -> int:
     return max(base, 36 + line_count * (FONT_SIZE_BODY + 4))
 
 
-def _draw_medication_section(draw, medication_guide, current_y, label_font, body_font, small_font, medications, summary_text=""):
+def _draw_medication_section(
+    draw, medication_guide, current_y, label_font, body_font, small_font, medications, summary_text=""
+):
     draw.text((PADDING + 30, current_y + 10), "복약 안내", font=label_font, fill=MED_LABEL)
     current_y += 48
 
@@ -101,7 +103,9 @@ def _draw_medication_section(draw, medication_guide, current_y, label_font, body
             draw.rectangle([PADDING, current_y, PADDING + 6, current_y + box_h], fill=MED_COLOR)
             draw.text((TEXT_X, current_y + 14), drug_name, font=label_font, fill=MED_DARK)
             if detail_wrapped:
-                draw.text((TEXT_X, current_y + 14 + FONT_SIZE_LABEL + 8), detail_wrapped, font=body_font, fill=TEXT_COLOR)
+                draw.text(
+                    (TEXT_X, current_y + 14 + FONT_SIZE_LABEL + 8), detail_wrapped, font=body_font, fill=TEXT_COLOR
+                )
             current_y += box_h + 10
 
     elif isinstance(medication_guide, dict):
@@ -189,8 +193,14 @@ class CardNewsService:
         # ── 복약 안내 (파란색) ───────────────────────────────────
         if medication_guide or medications:
             current_y = _draw_medication_section(
-                draw, medication_guide or {}, current_y, label_font, body_font, small_font,
-                medications or [], summary_text
+                draw,
+                medication_guide or {},
+                current_y,
+                label_font,
+                body_font,
+                small_font,
+                medications or [],
+                summary_text,
             )
 
         # ── 생활습관 (초록색) ────────────────────────────────────
@@ -202,14 +212,21 @@ class CardNewsService:
             current_y += 10
             _draw_rounded_rect(draw, (PADDING, current_y, CARD_WIDTH - PADDING, current_y + 160), CORNER_RADIUS, WHITE)
             draw.text((PADDING + 30, current_y + 20), "오늘의 건강 요약", font=label_font, fill=MED_COLOR)
-            draw.line([(PADDING + 30, current_y + 50), (CARD_WIDTH - PADDING - 30, current_y + 50)], fill=MED_LIGHT, width=2)
+            draw.line(
+                [(PADDING + 30, current_y + 50), (CARD_WIDTH - PADDING - 30, current_y + 50)], fill=MED_LIGHT, width=2
+            )
             wrapped = _wrap_text(_extract_first_sentence(summary_text), body_font, TEXT_MAX_WIDTH)
             draw.text((PADDING + 30, current_y + 60), wrapped, font=body_font, fill=TEXT_COLOR)
 
         # ── 하단 면책 문구 ───────────────────────────────────────
         footer_y = CARD_HEIGHT - 60
         draw.line([(PADDING, footer_y), (CARD_WIDTH - PADDING, footer_y)], fill=(200, 210, 205), width=1)
-        draw.text((PADDING + 30, footer_y + 14), "정확한 복약 방법은 의사·약사에게 확인하세요", font=small_font, fill=TEXT_MUTED)
+        draw.text(
+            (PADDING + 30, footer_y + 14),
+            "정확한 복약 방법은 의사·약사에게 확인하세요",
+            font=small_font,
+            fill=TEXT_MUTED,
+        )
 
         buf = io.BytesIO()
         img.save(buf, format="PNG")
