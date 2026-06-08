@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { PageHeader } from '@/shared/ui/PageHeader'
-import { EmptyState } from '@/shared/ui/EmptyState'
-import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
-import { PollingStatus } from '@/shared/ui/PollingStatus'
 import { toast } from '@/shared/lib/toast'
 import { useCurrentUser } from '@/entities/user/api'
+import { useMedicalRecords } from '@/entities/medical-record/api'
+import { useGuides } from '@/entities/guide/api'
+import { useNotifications } from '@/entities/notification/api'
+import { useChatSessions } from '@/entities/chatbot/api'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface StatCardProps {
@@ -12,9 +13,10 @@ interface StatCardProps {
   label: string
   count: number | undefined
   isLoading: boolean
+  href: string
 }
 
-function StatCard({ icon, label, count, isLoading }: StatCardProps) {
+function StatCard({ icon, label, count, isLoading, href }: StatCardProps) {
   return (
     <div className="rounded-2xl p-4 bg-white shadow-sm border border-gray-100 flex flex-col gap-3">
       <div className="flex items-center gap-2">
@@ -29,7 +31,10 @@ function StatCard({ icon, label, count, isLoading }: StatCardProps) {
       {isLoading ? (
         <Skeleton className="h-7 w-14 rounded" />
       ) : (
-        <p className="text-2xl font-bold text-gray-800">{count ?? 0}<span className="text-sm font-medium text-gray-400 ml-1">건</span></p>
+        <p className="text-2xl font-bold text-gray-800">
+          <Link to={href} className="hover:underline underline-offset-2">{count ?? 0}</Link>
+          <span className="text-sm font-medium text-gray-400 ml-1">건</span>
+        </p>
       )}
     </div>
   )
@@ -37,7 +42,10 @@ function StatCard({ icon, label, count, isLoading }: StatCardProps) {
 
 export function HomePage() {
   const { data: user, isLoading } = useCurrentUser()
-  const [confirmOpen, setConfirmOpen] = useState(false)
+  const { data: records, isLoading: recordsLoading } = useMedicalRecords()
+  const { data: guides, isLoading: guidesLoading } = useGuides()
+  const { data: notifications, isLoading: notificationsLoading } = useNotifications()
+  const { data: sessions, isLoading: sessionsLoading } = useChatSessions()
 
   const greeting = (() => {
     const hour = new Date().getHours()
@@ -87,58 +95,13 @@ export function HomePage() {
             나의 현황
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatCard icon={<MedicalIcon />} label="의료기록" count={undefined} isLoading={isLoading} />
-            <StatCard icon={<BookIcon />} label="가이드" count={undefined} isLoading={isLoading} />
-            <StatCard icon={<BellIcon />} label="활성 알림" count={undefined} isLoading={isLoading} />
-            <StatCard icon={<ChatIcon />} label="챗봇 세션" count={undefined} isLoading={isLoading} />
+            <StatCard icon={<MedicalIcon />} label="의료기록" count={records?.length} isLoading={recordsLoading} href="/medical-record" />
+            <StatCard icon={<BookIcon />} label="가이드" count={guides?.length} isLoading={guidesLoading} href="/guide" />
+            <StatCard icon={<BellIcon />} label="활성 알림" count={notifications?.filter(n => n.is_active).length} isLoading={notificationsLoading} href="/notification" />
+            <StatCard icon={<ChatIcon />} label="챗봇 세션" count={sessions?.length} isLoading={sessionsLoading} href="/chatbot" />
           </div>
         </section>
 
-        {/* 공통 컴포넌트 데모 */}
-        <section className="flex flex-col gap-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-            공통 컴포넌트 데모
-          </p>
-
-          {/* PollingStatus */}
-          <div>
-            <p className="text-xs text-gray-400 mb-2">PollingStatus</p>
-            <PollingStatus message="AI가 의료기록을 분석 중입니다..." />
-          </div>
-
-          {/* EmptyState */}
-          <div>
-            <p className="text-xs text-gray-400 mb-2">EmptyState</p>
-            <div className="rounded-2xl bg-white border border-gray-100 shadow-sm">
-              <EmptyState
-                icon={<MedicalIcon />}
-                title="등록된 의료기록이 없습니다"
-                description="처방전이나 검사 결과를 업로드하면 AI가 분석해 드립니다."
-                action={{ label: '기록 추가하기', onClick: () => toast.info('의료기록 업로드로 이동') }}
-              />
-            </div>
-          </div>
-
-          {/* ConfirmDialog */}
-          <div>
-            <p className="text-xs text-gray-400 mb-2">ConfirmDialog</p>
-            <button
-              onClick={() => setConfirmOpen(true)}
-              className="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              삭제 확인 다이얼로그 열기
-            </button>
-            <ConfirmDialog
-              open={confirmOpen}
-              onOpenChange={setConfirmOpen}
-              title="기록을 삭제하시겠습니까?"
-              description="삭제된 기록은 복구할 수 없습니다."
-              confirmLabel="삭제"
-              variant="danger"
-              onConfirm={() => toast.error('기록이 삭제되었습니다.')}
-            />
-          </div>
-        </section>
       </div>
     </div>
   )
