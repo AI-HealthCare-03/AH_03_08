@@ -107,7 +107,7 @@ def search_text_for_medications(  # noqa: C901
 
     # 1. 약품별 개별 검색
     for med in medications:
-        drug_name = (med.get("drug_name") or "").strip()
+        drug_name = (med.get("name") or "").strip()
         if not drug_name:
             continue
 
@@ -392,7 +392,7 @@ def _extract_condition_keywords(medications: list) -> list[str]:
     for med in medications:
         combined = " ".join(
             [
-                med.get("drug_name", "") or "",
+                med.get("name", "") or "",
                 med.get("category", "") or "",
                 med.get("instructions", "") or "",
             ]
