@@ -89,9 +89,14 @@ def _draw_medication_section(
             if not drug_name:
                 continue
             frequency = med.get("frequency")
-            instructions = str(med.get("instructions", "") or "").strip()
-            freq_str = f"하루 {int(frequency)}회" if frequency else ""
-            detail = "  /  ".join(filter(None, [freq_str, instructions]))
+            freq_str = f"하루 {int(str(frequency))}회" if frequency is not None else ""
+            detail = freq_str
+
+            # 낱알약(frequency 없음)이면 medication_guide raw 내용 표시
+            if not frequency and isinstance(medication_guide, dict):
+                raw = medication_guide.get("raw", "")
+                detail = _extract_first_sentence(raw) if raw else ""
+
             detail_wrapped = _wrap_text(detail, body_font, TEXT_MAX_WIDTH) if detail else ""
             line_count = detail_wrapped.count("\n") + 1 if detail_wrapped else 0
             box_h = max(70, 14 + FONT_SIZE_LABEL + 6 + line_count * (FONT_SIZE_BODY + 4) + 12)
