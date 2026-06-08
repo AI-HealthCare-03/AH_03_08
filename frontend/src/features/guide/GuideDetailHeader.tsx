@@ -36,24 +36,27 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
   }
 
   function handleTts() {
-    if (speaking) {
-      window.speechSynthesis.cancel()
-      setSpeaking(false)
-    } else {
-      const text = guide.summary_text?.trim() || ''
-      if (!text) {
-        toast.error('읽을 내용이 없습니다.')
-        return
-      }
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = 'ko-KR'
-      utterance.rate = 1.0
-      utterance.onend = () => setSpeaking(false)
-      utterance.onerror = () => setSpeaking(false)
-      window.speechSynthesis.speak(utterance)
-      setSpeaking(true)
+  if (speaking && !window.speechSynthesis.paused) {
+    window.speechSynthesis.pause()
+    setSpeaking(false)
+  } else if (window.speechSynthesis.paused) {
+    window.speechSynthesis.resume()
+    setSpeaking(true)
+  } else {
+    const text = guide.summary_text?.trim() || ''
+    if (!text) {
+      toast.error('읽을 내용이 없습니다.')
+      return
     }
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'ko-KR'
+    utterance.rate = 1.0
+    utterance.onend = () => setSpeaking(false)
+    utterance.onerror = () => setSpeaking(false)
+    window.speechSynthesis.speak(utterance)
+    setSpeaking(true)
   }
+}
 
   async function handleAskChatbot() {
     const existing = sessions?.find(s => s.guide_id === guide.id)
