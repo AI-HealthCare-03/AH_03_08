@@ -108,7 +108,7 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
         parsed_data = {
             "medications": [
                 {
-                    "drug_name": drug_info.get("drug_name"),
+                    "name": drug_info.get("drug_name"),
                     "dosage": None,
                     "frequency": None,
                     "duration": None,
