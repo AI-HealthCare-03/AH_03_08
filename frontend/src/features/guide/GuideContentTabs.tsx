@@ -122,7 +122,7 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
                       {meta && <p className="text-xs font-medium text-gray-500">{meta}</p>}
                     </div>
                     <p className="mt-3 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-                      {m.instructions?.trim() || toStr(guide.medication_guide).trim() || ''}
+                      {toStr(guide.medication_guide).trim() || ''}
                     </p>
                     {warn && (
                       <div className="mt-4 rounded-xl bg-status-amber-bg px-4 py-3">
