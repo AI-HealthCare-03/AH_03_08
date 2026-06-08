@@ -110,7 +110,7 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
             <div className="space-y-4">
               {meds.map((m) => {
                 const warn = warningsByDrug.get(m.name)?.[0]
-                const meta = [m.frequency, m.instructions].filter(Boolean).join(' · ')
+                const meta = [m.frequency].filter(Boolean).join(' · ')
                 return (
                   <article key={m.name} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
