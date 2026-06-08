@@ -6,6 +6,9 @@ import { formatGuideDate, guideDisplayTitle, guideShortId } from './guide-utils'
 import { toast } from '@/shared/lib/toast'
 import { apiClient } from '@/shared/api/client'
 import { useNavigate } from 'react-router-dom'
+import { useChatSessions, useCreateSession } from '@/entities/chatbot/api'
+import { useMedicalRecords } from '@/entities/medical-record/api'
+import { RECORD_TYPE_META } from '@/entities/medical-record/model'
 
 interface GuideDetailHeaderProps {
   guide: Guide
@@ -13,7 +16,9 @@ interface GuideDetailHeaderProps {
 
 export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
   const navigate = useNavigate()
-
+  const { data: sessions } = useChatSessions()
+  const { mutateAsync: createSession, isPending } = useCreateSession()
+  const { data: records } = useMedicalRecords()
   async function handleShare() {
     const url = `${window.location.origin}/guide?id=${guide.id}`
     try {
@@ -44,16 +49,23 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
   }
 
   async function handleAskChatbot() {
-    const url = `${window.location.origin}/guide?id=${guide.id}`
-    try {
-      await navigator.clipboard.writeText(url)
-    } catch {
-      /* ignore */
+    const existing = sessions?.find(s => s.guide_id === guide.id)
+    if (existing) {
+      navigate(`/chatbot/${existing.id}`)
+      return
     }
-    toast.success('가이드 링크가 복사되었습니다.', {
-      description: '챗봇에서 질문할 때 붙여넣어 주세요.',
-    })
-    navigate('/chatbot')
+    const record = records?.find(r => r.id === guide.record_id)
+    const meta = record ? RECORD_TYPE_META[record.record_type] : null
+    const placeName = record?.record_type === 'medicine_bag'
+      ? record.parsed_data?.pharmacy
+      : record?.parsed_data?.hospital
+    const title = meta ? (placeName ? `${placeName} ${meta.label}` : meta.label) : guideDisplayTitle(guide)
+    try {
+      const newSession = await createSession({ guide_id: guide.id, title })
+      navigate(`/chatbot/${newSession.id}`)
+    } catch {
+      toast.error('챗봇 세션 생성에 실패했습니다.')
+    }
   }
 
   return (
@@ -86,9 +98,10 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
             size="sm"
             className="gap-1.5 text-xs h-9 border-gray-200"
             onClick={handleAskChatbot}
+            disabled={isPending}
           >
             <MessageCircle className="h-4 w-4" />
-            챗봇에 묻기
+            {isPending ? '연결 중...' : '챗봇에 묻기'}
           </Button>
           <Button
             type="button"

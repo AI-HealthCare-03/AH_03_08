@@ -1,8 +1,17 @@
 from typing import Annotated
+
 from fastapi import APIRouter, Cookie, Depends, HTTPException, status
 from fastapi.responses import JSONResponse as Response
+
 from app.core.config import Env, config
-from app.dtos.auth import GoogleLoginRequest, KakaoLoginRequest, LoginRequest, LoginResponse, SignUpRequest, TokenRefreshResponse
+from app.dtos.auth import (
+    GoogleLoginRequest,
+    KakaoLoginRequest,
+    LoginRequest,
+    LoginResponse,
+    SignUpRequest,
+    TokenRefreshResponse,
+)
 from app.dtos.base import BaseResponse
 from app.services.auth import AuthService, GoogleAuthService, KakaoAuthService
 from app.services.jwt import JwtService

@@ -1,8 +1,8 @@
 import pytest
+
 from ai_worker.services.disease_code_service import (
-    lookup_disease_name_sync,
-    _lookup_local,
     _normalize_code,
+    lookup_disease_name_sync,
 )
 
 
@@ -58,8 +58,7 @@ class TestDiseaseCodeService:
         ]
         for code, keyword in cases:
             result = lookup_disease_name_sync(code)
-            assert keyword in result or result != "진단명 미상", \
-                f"{code} 조회 실패: {result}"
+            assert keyword in result or result != "진단명 미상", f"{code} 조회 실패: {result}"
 
     def test_normalize_code(self):
         """코드 정규화 함수 단독 테스트"""
@@ -72,5 +71,6 @@ class TestDiseaseCodeService:
 async def test_lookup_async():
     """비동기 조회 테스트"""
     from ai_worker.services.disease_code_service import lookup_disease_name_async
+
     result = await lookup_disease_name_async("N300")
     assert "방광염" in result
