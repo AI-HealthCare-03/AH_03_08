@@ -20,7 +20,7 @@ DEFAULT_SOURCE = PROJECT_ROOT / "data" / "rag"
 sys.path.insert(0, str(PROJECT_ROOT))
 
 
-def main() -> None:
+def main() -> None:  # noqa: C901
     parser = argparse.ArgumentParser(description="ChromaDB RAG 인제스트")
     parser.add_argument("--source", default=str(DEFAULT_SOURCE), help="RAG 소스 디렉터리")
     parser.add_argument("--dry-run", action="store_true", help="문서 파싱만 확인 (적재 없음)")

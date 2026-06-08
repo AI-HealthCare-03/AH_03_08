@@ -54,8 +54,14 @@ function RecordTypeIcon({ name, active }: { name: string; active: boolean }) {
         d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
     ),
     camera: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9zm9 3a2 2 0 100 4 2 2 0 000-4z" />
+      <>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="m8.5 8.5 7 7" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2}
+          d="M 15.5 5 A 3 3 0 0 1 19 8.5" />
+      </>
     ),
   }
   return (

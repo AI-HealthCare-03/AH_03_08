@@ -30,7 +30,7 @@ apiClient.interceptors.response.use(
         original.headers.Authorization = `Bearer ${data.access_token}`
         return apiClient(original)
       } catch {
-        localStorage.removeItem('access_token')
+        useAuthStore.getState().logout()
         window.location.href = '/'
       }
     }

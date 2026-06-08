@@ -7,11 +7,6 @@
 - 일일 팁 개인화 지원
 """
 
-from langchain_core.documents import Document
-from ai_worker.services.disease_code_service import (
-    lookup_disease_name_async,
-    lookup_disease_name_sync,
-)
 
 # ─────────────────────────────────────────────────────────────────
 # 복약 가이드 생성 프롬프트 (개선)
@@ -94,24 +89,15 @@ def _build_user_profile(user_health: dict) -> tuple[str, str, str, str, str]:
     gender_map = {"MALE": "남성", "FEMALE": "여성"}
     gender_str = gender_map.get(user_health.get("gender", ""), "미입력")
     allergies = (
-        ", ".join(f"{a['name']}({a.get('severity', 'unknown')})" for a in user_health.get("allergies", []))
-        or "없음"
+        ", ".join(f"{a['name']}({a.get('severity', 'unknown')})" for a in user_health.get("allergies", [])) or "없음"
     )
-    conditions = (
-        ", ".join(c["name"] for c in user_health.get("conditions", []))
-        or "없음"
-    )
+    conditions = ", ".join(c["name"] for c in user_health.get("conditions", [])) or "없음"
     h = user_health.get("height_cm")
     w = user_health.get("weight_kg")
     bmi_str = "-"
     if h and w and float(h) > 0:
         bmi = float(w) / ((float(h) / 100) ** 2)
-        bmi_label = (
-            "저체중" if bmi < 18.5 else
-            "정상" if bmi < 23 else
-            "과체중" if bmi < 25 else
-            "비만"
-        )
+        bmi_label = "저체중" if bmi < 18.5 else "정상" if bmi < 23 else "과체중" if bmi < 25 else "비만"
         bmi_str = f"{bmi:.1f} ({bmi_label})"
     return gender_str, allergies, conditions, bmi_str, str(h or "-"), str(w or "-")
 
@@ -145,25 +131,17 @@ def build_guide_user_prompt(medications: list, user_health: dict, rag_context: s
 
     # ── 케이스 A: 처방전만 ──────────────────────────────────────────
     if prescription_meds and not pill_meds:
-        return _build_prescription_prompt(
-            prescription_meds, user_profile_block, rag_block, conditions
-        )
+        return _build_prescription_prompt(prescription_meds, user_profile_block, rag_block, conditions)
 
     # ── 케이스 B: 낱알약만 ──────────────────────────────────────────
     if pill_meds and not prescription_meds:
-        return _build_pill_prompt(
-            pill_meds, user_profile_block, rag_block, conditions, allergies
-        )
+        return _build_pill_prompt(pill_meds, user_profile_block, rag_block, conditions, allergies)
 
     # ── 케이스 C: 혼재 (처방전 + 낱알약) ───────────────────────────
-    return _build_mixed_prompt(
-        prescription_meds, pill_meds, user_profile_block, rag_block, conditions, allergies
-    )
+    return _build_mixed_prompt(prescription_meds, pill_meds, user_profile_block, rag_block, conditions, allergies)
 
 
-def _build_prescription_prompt(
-    medications: list, user_profile_block: str, rag_block: str, conditions: str
-) -> str:
+def _build_prescription_prompt(medications: list, user_profile_block: str, rag_block: str, conditions: str) -> str:
     """처방전/약봉투 기반 복약 방법 중심 프롬프트."""
     med_lines = []
     for i, m in enumerate(medications, 1):
@@ -182,7 +160,8 @@ def _build_prescription_prompt(
     drug_count = len(medications)
     interaction_note = (
         f"\n⚠️ {drug_count}종 처방입니다. drug_interactions 약물 간 상호작용을 반드시 분석하세요."
-        if drug_count >= 2 else ""
+        if drug_count >= 2
+        else ""
     )
 
     return f"""\
@@ -355,32 +334,24 @@ CHAT_BASE_SYSTEM = """\
 """
 
 
-def build_chat_system_prompt(
+def build_chat_system_prompt(  # noqa: C901
     user_health: dict,
     rag_docs: list,
     current_record: dict | None = None,
-    disease_name: str | None = None,   # ← OCR 완료 시점에 미리 조회한 진단명
+    disease_name: str | None = None,
 ) -> str:
-    """
-    챗봇 시스템 프롬프트 동적 생성
- 
-    disease_name 파라미터:
-    - _do_process_chat에서 HIRA API로 미리 조회한 진단명을 전달
-    - None이면 동기 fallback 사전 사용
-    """
     parts = [CHAT_BASE_SYSTEM]
- 
-    # ── 현재 진료기록 컨텍스트 ──────────────────────────────────
+
     if current_record:
         disease_code = current_record.get("disease_code")
-        # 미리 조회한 진단명 우선, 없으면 동기 fallback
         if not disease_name:
             from ai_worker.services.disease_code_service import lookup_disease_name_sync
+
             disease_name = lookup_disease_name_sync(disease_code)
- 
+
         medications = current_record.get("medications", [])
         med_names = [m.get("drug_name", "") for m in medications if m.get("drug_name")]
- 
+
         record_lines = [
             "",
             "## ⚕️ 현재 진료기록 (반드시 이 정보를 기반으로 답변하세요)",
@@ -394,8 +365,7 @@ def build_chat_system_prompt(
             f"- 예: '{disease_code}'는 '{disease_name}'입니다. 다른 진단명으로 안내하지 마세요.",
         ]
         parts.append("\n".join(record_lines))
- 
-    # ── 사용자 건강 프로필 (기존 코드 유지) ─────────────────────
+
     if user_health:
         lines = ["", "## 현재 사용자 건강 프로필 (개인화 참고)"]
         age = user_health.get("age")
@@ -407,7 +377,7 @@ def build_chat_system_prompt(
                 f" | 키 {user_health.get('height_cm', '-')}cm"
                 f" | 체중 {user_health.get('weight_kg', '-')}kg"
             )
- 
+
         allergies = user_health.get("allergies", [])
         if allergies:
             high_risk = [a for a in allergies if a.get("severity") in ("severe", "high")]
@@ -418,28 +388,28 @@ def build_chat_system_prompt(
             if normal:
                 n_str = ", ".join(f"{a['name']}({a.get('severity', 'unknown')})" for a in normal)
                 lines.append(f"- 알러지: {n_str}")
- 
+
         conditions = user_health.get("conditions", [])
         if conditions:
             lines.append(f"- 기저질환: {', '.join(c['name'] for c in conditions)}")
- 
+
         lines.append("※ 위 건강 정보와 연관된 약물 위험 언급 시 반드시 경고를 포함하세요.")
         parts.append("\n".join(lines))
- 
-    # ── RAG 참고 문서 (기존 코드 유지) ──────────────────────────
+
     if rag_docs:
         lines = ["", "## 참고 의약 문서 (RAG)"]
         for i, doc in enumerate(rag_docs, 1):
             lines.append(f"[{i}] {doc.page_content[:1000]}")
         lines.append("답변 말미에 '[참고 문서 N]' 형태로 출처를 명시하세요.")
         parts.append("\n".join(lines))
- 
+
     return "\n".join(parts)
 
 
 # ─────────────────────────────────────────────────────────────────
 # 일일 건강 팁 프롬프트 (개선: 개인화 + 한국어)
 # ─────────────────────────────────────────────────────────────────
+
 
 def build_daily_tip_prompt(user_health: dict | None = None, season: str | None = None) -> str:
     """

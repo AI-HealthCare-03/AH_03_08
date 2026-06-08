@@ -40,8 +40,8 @@ def _post(path: str, payload: dict) -> bool:
 def guide_done(
     guide_id: str,
     user_id: int,
-    medication_guide: str,
-    lifestyle_guide: str,
+    medication_guide: list | dict | str | None,
+    lifestyle_guide: dict | str | None,
     summary_text: str,
     allergy_warnings: list,
     condition_interactions: list,
@@ -148,4 +148,3 @@ def asset_failed(asset_id: str, guide_id: str) -> bool:
             "status": "FAILED",
         },
     )
-

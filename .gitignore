@@ -17,3 +17,6 @@ example.prod.env
 
 app/models/proj_pill/
 app/models/pill_data_croped
+
+scripts/eval/chatbot/results/*.json
+scripts/eval/ocr/results/*.json
