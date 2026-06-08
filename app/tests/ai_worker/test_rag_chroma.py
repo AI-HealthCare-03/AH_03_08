@@ -33,7 +33,7 @@ def test_search_text_for_medications_formats_results():
         (SimpleNamespace(page_content="간 손상 주의", metadata={"source": "가이드"}), 0.88),
     ]
     with patch.object(chroma_store, "get_vectorstore", return_value=mock_vs):
-        text = chroma_store.search_text_for_medications([{"drug_name": "타이레놀"}])
+        text = chroma_store.search_text_for_medications([{"name": "타이레놀"}])
 
     assert "타이레놀 복용 주의" in text
     assert "간 손상 주의" in text
