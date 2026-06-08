@@ -9,6 +9,21 @@ const passwordRule = z
   .regex(/[0-9]/, '숫자를 포함해야 합니다')
   .regex(/[^a-zA-Z0-9]/, '특수문자를 포함해야 합니다')
 
+export const allergySchema = z.object({
+  allergen_name: z.string().min(1),
+  severity: z.enum(['mild', 'moderate', 'severe']),
+})
+
+export const conditionSchema = z.object({
+  condition_name: z.string().min(1),
+  severity: z.enum(['mild', 'moderate', 'severe']),
+})
+
+const positiveNumber = z.preprocess(
+  (v) => (v === '' || v === null || v === undefined ? undefined : Number(v)),
+  z.number().positive('양수를 입력해주세요').optional(),
+)
+
 export const registerSchema = z
   .object({
     email: z.string().email('올바른 이메일을 입력해주세요'),
@@ -28,6 +43,10 @@ export const registerSchema = z
         /^(010-\d{4}-\d{4}|010\d{8}|\+8210\d{8})$/,
         '010-0000-0000 형식으로 입력해주세요',
       ),
+    height_cm: positiveNumber,
+    weight_kg: positiveNumber,
+    allergies: z.array(allergySchema).default([]),
+    conditions: z.array(conditionSchema).default([]),
   })
   .refine((data) => data.password === data.passwordConfirm, {
     message: '비밀번호가 일치하지 않습니다',
@@ -35,6 +54,8 @@ export const registerSchema = z
   })
 
 export type RegisterFormValues = z.infer<typeof registerSchema>
+export type AllergyInput = z.infer<typeof allergySchema>
+export type ConditionInput = z.infer<typeof conditionSchema>
 
 export async function register(values: RegisterFormValues) {
   const { passwordConfirm: _, ...payload } = values
