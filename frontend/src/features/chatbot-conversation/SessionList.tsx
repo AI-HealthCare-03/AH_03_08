@@ -40,9 +40,10 @@ export function SessionList({ selectedSessionId }: SessionListProps) {
     const firstMed = record?.parsed_data?.medications?.[0]?.name?.split(' ')[0] ?? ''
     const title = meta
       ? record?.record_type === 'pill_photo'
-        ? `${meta.label}${firstMed ? ` ${firstMed}` : ''}`
+        ? `낱알 사진${firstMed ? ` ${firstMed}` : ''}`
         : placeName ? `${placeName} ${meta.label}` : meta.label
       : '채팅 세션'
+
     createSession({ guide_id: guideId, title }, {
       onSuccess: (session) => {
         setShowGuideSelector(false)
@@ -119,7 +120,7 @@ export function SessionList({ selectedSessionId }: SessionListProps) {
           icon={<MessageCircle className="h-6 w-6" />}
           title="아직 채팅이 없습니다"
           description="처방전 가이드를 선택해 첫 채팅을 시작해보세요."
-          action={{ label: '채팅 시작', onClick: () => { refetchGuides(); setShowGuideSelector(true) } }}
+          action={{ label: '채팅 시작', onClick: () => { refetchGuides(); refetchRecords(); setShowGuideSelector(true) } }}
         />
       ) : (
         <div className="flex flex-col gap-3">
