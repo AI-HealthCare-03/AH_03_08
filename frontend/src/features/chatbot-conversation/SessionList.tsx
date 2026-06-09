@@ -129,6 +129,7 @@ export function SessionList({ selectedSessionId }: SessionListProps) {
                 isActive={session.id === selectedSessionId}
                 medicationCount={record?.parsed_data?.medications?.length ?? 0}
                 diseaseCode={record?.parsed_data?.disease_name ?? record?.parsed_data?.disease_code ?? null}
+                recordType={record?.record_type ?? null}
                 onClick={() => navigate(`/chatbot/${session.id}`)}
               />
             )
