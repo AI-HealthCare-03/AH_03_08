@@ -172,7 +172,7 @@ export function ChatWindow({ sessionId }: Props) {
               </span>
             )}
             <span className="truncate font-medium text-gray-800 text-sm">
-              {sessionLabel.replace(/^(처방전|약봉투|낱알약)\s*/, '')}
+              {sessionLabel.replace(/^(처방전|약봉투|낱알약|낱알 사진)\s*/, '')}
             </span>
           </div>
           {!wsReady && (
