@@ -1,10 +1,10 @@
+import { useState } from 'react'
 import { MessageCircle, Share2, Volume2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GuideStatusBadge } from '@/shared/ui/GuideStatusBadge'
 import type { Guide } from '@/entities/guide/model'
 import { formatGuideDate, guideDisplayTitle, guideShortId } from './guide-utils'
 import { toast } from '@/shared/lib/toast'
-import { apiClient } from '@/shared/api/client'
 import { useNavigate } from 'react-router-dom'
 import { useChatSessions, useCreateSession } from '@/entities/chatbot/api'
 import { useMedicalRecords } from '@/entities/medical-record/api'
@@ -19,6 +19,8 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
   const { data: sessions } = useChatSessions()
   const { mutateAsync: createSession, isPending } = useCreateSession()
   const { data: records } = useMedicalRecords()
+  const [speaking, setSpeaking] = useState(false)
+
   async function handleShare() {
     const url = `${window.location.origin}/guide?id=${guide.id}`
     try {
@@ -33,20 +35,28 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
     }
   }
 
-  async function handleTts() {
-    try {
-      const response = await apiClient.post(
-        `/guides/${guide.id}/assets`,
-        { asset_type: 'tts' },
-        { responseType: 'blob' },
-      )
-      const url = URL.createObjectURL(response.data)
-      const audio = new Audio(url)
-      audio.play()
-    } catch {
-      toast.error('음성 요청에 실패했습니다.')
+  function handleTts() {
+  if (speaking && !window.speechSynthesis.paused) {
+    window.speechSynthesis.pause()
+    setSpeaking(false)
+  } else if (window.speechSynthesis.paused) {
+    window.speechSynthesis.resume()
+    setSpeaking(true)
+  } else {
+    const text = guide.summary_text?.trim() || ''
+    if (!text) {
+      toast.error('읽을 내용이 없습니다.')
+      return
     }
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'ko-KR'
+    utterance.rate = 1.0
+    utterance.onend = () => setSpeaking(false)
+    utterance.onerror = () => setSpeaking(false)
+    window.speechSynthesis.speak(utterance)
+    setSpeaking(true)
   }
+}
 
   async function handleAskChatbot() {
     const existing = sessions?.find(s => s.guide_id === guide.id)
@@ -86,11 +96,11 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
             type="button"
             variant="outline"
             size="sm"
-            className="gap-1.5 text-xs h-9 border-gray-200"
+            className={`gap-1.5 text-xs h-9 ${speaking ? 'border-brand-primary text-brand-primary bg-brand-lightest/30' : 'border-gray-200'}`}
             onClick={handleTts}
           >
             <Volume2 className="h-4 w-4" />
-            음성으로 듣기
+            {speaking ? '일시정지' : '음성으로 듣기'}
           </Button>
           <Button
             type="button"
