@@ -20,7 +20,7 @@ export function SessionList({ selectedSessionId }: SessionListProps) {
 
   const { data: sessions, isLoading: sessionsLoading } = useChatSessions()
   const { data: guides, isFetching: guidesFetching, refetch: refetchGuides } = useGuides()
-  const { data: records } = useMedicalRecords()
+  const { data: records, refetch: refetchRecords } = useMedicalRecords()
   const { mutate: createSession, isPending } = useCreateSession()
 
   function handleSelectGuide(guideId: string) {
@@ -37,8 +37,12 @@ export function SessionList({ selectedSessionId }: SessionListProps) {
     const placeName = record?.record_type === 'medicine_bag'
       ? record.parsed_data?.pharmacy
       : record?.parsed_data?.hospital
-    const title = meta ? (placeName ? `${placeName} ${meta.label}` : meta.label) : '채팅 세션'
-
+    const firstMed = record?.parsed_data?.medications?.[0]?.name?.split(' ')[0] ?? ''
+    const title = meta
+      ? record?.record_type === 'pill_photo'
+        ? `${meta.label}${firstMed ? ` ${firstMed}` : ''}`
+        : placeName ? `${placeName} ${meta.label}` : meta.label
+      : '채팅 세션'
     createSession({ guide_id: guideId, title }, {
       onSuccess: (session) => {
         setShowGuideSelector(false)
@@ -100,7 +104,7 @@ export function SessionList({ selectedSessionId }: SessionListProps) {
         action={
           hasSessions ? (
             <button
-              onClick={() => { refetchGuides(); setShowGuideSelector(true) }}
+              onClick={() => { refetchGuides(); refetchRecords(); setShowGuideSelector(true) }}
               className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-80"
               style={{ background: '#1D9E75' }}
             >
