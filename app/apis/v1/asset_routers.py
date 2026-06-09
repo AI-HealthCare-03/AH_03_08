@@ -13,7 +13,6 @@ from app.dtos.asset import AssetType, GuideAssetCreateRequest
 from app.models.guide import Guide
 from app.models.users import User
 from app.services.card_news import CardNewsService
-from app.services.tts import TtsService
 
 asset_router = APIRouter(prefix="/guides", tags=["guides"])
 
@@ -25,23 +24,22 @@ asset_router = APIRouter(prefix="/guides", tags=["guides"])
 async def create_guide_asset(
     guide_id: str,
     request: GuideAssetCreateRequest,
-    tts_service: Annotated[TtsService, Depends(TtsService)],
     card_news_service: Annotated[CardNewsService, Depends(CardNewsService)],
     current_user: Annotated[User, Depends(get_request_user)],
 ) -> Response:
     """
-    TTS 음성 / 카드뉴스 이미지 생성 엔드포인트.
+    카드뉴스 이미지 생성 엔드포인트.
 
     API 명세서: POST /api/v1/guides/{guide_id}/assets
-    REQ-GUIDE-002 연동 (asset_type=tts, asset_type=card_news)
+    REQ-GUIDE-002 연동 (asset_type=card_news)
 
     Args:
         guide_id: GUIDES 테이블의 guide_id
-        request: { asset_type: "tts" or "card_news" }
+        request: { asset_type: "card_news" }
         current_user: JWT 인증된 사용자 (Bearer token)
 
     Returns:
-        200 OK: mp3 bytes (tts) 또는 png bytes (card_news)
+        200 OK: png bytes (card_news)
 
     Note:
         - 개인정보 보호: 의료 데이터 접근 시 JWT 인증 필수
@@ -52,11 +50,7 @@ async def create_guide_asset(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="가이드를 찾을 수 없습니다.")
     summary_text = guide.summary_text or ""
 
-    if request.asset_type == AssetType.tts:
-        audio_bytes = await tts_service.create_tts_asset(summary_text=summary_text)
-        return Response(content=audio_bytes, media_type="audio/mpeg")
-
-    elif request.asset_type == AssetType.card_news:
+    if request.asset_type == AssetType.card_news:
         from app.models.medical_records import MedicalRecord
 
         record = await MedicalRecord.get_or_none(id=guide.record_id)
