@@ -32,7 +32,8 @@ class MedicationCreateRequest(BaseModel):
 
 
 class MedicationResponse(BaseSerializerModel):
-    id: UUID  # str → UUID
+    id: UUID
+    medical_record_id: UUID
     drug_name: str
     dosage: str | None
     frequency: str | None
