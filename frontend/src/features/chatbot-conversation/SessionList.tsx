@@ -20,7 +20,7 @@ export function SessionList({ selectedSessionId }: SessionListProps) {
 
   const { data: sessions, isLoading: sessionsLoading } = useChatSessions()
   const { data: guides, isFetching: guidesFetching, refetch: refetchGuides } = useGuides()
-  const { data: records } = useMedicalRecords()
+  const { data: records, refetch: refetchRecords } = useMedicalRecords()
   const { mutate: createSession, isPending } = useCreateSession()
 
   function handleSelectGuide(guideId: string) {
@@ -37,7 +37,12 @@ export function SessionList({ selectedSessionId }: SessionListProps) {
     const placeName = record?.record_type === 'medicine_bag'
       ? record.parsed_data?.pharmacy
       : record?.parsed_data?.hospital
-    const title = meta ? (placeName ? `${placeName} ${meta.label}` : meta.label) : '채팅 세션'
+    const firstMed = record?.parsed_data?.medications?.[0]?.name?.split(' ')[0] ?? ''
+    const title = meta
+      ? record?.record_type === 'pill_photo'
+        ? `낱알 사진${firstMed ? ` ${firstMed}` : ''}`
+        : placeName ? `${placeName} ${meta.label}` : meta.label
+      : '채팅 세션'
 
     createSession({ guide_id: guideId, title }, {
       onSuccess: (session) => {
@@ -100,7 +105,7 @@ export function SessionList({ selectedSessionId }: SessionListProps) {
         action={
           hasSessions ? (
             <button
-              onClick={() => { refetchGuides(); setShowGuideSelector(true) }}
+              onClick={() => { refetchGuides(); refetchRecords(); setShowGuideSelector(true) }}
               className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-80"
               style={{ background: '#1D9E75' }}
             >
@@ -115,7 +120,7 @@ export function SessionList({ selectedSessionId }: SessionListProps) {
           icon={<MessageCircle className="h-6 w-6" />}
           title="아직 채팅이 없습니다"
           description="처방전 가이드를 선택해 첫 채팅을 시작해보세요."
-          action={{ label: '채팅 시작', onClick: () => { refetchGuides(); setShowGuideSelector(true) } }}
+          action={{ label: '채팅 시작', onClick: () => { refetchGuides(); refetchRecords(); setShowGuideSelector(true) } }}
         />
       ) : (
         <div className="flex flex-col gap-3">
@@ -129,6 +134,7 @@ export function SessionList({ selectedSessionId }: SessionListProps) {
                 isActive={session.id === selectedSessionId}
                 medicationCount={record?.parsed_data?.medications?.length ?? 0}
                 diseaseCode={record?.parsed_data?.disease_name ?? record?.parsed_data?.disease_code ?? null}
+                recordType={record?.record_type ?? null}
                 onClick={() => navigate(`/chatbot/${session.id}`)}
               />
             )

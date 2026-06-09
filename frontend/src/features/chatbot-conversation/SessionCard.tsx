@@ -1,11 +1,18 @@
-import { ChevronRight, MessageCircle } from 'lucide-react'
+import { MessageCircle } from 'lucide-react'
 import type { ChatSession } from '@/entities/chatbot/model'
+
+const TYPE_BADGE: Record<string, { bg: string; color: string; label: string }> = {
+  prescription: { bg: '#EFF6FF', color: '#1D4ED8', label: '처방전' },
+  medicine_bag: { bg: '#FFF7ED', color: '#C2410C', label: '약봉투' },
+  pill_photo: { bg: '#F0FDF4', color: '#15803D', label: '낱알약' },
+}
 
 interface Props {
   session: ChatSession
   isActive?: boolean
   medicationCount?: number
   diseaseCode?: string | null
+  recordType?: string | null
   onClick: () => void
 }
 
@@ -16,11 +23,10 @@ function formatDate(dateStr: string) {
   })
 }
 
-export function SessionCard({ session, isActive = false, medicationCount = 0, diseaseCode, onClick }: Props) {
+export function SessionCard({ session, isActive = false, medicationCount = 0, diseaseCode, recordType, onClick }: Props) {
   const label = session.title ?? '채팅 세션'
   const date = formatDate(session.last_active_at)
   const preview = session.last_message_content
-
   return (
     <button
       onClick={onClick}
@@ -39,11 +45,21 @@ export function SessionCard({ session, isActive = false, medicationCount = 0, di
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <p className={`truncate text-sm font-medium ${isActive ? 'text-[#0F6E56]' : 'text-gray-800'}`}>{label}</p>
+            <div className="flex items-center gap-1.5 min-w-0">
+              {recordType && TYPE_BADGE[recordType] && (
+                <span
+                  className="shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold"
+                  style={{ background: TYPE_BADGE[recordType].bg, color: TYPE_BADGE[recordType].color }}
+                >
+                  {TYPE_BADGE[recordType].label}
+                </span>
+              )}
+              <p className={`truncate text-sm font-medium ${isActive ? 'text-[#0F6E56]' : 'text-gray-800'}`}>
+                {label.replace(/^(처방전|약봉투|낱알약|낱알 사진)\s*/, '')}
+              </p>
+            </div>
             <span className="shrink-0 text-xs text-gray-400">{date}</span>
           </div>
-
-          {/* 질병분류기호 · 처방약 N종 */}
           {(diseaseCode || medicationCount > 0) && (
             <div className="mt-1 flex items-center gap-1.5">
               {diseaseCode && (
@@ -57,8 +73,6 @@ export function SessionCard({ session, isActive = false, medicationCount = 0, di
               )}
             </div>
           )}
-
-          {/* 마지막 메시지 미리보기 */}
           {preview ? (
             <p className="mt-1 truncate text-xs text-gray-400">
               {session.last_message_role === 'user' ? '나: ' : 'AI: '}
