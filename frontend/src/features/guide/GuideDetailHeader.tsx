@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom'
 import { useChatSessions, useCreateSession } from '@/entities/chatbot/api'
 import { useMedicalRecords } from '@/entities/medical-record/api'
 import { RECORD_TYPE_META } from '@/entities/medical-record/model'
+import { useRecord } from '@/entities/medical-record/api'
 
 interface GuideDetailHeaderProps {
   guide: Guide
@@ -20,6 +21,7 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
   const { mutateAsync: createSession, isPending } = useCreateSession()
   const { data: records } = useMedicalRecords()
   const [speaking, setSpeaking] = useState(false)
+  const { data: record } = useRecord(guide.record_id)
 
   async function handleShare() {
     const url = `${window.location.origin}/guide?id=${guide.id}`
@@ -83,7 +85,7 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-lg font-bold text-gray-900">{guideDisplayTitle(guide)}</h2>
+            <h2 className="text-lg font-bold text-gray-900">{guideDisplayTitle(guide, record)}</h2>
             <GuideStatusBadge status={guide.status} />
           </div>
           <p className="mt-1 text-xs text-gray-500">
