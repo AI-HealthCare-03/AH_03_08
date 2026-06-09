@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, HeartPulse, Newspaper, Pill } from 'lucide-react'
+import { AlertTriangle, Download, HeartPulse, Newspaper, Pill } from 'lucide-react'
 import type { Guide } from '@/entities/guide/model'
 import { GUIDE_TABS, type GuideContentTab } from './constants'
 import { splitBulletLines } from './guide-utils'
@@ -16,7 +16,6 @@ function toStr(val: unknown): string {
   if (Array.isArray(val)) return (val as string[]).join('\n')
   if (typeof val === 'object') {
     const obj = val as Record<string, unknown>
-    // {"raw": "..."} 형태 처리
     if (obj.raw && typeof obj.raw === 'string') return obj.raw
     return Object.values(obj).filter(v => typeof v === 'string').join('\n')
   }
@@ -41,6 +40,7 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
     setTab('medication')
     setCardNewsUrl(null)
   }, [guide.id])
+
   const { data: record } = useRecord(guide.record_id)
   const meds = record?.parsed_data?.medications ?? []
 
@@ -188,14 +188,33 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
               <Newspaper className="h-5 w-5 text-brand-primary" />
               <h3 className="text-sm font-semibold text-gray-900">카드뉴스</h3>
             </div>
-            <button
-              type="button"
-              onClick={handleCreateCardNews}
-              disabled={isCardNewsLoading}
-              className="w-full rounded-xl border-2 border-dashed border-brand-primary py-4 text-sm font-semibold text-brand-primary hover:bg-brand-lightest transition-colors disabled:opacity-50"
-            >
-              {isCardNewsLoading ? '생성 중...' : '카드뉴스 생성'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleCreateCardNews}
+                disabled={isCardNewsLoading}
+                className="flex-1 rounded-xl border-2 border-dashed border-brand-primary py-4 text-sm font-semibold text-brand-primary hover:bg-brand-lightest transition-colors disabled:opacity-50"
+              >
+                {isCardNewsLoading ? '생성 중...' : cardNewsUrl ? '카드뉴스 재생성' : '카드뉴스 생성'}
+              </button>
+              {cardNewsUrl && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const now = new Date()
+                    const date = `${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+                    const a = document.createElement('a')
+                    a.href = cardNewsUrl
+                    a.download = `medilog_guide_${date}.png`
+                    a.click()
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl bg-brand-primary px-4 py-4 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+                >
+                  <Download className="h-4 w-4" />
+                  저장
+                </button>
+              )}
+            </div>
             {cardNewsUrl && (
               <img
                 src={cardNewsUrl}
