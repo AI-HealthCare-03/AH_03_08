@@ -26,7 +26,7 @@ export function guideDisplayTitle(guide?: Guide, record?: any): string {
       return `약봉투 ${hospital}`.trim()
     }
     if (type === 'pill_photo') {
-      return firstMed ? `낱알약 ${firstMed}` : '낱알약'
+      return firstMed ? `낱알약 ${firstMed.split(' ')[0]}` : '낱알약'
     }
   }
 
