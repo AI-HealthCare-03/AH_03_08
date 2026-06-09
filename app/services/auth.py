@@ -37,15 +37,21 @@ class AuthService:
                 weight_kg=data.weight_kg,
             )
             if data.allergies:
-                await Allergy.bulk_create([
-                    Allergy(user_id=user.id, allergy_name=a.allergen_name, severity=a.severity)
-                    for a in data.allergies
-                ])
+                await Allergy.bulk_create(
+                    [
+                        Allergy(user_id=user.id, allergy_name=a.allergen_name, severity=a.severity)
+                        for a in data.allergies
+                    ]
+                )
             if data.conditions:
-                await UnderlyingDisease.bulk_create([
-                    UnderlyingDisease(user_id=user.id, underlying_disease_name=c.condition_name, severity=c.severity)
-                    for c in data.conditions
-                ])
+                await UnderlyingDisease.bulk_create(
+                    [
+                        UnderlyingDisease(
+                            user_id=user.id, underlying_disease_name=c.condition_name, severity=c.severity
+                        )
+                        for c in data.conditions
+                    ]
+                )
             return user
 
     async def authenticate(self, data: LoginRequest) -> User:
