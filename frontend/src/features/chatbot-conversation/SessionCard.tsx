@@ -55,7 +55,7 @@ export function SessionCard({ session, isActive = false, medicationCount = 0, di
                 </span>
               )}
               <p className={`truncate text-sm font-medium ${isActive ? 'text-[#0F6E56]' : 'text-gray-800'}`}>
-                {label.replace(/^(처방전|약봉투|낱알약)\s*/, '')}
+                {label.replace(/^(처방전|약봉투|낱알약|낱알 사진)\s*/, '')}
               </p>
             </div>
             <span className="shrink-0 text-xs text-gray-400">{date}</span>
