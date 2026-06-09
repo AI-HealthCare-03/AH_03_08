@@ -43,6 +43,9 @@ class HealthService:
             warnings=data.warnings,
         )
 
+    async def get_medications(self, user: User):
+        return await self.repo.get_medications_by_user(user_id=user.id)
+
     async def create_disease(self, user: User, data: UnderlyingDiseaseRequest):
         return await self.repo.create_disease(
             user_id=user.id, name=data.underlying_disease_name, severity=data.severity
