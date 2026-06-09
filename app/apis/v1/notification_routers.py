@@ -77,6 +77,7 @@ async def create_notification(body: NotificationCreateRequest, current_user=Depe
 
     # 오늘부터 30일치 캘린더 이벤트 자동 생성 (중복 제외)
     from app.models.calendar_events import CalendarEvent
+
     today = date.today()
     existing_dates = set(
         str(e.event_date)
