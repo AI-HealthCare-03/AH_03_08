@@ -109,23 +109,11 @@ class GuideService:
 
         asset = await self.asset_repo.create(guide_id=guide_id, asset_type=asset_type)
 
-        if asset_type == AssetType.TTS:
-            celery_app.send_task(
-                "ai_worker.tasks.tts_task.generate_tts_task",
-                kwargs={
-                    "asset_id": str(asset.id),
-                    "guide_id": str(guide_id),
-                    "text": guide.summary_text or guide.medication_guide,
-                    "user_id": str(user_id),  # S3 경로: tts/{user_id}/{uuid}.mp3
-                },
-                queue="tts",
-            )
-        else:
-            celery_app.send_task(
-                "ai_worker.tasks.image_task.generate_card_image_task",
-                kwargs={"asset_id": str(asset.id), "guide_id": str(guide_id)},
-                queue="image",
-            )
+        celery_app.send_task(
+            "ai_worker.tasks.image_task.generate_card_image_task",
+            kwargs={"asset_id": str(asset.id), "guide_id": str(guide_id)},
+            queue="image",
+        )
 
         return asset
 
