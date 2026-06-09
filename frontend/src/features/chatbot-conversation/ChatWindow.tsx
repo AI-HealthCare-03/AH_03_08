@@ -17,6 +17,12 @@ const WELCOME_MESSAGES: Record<RecordType | 'default', string> = {
   default: '안녕하세요 😊\n처방전을 바탕으로 궁금하신 점이 있으면 편하게 물어보세요.',
 }
 
+const TYPE_BADGE: Record<string, { bg: string; color: string; label: string }> = {
+  prescription: { bg: '#EFF6FF', color: '#1D4ED8', label: '처방전' },
+  medicine_bag: { bg: '#FFF7ED', color: '#C2410C', label: '약봉투' },
+  pill_photo: { bg: '#F0FDF4', color: '#15803D', label: '낱알약' },
+}
+
 interface Props {
   sessionId: string
 }
@@ -45,7 +51,6 @@ export function ChatWindow({ sessionId }: Props) {
   const guide = guides?.find((g) => g.id === session?.guide_id)
   const record = records?.find((r) => r.id === guide?.record_id)
   const welcomeMessage = WELCOME_MESSAGES[record?.record_type ?? 'default']
-
   const sessionLabel = session?.title ?? '채팅 세션'
 
   useEffect(() => {
@@ -147,9 +152,7 @@ export function ChatWindow({ sessionId }: Props) {
   }
 
   return (
-    <div
-      className="flex flex-col bg-white overflow-hidden md:rounded-xl md:border md:border-gray-100 h-full"
-    >
+    <div className="flex flex-col bg-white overflow-hidden md:rounded-xl md:border md:border-gray-100 h-full">
       {/* 헤더 */}
       <div className="flex shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3">
         <button
@@ -159,7 +162,19 @@ export function ChatWindow({ sessionId }: Props) {
           <ArrowLeft className="h-4 w-4" />
         </button>
         <div className="flex flex-1 items-center gap-2 min-w-0">
-          <span className="truncate font-medium text-gray-800 text-sm">{sessionLabel}</span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            {record && TYPE_BADGE[record.record_type] && (
+              <span
+                className="shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold"
+                style={{ background: TYPE_BADGE[record.record_type].bg, color: TYPE_BADGE[record.record_type].color }}
+              >
+                {TYPE_BADGE[record.record_type].label}
+              </span>
+            )}
+            <span className="truncate font-medium text-gray-800 text-sm">
+              {sessionLabel.replace(/^(처방전|약봉투|낱알약|낱알 사진)\s*/, '')}
+            </span>
+          </div>
           {!wsReady && (
             <span className="shrink-0 text-xs text-gray-400">연결 중...</span>
           )}

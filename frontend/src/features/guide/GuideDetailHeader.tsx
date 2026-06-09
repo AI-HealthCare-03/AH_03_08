@@ -7,8 +7,14 @@ import { formatGuideDate, guideDisplayTitle, guideShortId } from './guide-utils'
 import { toast } from '@/shared/lib/toast'
 import { useNavigate } from 'react-router-dom'
 import { useChatSessions, useCreateSession } from '@/entities/chatbot/api'
-import { useMedicalRecords } from '@/entities/medical-record/api'
+import { useMedicalRecords, useRecord } from '@/entities/medical-record/api'
 import { RECORD_TYPE_META } from '@/entities/medical-record/model'
+
+const TYPE_BADGE: Record<string, { bg: string; color: string; label: string }> = {
+  prescription: { bg: '#EFF6FF', color: '#1D4ED8', label: '처방전' },
+  medicine_bag: { bg: '#FFF7ED', color: '#C2410C', label: '약봉투' },
+  pill_photo: { bg: '#F0FDF4', color: '#15803D', label: '낱알약' },
+}
 
 interface GuideDetailHeaderProps {
   guide: Guide
@@ -19,6 +25,7 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
   const { data: sessions } = useChatSessions()
   const { mutateAsync: createSession, isPending } = useCreateSession()
   const { data: records } = useMedicalRecords()
+  const { data: record } = useRecord(guide.record_id)
   const [speaking, setSpeaking] = useState(false)
 
   async function handleShare() {
@@ -36,27 +43,27 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
   }
 
   function handleTts() {
-  if (speaking && !window.speechSynthesis.paused) {
-    window.speechSynthesis.pause()
-    setSpeaking(false)
-  } else if (window.speechSynthesis.paused) {
-    window.speechSynthesis.resume()
-    setSpeaking(true)
-  } else {
-    const text = guide.summary_text?.trim() || ''
-    if (!text) {
-      toast.error('읽을 내용이 없습니다.')
-      return
+    if (speaking && !window.speechSynthesis.paused) {
+      window.speechSynthesis.pause()
+      setSpeaking(false)
+    } else if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume()
+      setSpeaking(true)
+    } else {
+      const text = guide.summary_text?.trim() || ''
+      if (!text) {
+        toast.error('읽을 내용이 없습니다.')
+        return
+      }
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = 'ko-KR'
+      utterance.rate = 1.0
+      utterance.onend = () => setSpeaking(false)
+      utterance.onerror = () => setSpeaking(false)
+      window.speechSynthesis.speak(utterance)
+      setSpeaking(true)
     }
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'ko-KR'
-    utterance.rate = 1.0
-    utterance.onend = () => setSpeaking(false)
-    utterance.onerror = () => setSpeaking(false)
-    window.speechSynthesis.speak(utterance)
-    setSpeaking(true)
   }
-}
 
   async function handleAskChatbot() {
     const existing = sessions?.find(s => s.guide_id === guide.id)
@@ -64,11 +71,11 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
       navigate(`/chatbot/${existing.id}`)
       return
     }
-    const record = records?.find(r => r.id === guide.record_id)
-    const meta = record ? RECORD_TYPE_META[record.record_type] : null
-    const placeName = record?.record_type === 'medicine_bag'
-      ? record.parsed_data?.pharmacy
-      : record?.parsed_data?.hospital
+    const rec = records?.find(r => r.id === guide.record_id)
+    const meta = rec ? RECORD_TYPE_META[rec.record_type] : null
+    const placeName = rec?.record_type === 'medicine_bag'
+      ? rec.parsed_data?.pharmacy
+      : rec?.parsed_data?.hospital
     const title = meta ? (placeName ? `${placeName} ${meta.label}` : meta.label) : guideDisplayTitle(guide)
     try {
       const newSession = await createSession({ guide_id: guide.id, title })
@@ -83,7 +90,17 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-lg font-bold text-gray-900">{guideDisplayTitle(guide)}</h2>
+            {record && TYPE_BADGE[record.record_type] && (
+              <span
+                className="shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold"
+                style={{ background: TYPE_BADGE[record.record_type].bg, color: TYPE_BADGE[record.record_type].color }}
+              >
+                {TYPE_BADGE[record.record_type].label}
+              </span>
+            )}
+            <h2 className="text-lg font-bold text-gray-900">
+              {guideDisplayTitle(guide, record).replace(/^(처방전|약봉투|낱알약)\s*/, '')}
+            </h2>
             <GuideStatusBadge status={guide.status} />
           </div>
           <p className="mt-1 text-xs text-gray-500">
