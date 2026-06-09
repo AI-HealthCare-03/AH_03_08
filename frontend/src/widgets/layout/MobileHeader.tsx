@@ -29,7 +29,7 @@ export function MobileHeader() {
   return (
     <>
       {/* 모바일 상단 헤더 */}
-      <header className="md:hidden fixed top-0 inset-x-0 z-40 flex items-center justify-between px-4 h-14 bg-white border-b border-gray-100">
+      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-14 bg-white border-b border-gray-100">
         <span className="text-base font-bold" style={{ color: '#1D9E75' }}>메디로그</span>
         <button
           onClick={() => setOpen(true)}

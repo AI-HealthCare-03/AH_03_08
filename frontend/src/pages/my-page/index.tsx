@@ -298,7 +298,7 @@ export function MyPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full gap-5 pb-6">
+    <div className="flex flex-col min-h-full gap-5 pb-6 max-w-3xl mx-auto w-full">
 
       {/* ── 프로필 헤더 ── */}
       {editingProfile ? (

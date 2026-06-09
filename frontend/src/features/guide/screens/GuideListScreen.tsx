@@ -2,6 +2,7 @@ import type { Guide } from '@/entities/guide/model'
 import { GuideListCard } from '../GuideListCard'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { SkeletonList } from '@/shared/ui/SkeletonList'
+import { PageHeader } from '@/shared/ui/PageHeader'
 
 interface GuideListScreenProps {
   guides: Guide[] | undefined
@@ -23,10 +24,7 @@ export function GuideListScreen({
 }: GuideListScreenProps) {
   return (
     <div className="flex flex-col gap-5">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">가이드 목록</h1>
-        <p className="text-sm text-gray-500">AI가 생성한 복약 가이드</p>
-      </header>
+      <PageHeader title="가이드 목록" description="AI가 생성한 복약 가이드" />
 
       {isError && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
