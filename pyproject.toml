@@ -12,6 +12,7 @@ dependencies = [
     "python-dateutil>=2.9.0.post0",
     "redis>=7.1.0",
     "tomlkit>=0.14.0",
+    "Pillow>=10.0.0",
 ]
 
 [dependency-groups]
