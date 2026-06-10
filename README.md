@@ -173,7 +173,7 @@ cp envs/example.local.env .env
 | `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`, `S3_BUCKET_NAME` | AWS S3 접속 정보 (TTS/카드뉴스 제외, 이미지 업로드용) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | Google OAuth 정보 |
 | `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`, `KAKAO_REDIRECT_URI` | Kakao OAuth 정보 |
-| `PILL_MODEL_PATH`, `PILL_LABEL_PATH` | 낱알약 분류 모델 경로 |
+| `PILL_MODEL_PATH`, `PILL_LABEL_PATH`, `PILL_PRINT_INDEX_PATH` | 낱알약 분류 모델 및 식별코드 인덱스 경로 |
 | `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 |
 | `HIRA_API_KEY` | 건강보험심사평가원 질병정보 API (AWS 배포 후 설정, 미설정 시 로컬 KCD 사전 사용) |
 
