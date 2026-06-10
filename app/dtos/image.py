@@ -17,8 +17,10 @@ class DrugInfoResponse(BaseModel):
     print_back: str | None = None
     disclaimer: str | None = "본 정보는 참고용이며, 정확한 복약 정보는 전문가에게 확인하세요."
 
+
 class PillMatchRequest(BaseModel):
     ocr_texts: list[str]
+
 
 class PillMatchResponse(BaseModel):
     matched: bool
