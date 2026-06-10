@@ -7,7 +7,7 @@ export function ChatbotPage() {
   const { sessionId } = useParams<{ sessionId?: string }>()
 
   return (
-    <div className="flex overflow-hidden -mx-6 -mb-6 -mt-14 md:-mx-10 md:-mb-10 md:-mt-8" style={{ height: '100svh' }}>
+    <div className="flex overflow-hidden -mx-6 -mb-6 -mt-4 md:mx-auto md:max-w-4xl md:w-full md:-mt-8 md:-mb-10 md:rounded-2xl md:border md:border-gray-100 md:shadow-sm" style={{ height: '100svh' }}>
       {/* 왼쪽 세션 목록 — 모바일에서 세션 선택 시 숨김 */}
       <div
         className={`${sessionId ? 'hidden md:flex' : 'flex'} md:w-96 w-full shrink-0 flex-col overflow-y-auto border-r border-gray-100 bg-white`}

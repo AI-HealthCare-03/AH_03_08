@@ -41,6 +41,15 @@ async def get_medical_records(
     return Response([MedicalRecordResponse.model_validate(r).model_dump() for r in records])
 
 
+@health_router.get("/medications", response_model=list[MedicationResponse], status_code=status.HTTP_200_OK)
+async def get_medications(
+    user: Annotated[User, Depends(get_request_user)],
+    health_service: Annotated[HealthService, Depends(HealthService)],
+) -> Response:
+    medications = await health_service.get_medications(user=user)
+    return Response([MedicationResponse.model_validate(m).model_dump() for m in medications])
+
+
 @health_router.post("/medications", response_model=MedicationResponse, status_code=status.HTTP_201_CREATED)
 async def create_medication(
     data: MedicationCreateRequest,

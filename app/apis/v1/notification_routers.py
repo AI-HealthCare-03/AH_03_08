@@ -1,4 +1,5 @@
 # app/apis/v1/notification_routers.py
+from datetime import date, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -73,6 +74,35 @@ async def create_notification(body: NotificationCreateRequest, current_user=Depe
         scheduled_time=body.scheduled_time,
         is_active=True,
     )
+
+    # 오늘부터 30일치 캘린더 이벤트 자동 생성 (중복 제외)
+    from app.models.calendar_events import CalendarEvent
+
+    today = date.today()
+    existing_dates = set(
+        str(e.event_date)
+        for e in await CalendarEvent.filter(
+            user_id=current_user.id,
+            medication_id=body.medication_id,
+            scheduled_time=body.scheduled_time,
+            event_date__gte=today,
+            event_date__lt=today + timedelta(days=30),
+        ).only("event_date")
+    )
+    new_events = [
+        CalendarEvent(
+            user_id=current_user.id,
+            medication_id=body.medication_id,
+            event_date=today + timedelta(days=i),
+            scheduled_time=body.scheduled_time,
+            status="PENDING",
+        )
+        for i in range(30)
+        if str(today + timedelta(days=i)) not in existing_dates
+    ]
+    if new_events:
+        await CalendarEvent.bulk_create(new_events)
+
     return _ok(
         NotificationResponse(
             id=str(row.id),

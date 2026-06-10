@@ -35,8 +35,27 @@ export function useUpdateEventStatus() {
     mutationFn: async ({ id, status }: { id: string; status: 'TAKEN' | 'MISSED' | 'PENDING' }) => {
       await apiClient.put(`/calendars/${id}/status`, { status })
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['calendar'] })
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['calendar'] }),
+  })
+}
+
+export function useCreateCalendarEvent() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (body: { medication_id: string; event_date: string; scheduled_time: string; note?: string }) => {
+      const { data } = await apiClient.post<{ data: CalendarEvent }>('/calendars', body)
+      return data.data
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['calendar'] }),
+  })
+}
+
+export function useDeleteCalendarEvent() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.delete(`/calendars/${id}`)
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['calendar'] }),
   })
 }

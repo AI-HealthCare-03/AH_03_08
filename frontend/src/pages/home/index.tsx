@@ -1,181 +1,285 @@
-import { useState } from 'react'
-import { PageHeader } from '@/shared/ui/PageHeader'
-import { EmptyState } from '@/shared/ui/EmptyState'
-import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
-import { PollingStatus } from '@/shared/ui/PollingStatus'
-import { toast } from '@/shared/lib/toast'
-import { useCurrentUser } from '@/entities/user/api'
+import { useMemo } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/skeleton'
+import { StatusBadge } from '@/shared/ui/StatusBadge'
+import { useCurrentUser } from '@/entities/user/api'
+import { useMedicalRecords } from '@/entities/medical-record/api'
+import { useGuides } from '@/entities/guide/api'
+import { useNotifications } from '@/entities/notification/api'
+import { useChatSessions } from '@/entities/chatbot/api'
+import { useDailyCalendar, useUpdateEventStatus } from '@/entities/calendar/api'
+import { useMedications } from '@/entities/medication/api'
+import { RECORD_TYPE_META } from '@/entities/medical-record/model'
+import { getDrugCategory } from '@/shared/lib/drug-category'
+import type { MedicationItem } from '@/entities/medication/model'
 
-interface StatCardProps {
-  icon: React.ReactNode
-  label: string
-  count: number | undefined
-  isLoading: boolean
+const PILL_COLORS = [
+  { bg: 'bg-emerald-100', text: 'text-emerald-500' },
+  { bg: 'bg-sky-100',     text: 'text-sky-500'     },
+  { bg: 'bg-amber-100',   text: 'text-amber-500'   },
+  { bg: 'bg-violet-100',  text: 'text-violet-500'  },
+  { bg: 'bg-rose-100',    text: 'text-rose-500'    },
+]
+
+function formatTime(time: string): string {
+  const [h, m] = time.split(':')
+  const hour = parseInt(h, 10)
+  const ampm = hour < 12 ? '오전' : '오후'
+  const display = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+  return `${ampm} ${String(display).padStart(2, '0')}:${m}`
 }
 
-function StatCard({ icon, label, count, isLoading }: StatCardProps) {
+function StatCard({ label, count, isLoading, href }: { label: string; count: number | undefined; isLoading: boolean; href: string }) {
   return (
-    <div className="rounded-2xl p-4 bg-white shadow-sm border border-gray-100 flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <div
-          className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg"
-          style={{ background: '#E1F5EE', color: '#1D9E75' }}
-        >
-          {icon}
-        </div>
-        <p className="text-sm text-gray-500">{label}</p>
-      </div>
-      {isLoading ? (
-        <Skeleton className="h-7 w-14 rounded" />
-      ) : (
-        <p className="text-2xl font-bold text-gray-800">{count ?? 0}<span className="text-sm font-medium text-gray-400 ml-1">건</span></p>
-      )}
-    </div>
+    <Link to={href} className="rounded-2xl bg-white border border-gray-100 shadow-sm p-3.5 flex flex-col gap-1 hover:bg-gray-50 transition-colors">
+      <p className="text-xs text-gray-500">{label}</p>
+      {isLoading
+        ? <Skeleton className="h-6 w-10 rounded" />
+        : <p className="text-xl font-bold text-gray-800">{count ?? 0}<span className="text-xs font-medium text-gray-400 ml-0.5">건</span></p>
+      }
+    </Link>
+  )
+}
+
+function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      onClick={onChange}
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${checked ? 'bg-[#1D9E75]' : 'bg-gray-200'}`}
+    >
+      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition duration-200 ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
+    </button>
   )
 }
 
 export function HomePage() {
-  const { data: user, isLoading } = useCurrentUser()
-  const [confirmOpen, setConfirmOpen] = useState(false)
+  const navigate = useNavigate()
+  const todayStr = new Date().toISOString().slice(0, 10)
 
-  const greeting = (() => {
-    const hour = new Date().getHours()
-    if (hour < 12) return '좋은 아침이에요'
-    if (hour < 18) return '좋은 오후예요'
-    return '좋은 저녁이에요'
-  })()
+  const { data: user, isLoading: userLoading } = useCurrentUser()
+  const { data: records, isLoading: recordsLoading } = useMedicalRecords()
+  const { data: guides, isLoading: guidesLoading } = useGuides()
+  const { data: notifications, isLoading: notificationsLoading } = useNotifications()
+  const { data: sessions, isLoading: sessionsLoading } = useChatSessions()
+  const { data: todayEvents } = useDailyCalendar(todayStr)
+  const { data: medications } = useMedications()
+  const { mutate: updateStatus } = useUpdateEventStatus()
+
+  const medMap = useMemo(() => {
+    const map: Record<string, MedicationItem> = {}
+    medications?.forEach(m => { map[m.id] = m })
+    return map
+  }, [medications])
+
+  const activeNotifMedIds = useMemo(
+    () => new Set(notifications?.filter(n => n.is_active).map(n => n.medication_id) ?? []),
+    [notifications],
+  )
+
+  const todayActiveEvents = useMemo(() => {
+    const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
+    return (todayEvents ?? [])
+      .filter(e => activeNotifMedIds.has(e.medication_id))
+      .sort((a, b) => toMin(a.scheduled_time) - toMin(b.scheduled_time))
+  }, [todayEvents, activeNotifMedIds])
+
+  const recentRecords = (records ?? []).slice(0, 2)
+  const latestGuide = guides?.find(g => g.status === 'done') ?? guides?.[0]
+  const activeNotifCount = notifications?.filter(n => n.is_active).length ?? 0
 
   return (
-    <div className="flex flex-col min-h-full">
-      <PageHeader
-        title="홈"
-        description="건강 기록을 기반으로 맞춤 가이드를 제공합니다."
-      />
+    <div className="flex flex-col gap-4 pb-6 max-w-3xl mx-auto w-full">
 
-      <div className="pb-4 flex flex-col gap-6">
-        {/* 웰컴 배너 */}
-        <div
-          className="rounded-2xl px-5 py-4"
-          style={{ background: 'linear-gradient(135deg, #1D9E75 0%, #0F6E56 100%)' }}
+      {/* ── 헤더 ── */}
+      <div className="flex items-start justify-between pt-1">
+        <div>
+          {userLoading
+            ? <Skeleton className="h-7 w-44 rounded mb-1" />
+            : <h1 className="text-xl font-bold text-gray-900">안녕하세요, {user?.name ?? '사용자'}님 👋</h1>
+          }
+          <p className="text-sm text-gray-500 mt-0.5">오늘도 건강 관리를 시작해봐요</p>
+        </div>
+        <button
+          onClick={() => navigate('/medical-record')}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
         >
-          {isLoading ? (
-            <div className="h-5 w-40 rounded bg-white/20 animate-pulse" />
+          <UploadIcon />
+          기록 업로드
+        </button>
+      </div>
+
+      {/* ── 통계 ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <StatCard label="의료기록"   count={records?.length}      isLoading={recordsLoading}       href="/medical-record" />
+        <StatCard label="가이드"     count={guides?.length}       isLoading={guidesLoading}         href="/guide" />
+        <StatCard label="활성 알림"  count={activeNotifCount}     isLoading={notificationsLoading}  href="/notification" />
+        <StatCard label="챗봇 세션"  count={sessions?.length ?? 0} isLoading={sessionsLoading}      href="/chatbot" />
+      </div>
+
+      {/* ── 최근 의료기록 + 최신 가이드 ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+        {/* 최근 의료기록 */}
+        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-4">
+          <p className="text-sm font-bold text-gray-800 mb-3">최근 의료기록</p>
+          {recordsLoading ? (
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-14 rounded-xl" />
+              <Skeleton className="h-14 rounded-xl" />
+            </div>
+          ) : recentRecords.length === 0 ? (
+            <p className="text-xs text-gray-400 py-5 text-center">업로드된 기록이 없습니다.</p>
           ) : (
-            <p className="text-white font-semibold text-base">
-              {greeting}, {user?.name ?? '사용자'}님!
-            </p>
+            <div className="flex flex-col gap-2">
+              {recentRecords.map(record => {
+                const meta = RECORD_TYPE_META[record.record_type]
+                const institution = record.record_type === 'medicine_bag'
+                  ? record.parsed_data?.pharmacy
+                  : record.parsed_data?.hospital
+                const date = record.parsed_data?.issued_at
+                  ? new Date(record.parsed_data.issued_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+                  : new Date(record.created_at).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' })
+
+                return (
+                  <div
+                    key={record.id}
+                    onClick={() => record.guide_id && navigate(`/guide?id=${record.guide_id}`)}
+                    className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-gray-50 transition-colors ${record.guide_id ? 'cursor-pointer hover:bg-gray-100' : ''}`}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 truncate">
+                        {institution ? `${institution} ${meta?.label}` : meta?.label}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">{date}</p>
+                    </div>
+                    <StatusBadge status={record.status} />
+                  </div>
+                )
+              })}
+            </div>
           )}
-          <p className="text-white/80 text-xs mt-1">
-            오늘도 건강한 하루 되세요.
-          </p>
-          <button
-            onClick={() =>
-              toast.success('건강 팁', {
-                description: '물을 하루 8잔 이상 마시면 체내 독소 배출에 도움이 됩니다.',
-              })
-            }
-            className="mt-3 text-xs font-medium px-3 py-1.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors"
-          >
-            오늘의 건강 팁 보기
-          </button>
         </div>
 
-        {/* 통계 카드 */}
-        <section>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-            나의 현황
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatCard icon={<MedicalIcon />} label="의료기록" count={undefined} isLoading={isLoading} />
-            <StatCard icon={<BookIcon />} label="가이드" count={undefined} isLoading={isLoading} />
-            <StatCard icon={<BellIcon />} label="활성 알림" count={undefined} isLoading={isLoading} />
-            <StatCard icon={<ChatIcon />} label="챗봇 세션" count={undefined} isLoading={isLoading} />
-          </div>
-        </section>
-
-        {/* 공통 컴포넌트 데모 */}
-        <section className="flex flex-col gap-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-            공통 컴포넌트 데모
-          </p>
-
-          {/* PollingStatus */}
-          <div>
-            <p className="text-xs text-gray-400 mb-2">PollingStatus</p>
-            <PollingStatus message="AI가 의료기록을 분석 중입니다..." />
-          </div>
-
-          {/* EmptyState */}
-          <div>
-            <p className="text-xs text-gray-400 mb-2">EmptyState</p>
-            <div className="rounded-2xl bg-white border border-gray-100 shadow-sm">
-              <EmptyState
-                icon={<MedicalIcon />}
-                title="등록된 의료기록이 없습니다"
-                description="처방전이나 검사 결과를 업로드하면 AI가 분석해 드립니다."
-                action={{ label: '기록 추가하기', onClick: () => toast.info('의료기록 업로드로 이동') }}
-              />
+        {/* 최신 가이드 */}
+        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-4 flex flex-col">
+          <p className="text-sm font-bold text-gray-800 mb-3">최신 가이드</p>
+          {guidesLoading ? (
+            <div className="flex flex-col gap-2 flex-1">
+              <Skeleton className="h-4 w-3/4 rounded" />
+              <Skeleton className="h-3 w-full rounded" />
+              <Skeleton className="h-3 w-4/5 rounded" />
             </div>
-          </div>
-
-          {/* ConfirmDialog */}
-          <div>
-            <p className="text-xs text-gray-400 mb-2">ConfirmDialog</p>
-            <button
-              onClick={() => setConfirmOpen(true)}
-              className="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              삭제 확인 다이얼로그 열기
-            </button>
-            <ConfirmDialog
-              open={confirmOpen}
-              onOpenChange={setConfirmOpen}
-              title="기록을 삭제하시겠습니까?"
-              description="삭제된 기록은 복구할 수 없습니다."
-              confirmLabel="삭제"
-              variant="danger"
-              onConfirm={() => toast.error('기록이 삭제되었습니다.')}
-            />
-          </div>
-        </section>
+          ) : !latestGuide ? (
+            <p className="text-xs text-gray-400 flex-1 py-2">생성된 가이드가 없습니다.</p>
+          ) : (
+            <div className="flex-1">
+              {latestGuide.title && (
+                <p className="text-xs font-semibold text-[#1D9E75] mb-1.5 truncate">{latestGuide.title}</p>
+              )}
+              <p className="text-xs text-gray-600 leading-relaxed line-clamp-4">
+                {latestGuide.summary_text ?? '가이드 내용을 확인하세요.'}
+              </p>
+            </div>
+          )}
+          <Link
+            to={latestGuide ? `/guide?id=${latestGuide.id}` : '/guide'}
+            className="mt-3 text-xs font-semibold text-gray-400 hover:text-gray-700 transition-colors"
+          >
+            가이드 전체보기 →
+          </Link>
+        </div>
       </div>
+
+      {/* ── 오늘 복약 알림 ── */}
+      <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-4">
+        <div className="flex items-center justify-between mb-0.5">
+          <p className="text-sm font-bold text-gray-800">오늘 복약 알림</p>
+          <Link to="/notification" className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors">
+            <GearIcon />
+            알림 관리
+          </Link>
+        </div>
+        <p className="text-xs text-gray-400 mb-3">활성화된 알림만 표시</p>
+
+        {todayActiveEvents.length === 0 ? (
+          <div className="py-6 flex items-center justify-center">
+            <p className="text-sm text-gray-400">오늘 예정된 복약 알림이 없습니다.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col divide-y divide-gray-50">
+            {todayActiveEvents.map((event, idx) => {
+              const med = medMap[event.medication_id]
+              const rawName = med?.drug_name ?? '알 수 없음'
+              const displayName = getDrugCategory(rawName) ?? rawName
+              const dosage = med?.dosage ? ` ${med.dosage}` : ''
+              const color = PILL_COLORS[idx % PILL_COLORS.length]
+              const isTaken = event.status === 'TAKEN'
+
+              return (
+                <div key={event.id} className="flex items-center gap-3 py-3">
+                  <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${color.bg}`}>
+                    <PillIcon className={`h-4 w-4 ${color.text}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 truncate">{displayName}{dosage}</p>
+                    <p className="text-xs text-gray-400">
+                      {formatTime(event.scheduled_time)}
+                      {med?.instructions ? ` · ${med.instructions}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                      event.status === 'TAKEN'  ? 'bg-emerald-100 text-emerald-600' :
+                      event.status === 'MISSED' ? 'bg-red-100 text-red-500' :
+                                                  'bg-gray-100 text-gray-500'
+                    }`}>
+                      {event.status === 'TAKEN' ? '완료' : event.status === 'MISSED' ? '미복용' : '예정'}
+                    </span>
+                    <Toggle
+                      checked={isTaken}
+                      onChange={() => updateStatus({ id: event.id, status: isTaken ? 'PENDING' : 'TAKEN' })}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        <p className="text-xs text-gray-300 mt-2">토글을 켜면 복용 완료로 기록됩니다.</p>
+      </div>
+
     </div>
   )
 }
 
-function MedicalIcon() {
+// ── 아이콘 ────────────────────────────────────────────────────────────────────
+
+function UploadIcon() {
   return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
     </svg>
   )
 }
 
-function BookIcon() {
+function PillIcon({ className }: { className?: string }) {
   return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className={className ?? 'h-4 w-4'} fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-        d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+        d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
     </svg>
   )
 }
 
-function ChatIcon() {
+function GearIcon() {
   return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-        d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-    </svg>
-  )
-}
-
-function BellIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-        d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+        d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   )
 }

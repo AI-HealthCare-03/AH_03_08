@@ -1,10 +1,20 @@
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, EmailStr, Field
 
 from app.core.validators import validate_birthday, validate_password, validate_phone_number
 from app.models.users import Gender
+
+
+class AllergyInput(BaseModel):
+    allergen_name: str = Field(..., max_length=200)
+    severity: Literal["mild", "moderate", "severe"] = "mild"
+
+
+class ConditionInput(BaseModel):
+    condition_name: str = Field(..., max_length=200)
+    severity: Literal["mild", "moderate", "severe"] = "mild"
 
 
 class SignUpRequest(BaseModel):
@@ -17,6 +27,10 @@ class SignUpRequest(BaseModel):
     gender: Gender
     birth_date: Annotated[date, AfterValidator(validate_birthday)]
     phone_number: Annotated[str, AfterValidator(validate_phone_number)]
+    height_cm: float | None = None
+    weight_kg: float | None = None
+    allergies: list[AllergyInput] = []
+    conditions: list[ConditionInput] = []
 
 
 class LoginRequest(BaseModel):
