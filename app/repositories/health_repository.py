@@ -61,6 +61,9 @@ class HealthRepository:
     async def get_medications_by_record(self, medical_record_id):
         return await self._medication.filter(medical_record_id=medical_record_id)
 
+    async def get_medications_by_user(self, user_id):
+        return await self._medication.filter(medical_record__user_id=user_id).order_by("-created_at")
+
     # ── UnderlyingDisease ─────────────────────────────────────
     async def create_disease(self, user_id, name, severity=None):
         return await self._disease.create(user_id=user_id, underlying_disease_name=name, severity=severity)

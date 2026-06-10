@@ -3,7 +3,7 @@ import { UploadHistoryList } from '@/widgets/upload-history/UploadHistoryList'
 
 export function MedicalRecordPage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-3xl mx-auto w-full">
       <div>
         <h1 className="text-lg font-bold text-gray-900">의료기록</h1>
         <p className="mt-0.5 text-sm text-gray-500">업로드하면 AI가 분석해드려요</p>

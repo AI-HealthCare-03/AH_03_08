@@ -42,7 +42,7 @@ export function GuidePage() {
   const showDetail = !!selectedId
 
   return (
-    <div className="w-full max-w-6xl mx-auto">
+    <div className="w-full max-w-4xl mx-auto">
       {/* 모바일: 목록 OR 상세 */}
       <div className="lg:hidden">
         {!showDetail ? (

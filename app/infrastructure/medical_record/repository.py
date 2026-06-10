@@ -37,7 +37,7 @@ class TortoiseRecordRepository(AbstractRecordRepository):
     async def find_by_user_id_paginated(self, user_id: int, page: int, limit: int) -> tuple[list[MedicalRecord], int]:
         from app.models.guide import Guide as GuideORM
 
-        qs = MedicalRecordORM.filter(user_id=user_id).order_by("-created_at")
+        qs = MedicalRecordORM.filter(user_id=user_id, record_type__in=[0, 1, 2]).order_by("-created_at")
         total = await qs.count()
         orm_records = await qs.offset((page - 1) * limit).limit(limit)
 

@@ -9,6 +9,8 @@ from app.core.jwt.tokens import AccessToken, RefreshToken
 from app.core.utils.common import normalize_phone_number
 from app.core.utils.security import hash_password, verify_password
 from app.dtos.auth import LoginRequest, SignUpRequest
+from app.models.allergies import Allergy
+from app.models.underlying_diseases import UnderlyingDisease
 from app.models.users import User
 from app.repositories.user_repository import UserRepository
 from app.services.jwt import JwtService
@@ -31,7 +33,25 @@ class AuthService:
                 phone_number=normalized_phone_number,
                 gender=data.gender,
                 birth_date=data.birth_date,
+                height_cm=data.height_cm,
+                weight_kg=data.weight_kg,
             )
+            if data.allergies:
+                await Allergy.bulk_create(
+                    [
+                        Allergy(user_id=user.id, allergy_name=a.allergen_name, severity=a.severity)
+                        for a in data.allergies
+                    ]
+                )
+            if data.conditions:
+                await UnderlyingDisease.bulk_create(
+                    [
+                        UnderlyingDisease(
+                            user_id=user.id, underlying_disease_name=c.condition_name, severity=c.severity
+                        )
+                        for c in data.conditions
+                    ]
+                )
             return user
 
     async def authenticate(self, data: LoginRequest) -> User:
