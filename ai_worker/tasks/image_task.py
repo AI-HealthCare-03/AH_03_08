@@ -4,6 +4,7 @@
 # llm-worker(-Q llm)가 이 파일을 include할 때 torchvision이 로드되면
 # CPU 빌드에서 RuntimeError: operator torchvision::nms does not exist 발생.
 # PillClassifier, get_image_classifier는 실제 사용 시점(_load_classifier)에만 import.
+import asyncio
 import base64
 
 from celery.signals import worker_process_init, worker_process_shutdown
@@ -14,18 +15,7 @@ from ai_worker.core.logger import logger
 
 config = Config()
 
-# ─────────────────────────────────────────────────────────────────
-# [최적화 5] PillClassifier 프로세스 레벨 싱글톤
-#
-# 문제: 기존 classify_pill()은 호출마다 get_image_classifier()를 실행,
-#       ResNet152 모델(수백 MB)을 매번 디스크에서 로드 → 태스크당 수 초 지연.
-#
-# 해결: worker_process_init 시그널로 워커 프로세스 시작 시 1회만 로드.
-#       이후 태스크는 이미 메모리에 올라간 인스턴스를 바로 사용.
-#
-# concurrency=2 기준: 프로세스 2개 × 1회 로드 = 총 2회 로드 (이전: 요청마다)
-# ─────────────────────────────────────────────────────────────────
-_classifier = None  # PillClassifier | None (lazy import로 타입 명시 생략)
+_classifier = None
 
 
 @worker_process_init.connect
@@ -33,7 +23,7 @@ def _load_classifier(**kwargs) -> None:
     """워커 프로세스 시작 시 ResNet152 모델을 1회 로드한다."""
     global _classifier
     try:
-        from ai_worker.image import get_image_classifier  # lazy import — llm-worker 로드 시 torchvision 방지
+        from ai_worker.image import get_image_classifier
 
         _classifier = get_image_classifier(config)
         logger.info("PillClassifier 초기화 완료 (프로세스 시작 시 1회 로드)")
@@ -53,10 +43,25 @@ def _get_classifier():
     """싱글톤 반환. 초기화 실패 상태면 즉시 재시도."""
     global _classifier
     if _classifier is None:
-        from ai_worker.image import get_image_classifier  # lazy import
+        from ai_worker.image import get_image_classifier
 
         _classifier = get_image_classifier(config)
     return _classifier
+
+
+def _run_ocr(image_bytes: bytes) -> list[str]:
+    """CLOVA OCR을 동기 컨텍스트에서 실행한다."""
+    try:
+        from ai_worker.ocr.clova import ClovaOCRProvider
+
+        if not config.CLOVA_OCR_URL or not config.CLOVA_OCR_SECRET:
+            return []
+
+        ocr = ClovaOCRProvider(url=config.CLOVA_OCR_URL, secret=config.CLOVA_OCR_SECRET)
+        return asyncio.run(ocr.extract_text_from_bytes(image_bytes))
+    except Exception as exc:
+        logger.warning(f"OCR 실행 실패: {exc}")
+        return []
 
 
 @celery_app.task(
@@ -83,17 +88,23 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
     try:
         logger.info(f"낱알약 분류 시작 - record_id: {record_id}")
 
-        # [최적화 5] 싱글톤에서 이미 로드된 분류기 반환 (모델 재로드 없음)
         classifier = _get_classifier()
-        # base64 인코딩된 str이면 bytes로 디코딩
+
         if isinstance(image_bytes, str):
             image_bytes = base64.b64decode(image_bytes)
-        kcode, drug_info, confidence_score = classifier.classify(image_bytes)
 
-        # [12] DB 저장 책임을 FastAPI에 위임
+        # CLOVA OCR 실행
+        ocr_texts = _run_ocr(image_bytes)
+        logger.info(f"OCR 추출 텍스트: {ocr_texts}")
+
+        # OCR 결과 활용하여 분류
+        kcode, drug_info, confidence_score, method = classifier.classify_with_ocr(image_bytes, ocr_texts)
+        logger.info(f"분류 방법: {method}, kcode: {kcode}, confidence: {confidence_score:.4f}")
+
         from ai_worker.callback import image_done, image_failed
 
-        if confidence_score < 0.7:
+        # OCR 매칭 실패 + ResNet152 confidence 낮은 경우
+        if method == "resnet" and confidence_score < 0.7:
             logger.warning(f"분류 불가 - confidence: {confidence_score:.4f}")
             image_failed(record_id)
             return {
@@ -104,7 +115,6 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
 
         drug_info["confidence_score"] = confidence_score
 
-        # medications 구조로 감싸서 저장
         parsed_data = {
             "medications": [
                 {
@@ -117,16 +127,19 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
                     "otc_code": drug_info.get("di_etc_otc_code"),
                 }
             ],
-            "drug_info": drug_info,  # 원본 보존 (카드뉴스용)
+            "drug_info": drug_info,
+            "ocr_texts": ocr_texts,  # 프론트 확인 화면에서 활용
         }
         image_done(record_id, parsed_data)
-        logger.info(f"낱알약 분류 완료 - kcode: {kcode}")
+        logger.info(f"낱알약 분류 완료 - kcode: {kcode}, method: {method}")
 
         return {
             "success": True,
             "data": {
                 "kcode": kcode,
                 "drug_info": drug_info,
+                "ocr_texts": ocr_texts,
+                "method": method,
             },
             "message": "낱알약 분류가 완료되었습니다.",
         }
