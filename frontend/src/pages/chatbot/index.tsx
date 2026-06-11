@@ -7,27 +7,34 @@ export function ChatbotPage() {
   const { sessionId } = useParams<{ sessionId?: string }>()
 
   return (
-    <div className="flex overflow-hidden -mx-6 -mb-6 -mt-4 md:mx-auto md:max-w-4xl md:w-full md:-mt-8 md:-mb-10 md:rounded-2xl md:border md:border-gray-100 md:shadow-sm" style={{ height: '100svh' }}>
-      {/* 왼쪽 세션 목록 — 모바일에서 세션 선택 시 숨김 */}
-      <div
-        className={`${sessionId ? 'hidden md:flex' : 'flex'} md:w-96 w-full shrink-0 flex-col overflow-y-auto border-r border-gray-100 bg-white`}
-      >
-        <div className="p-4">
+    <div className="w-full max-w-4xl mx-auto">
+      {/* 모바일: 목록 OR 채팅 */}
+      <div className="md:hidden">
+        {!sessionId ? (
           <SessionList selectedSessionId={sessionId} />
-        </div>
+        ) : (
+          <div className="h-[calc(100svh-9.5rem)]">
+            <ChatWindow key={sessionId} sessionId={sessionId} />
+          </div>
+        )}
       </div>
 
-      {/* 오른쪽 채팅창 */}
-      {sessionId ? (
-        <div className="flex-1 min-w-0 h-full md:p-4">
-          <ChatWindow key={sessionId} sessionId={sessionId} />
+      {/* 데스크탑: 목록 + 채팅 */}
+      <div className="hidden md:grid md:grid-cols-[300px_1fr] md:gap-6 md:items-start">
+        <div>
+          <SessionList selectedSessionId={sessionId} />
         </div>
-      ) : (
-        <div className="hidden md:flex flex-1 items-center justify-center flex-col gap-3 text-gray-300">
-          <MessageCircle className="h-12 w-12" />
-          <p className="text-sm">채팅을 선택하거나 새 채팅을 시작하세요</p>
+        <div className="sticky top-8 h-[calc(100svh-5.5rem)]">
+          {sessionId ? (
+            <ChatWindow key={sessionId} sessionId={sessionId} />
+          ) : (
+            <div className="h-full rounded-2xl border border-dashed border-gray-200 bg-gray-50/80 flex flex-col items-center justify-center gap-3 text-gray-400">
+              <MessageCircle className="h-10 w-10" />
+              <p className="text-sm font-medium text-gray-500">채팅을 선택하거나 새 채팅을 시작하세요</p>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

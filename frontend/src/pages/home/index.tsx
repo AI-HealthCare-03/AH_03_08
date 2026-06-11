@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { toast } from '@/shared/lib/toast'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
 import { useCurrentUser } from '@/entities/user/api'
@@ -12,6 +13,12 @@ import { useMedications } from '@/entities/medication/api'
 import { RECORD_TYPE_META } from '@/entities/medical-record/model'
 import { getDrugCategory } from '@/shared/lib/drug-category'
 import type { MedicationItem } from '@/entities/medication/model'
+
+const STATUS_CONFIG = {
+  TAKEN:   { label: '복용 완료', active: 'bg-emerald-100 text-emerald-600' },
+  MISSED:  { label: '미복용',   active: 'bg-red-100 text-red-500'         },
+  PENDING: { label: '예정',     active: 'bg-gray-100 text-gray-500'       },
+}
 
 const PILL_COLORS = [
   { bg: 'bg-emerald-100', text: 'text-emerald-500' },
@@ -41,18 +48,6 @@ function StatCard({ label, count, isLoading, href }: { label: string; count: num
   )
 }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      onClick={onChange}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${checked ? 'bg-[#1D9E75]' : 'bg-gray-200'}`}
-    >
-      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition duration-200 ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
-    </button>
-  )
-}
 
 export function HomePage() {
   const navigate = useNavigate()
@@ -85,6 +80,13 @@ export function HomePage() {
       .sort((a, b) => toMin(a.scheduled_time) - toMin(b.scheduled_time))
   }, [todayEvents, activeNotifMedIds])
 
+  const greeting = (() => {
+    const hour = new Date().getHours()
+    if (hour < 12) return '좋은 아침이에요'
+    if (hour < 18) return '좋은 오후예요'
+    return '좋은 저녁이에요'
+  })()
+
   const recentRecords = (records ?? []).slice(0, 2)
   const latestGuide = guides?.find(g => g.status === 'done') ?? guides?.[0]
   const activeNotifCount = notifications?.filter(n => n.is_active).length ?? 0
@@ -92,22 +94,31 @@ export function HomePage() {
   return (
     <div className="flex flex-col gap-4 pb-6 max-w-3xl mx-auto w-full">
 
-      {/* ── 헤더 ── */}
-      <div className="flex items-start justify-between pt-1">
-        <div>
-          {userLoading
-            ? <Skeleton className="h-7 w-44 rounded mb-1" />
-            : <h1 className="text-xl font-bold text-gray-900">안녕하세요, {user?.name ?? '사용자'}님 👋</h1>
-          }
-          <p className="text-sm text-gray-500 mt-0.5">오늘도 건강 관리를 시작해봐요</p>
+      {/* ── 웰컴 배너 ── */}
+      <div
+        className="rounded-2xl px-5 py-4"
+        style={{ background: 'linear-gradient(135deg, #1D9E75 0%, #0F6E56 100%)' }}
+      >
+        {userLoading
+          ? <div className="h-5 w-40 rounded bg-white/20 animate-pulse" />
+          : <p className="text-white font-semibold text-base">{greeting}, {user?.name ?? '사용자'}님!</p>
+        }
+        <p className="text-white/80 text-xs mt-1">오늘도 건강한 하루 되세요.</p>
+        <div className="flex items-center gap-2 mt-3">
+          <button
+            onClick={() => toast.success('건강 팁', { description: '물을 하루 8잔 이상 마시면 체내 독소 배출에 도움이 됩니다.' })}
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors"
+          >
+            오늘의 건강 팁 보기
+          </button>
+          <button
+            onClick={() => navigate('/medical-record')}
+            className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors"
+          >
+            <UploadIcon />
+            기록 업로드
+          </button>
         </div>
-        <button
-          onClick={() => navigate('/medical-record')}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
-        >
-          <UploadIcon />
-          기록 업로드
-        </button>
       </div>
 
       {/* ── 통계 ── */}
@@ -215,7 +226,6 @@ export function HomePage() {
               const displayName = getDrugCategory(rawName) ?? rawName
               const dosage = med?.dosage ? ` ${med.dosage}` : ''
               const color = PILL_COLORS[idx % PILL_COLORS.length]
-              const isTaken = event.status === 'TAKEN'
 
               return (
                 <div key={event.id} className="flex items-center gap-3 py-3">
@@ -229,25 +239,27 @@ export function HomePage() {
                       {med?.instructions ? ` · ${med.instructions}` : ''}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                      event.status === 'TAKEN'  ? 'bg-emerald-100 text-emerald-600' :
-                      event.status === 'MISSED' ? 'bg-red-100 text-red-500' :
-                                                  'bg-gray-100 text-gray-500'
-                    }`}>
-                      {event.status === 'TAKEN' ? '완료' : event.status === 'MISSED' ? '미복용' : '예정'}
-                    </span>
-                    <Toggle
-                      checked={isTaken}
-                      onChange={() => updateStatus({ id: event.id, status: isTaken ? 'PENDING' : 'TAKEN' })}
-                    />
+                  <div className="inline-flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 gap-0.5">
+                    {(['TAKEN', 'MISSED', 'PENDING'] as const).map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => updateStatus({ id: event.id, status: s })}
+                        className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                          event.status === s
+                            ? STATUS_CONFIG[s].active + ' shadow-sm'
+                            : 'text-gray-400 hover:text-gray-600'
+                        }`}
+                      >
+                        {STATUS_CONFIG[s].label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )
             })}
           </div>
         )}
-        <p className="text-xs text-gray-300 mt-2">토글을 켜면 복용 완료로 기록됩니다.</p>
+        <p className="text-xs text-gray-300 mt-2">버튼을 눌러 복약 상태를 변경하세요.</p>
       </div>
 
     </div>
