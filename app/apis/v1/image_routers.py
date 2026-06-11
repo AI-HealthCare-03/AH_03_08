@@ -52,6 +52,7 @@ async def get_analysis_result(
             dl_material=drug_info.get("dl_material"),
             drug_shape=drug_info.get("drug_shape"),
             color_class1=drug_info.get("color_class1"),
+            color_class2=drug_info.get("color_class2"),
             di_class_no=drug_info.get("di_class_no"),
             di_etc_otc_code=drug_info.get("di_etc_otc_code"),
             chart=drug_info.get("chart"),
