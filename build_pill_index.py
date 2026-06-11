@@ -3,6 +3,7 @@
 실행: python build_pill_index.py
 출력: pill_print_index.json
 """
+
 import json
 from pathlib import Path
 
@@ -11,7 +12,7 @@ JSON_DB_PATH = "/Users/admin/Desktop/PyCharmProjects/Hackerton_Final_Project_공
 OUTPUT_PATH = "pill_print_index.json"
 
 
-def build_index():
+def build_index():  # noqa: C901
     print_index = {}
     kcode_info = {}
 
