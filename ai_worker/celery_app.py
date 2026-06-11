@@ -16,6 +16,7 @@ celery_app = Celery(
         "ai_worker.tasks.llm_task",
         "ai_worker.tasks.image_task",
         "ai_worker.tasks.ai_task",
+        "ai_worker.tasks.metric_task",
     ],
 )
 
@@ -34,6 +35,7 @@ celery_app.conf.update(
         "ai_worker.tasks.llm_task.*": {"queue": "llm"},
         "ai_worker.tasks.image_task.*": {"queue": "image"},
         "ai_worker.tasks.ai_task.*": {"queue": "llm"},
+        "ai_worker.tasks.metric_task.*": {"queue": "llm"},
     },
 )
 
@@ -49,7 +51,7 @@ celery_app.conf.beat_schedule = {
         "options": {"queue": "llm"},
     },
     "daily-metric-snapshot": {
-        "task": "ai_worker.tasks.llm_task.aggregate_metric_snapshots",
+        "task": "ai_worker.tasks.metric_task.aggregate_metric_snapshots",
         "schedule": 86400.0,
         "options": {"queue": "llm"},
     },
