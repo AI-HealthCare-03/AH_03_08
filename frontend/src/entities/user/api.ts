@@ -21,7 +21,7 @@ export function useCurrentUser() {
 export function useUpdateProfile() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (body: { name?: string; gender?: string; height_cm?: number; weight_kg?: number }) => {
+    mutationFn: async (body: { name?: string; gender?: string; height_cm?: number; weight_kg?: number; birth_date?: string }) => {
       await apiClient.patch('/users/me', body)
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.me }),

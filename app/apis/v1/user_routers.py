@@ -127,6 +127,7 @@ class UserMeUpdateRequest(BaseModel):
     gender: str | None = None
     height_cm: float | None = None
     weight_kg: float | None = None
+    birth_date: str | None = None
 
 
 @user_router.get("/me", summary="Get my profile")
@@ -287,6 +288,9 @@ async def update_my_profile(
     if body.weight_kg is not None:
         current_user.weight_kg = body.weight_kg
         update_fields.append("weight_kg")
+    if body.birth_date is not None:
+        current_user.birth_date = body.birth_date
+        update_fields.append("birth_date")
     if update_fields:
         await current_user.save(update_fields=update_fields)
     return _ok({"message": "Updated."})
