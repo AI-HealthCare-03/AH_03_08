@@ -10,6 +10,7 @@ class DrugInfoResponse(BaseModel):
     dl_material: str | None = None
     drug_shape: str | None = None
     color_class1: str | None = None
+    color_class2: str | None = None
     di_class_no: str | None = None
     di_etc_otc_code: str | None = None
     chart: str | None = None
