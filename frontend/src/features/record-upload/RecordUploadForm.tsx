@@ -157,7 +157,16 @@ export function RecordUploadForm() {
       print_back: currentPillResult.print_back,
     } : {}
     updateRecord(
-      { id: recordId, parsed_data: { drug_info: drugInfo } as unknown as ParsedData },
+      { id: recordId, parsed_data: {
+        drug_info: drugInfo,
+        medications: drugInfo.drug_name ? [{
+          name: drugInfo.drug_name,
+          dosage: null,
+          frequency: null,
+          days: null,
+          instructions: drugInfo.dl_material ?? null,
+        }] : [],
+      } as unknown as ParsedData },
       {
         onSuccess: () => {
           generateGuide(recordId, {
@@ -166,10 +175,14 @@ export function RecordUploadForm() {
               toast.success('가이드 생성 요청 완료! 가이드 탭에서 확인하세요.')
               navigate(`/guide?id=${data.guide_id}`)
             },
-            onError: () => toast.error('가이드 생성에 실패했습니다.'),
+            onError: () => {
+              toast.error('가이드 생성에 실패했습니다.')
+            },
           })
         },
-        onError: () => toast.error('데이터 저장에 실패했습니다.'),
+        onError: () => {
+          toast.error('데이터 저장에 실패했습니다.')
+        },
       },
     )
   }
