@@ -19,10 +19,7 @@ def _ok(data, message: str = "ok") -> dict:
     return {"success": True, "data": data, "message": message}
 
 
-# â”€â”€ 1. í”¼ë“œë°± ëª©ë¡ ì¡°íšŒ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-
-@admin_router.get("/feedbacks", summary="í”¼ë“œë°± ëª©ë¡ ì¡°íšŒ (ê´€ë¦¬ìž)")
+@admin_router.get("/feedbacks", summary="feedback list")
 async def list_feedbacks(
     _: AdminUser,
     page: int = Query(default=1, ge=1),
@@ -44,113 +41,67 @@ async def list_feedbacks(
         }
         for f in rows
     ]
-    return _ok({"total": total, "page": page, "limit": limit, "items": items}, "í”¼ë“œë°± ëª©ë¡ ì¡°íšŒ ì„±ê³µ")
+    return _ok({"total": total, "page": page, "limit": limit, "items": items}, "ok")
 
 
-# â”€â”€ 2. í”„ë¡¬í”„íŠ¸ ë²„ì „ í˜„í™© ì¡°íšŒ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-
-@admin_router.get("/prompts/versions", summary="í”„ë¡¬í”„íŠ¸ ë²„ì „ë³„ ê°€ì´ë“œ í†µê³„")
+@admin_router.get("/prompts/versions", summary="prompt version stats")
 async def get_prompt_versions(_: AdminUser):
-    """
-    Guide í…Œì´ë¸”ì˜ prompt_version ì»¬ëŸ¼ ê¸°ì¤€ìœ¼ë¡œ
-    ë²„ì „ë³„ ê°€ì´ë“œ ìˆ˜ / í‰ê·  rating ì§‘ê³„
-    """
     guides = await Guide.all().prefetch_related("feedbacks")
     version_map: dict[str, dict] = {}
-
     for g in guides:
         v = g.prompt_version or "unknown"
         if v not in version_map:
             version_map[v] = {"version": v, "guide_count": 0, "ratings": []}
         version_map[v]["guide_count"] += 1
-
-    # í”¼ë“œë°± rating ì§‘ê³„
     feedbacks = await Feedback.all()
     guide_version = {str(g.id): g.prompt_version or "unknown" for g in guides}
     for f in feedbacks:
         v = guide_version.get(str(f.guide_id), "unknown")
         if v in version_map:
             version_map[v]["ratings"].append(f.rating)
-
     result = []
     for d in version_map.values():
         ratings = d.pop("ratings")
         d["avg_rating"] = round(sum(ratings) / len(ratings), 2) if ratings else None
         d["feedback_count"] = len(ratings)
         result.append(d)
-
     result.sort(key=lambda x: x["version"], reverse=True)
-    return _ok(result, "í”„ë¡¬í”„íŠ¸ ë²„ì „ í†µê³„ ì¡°íšŒ ì„±ê³µ")
+    return _ok(result, "ok")
 
 
-# â”€â”€ 3. AI í’ˆì§ˆ ëª¨ë‹ˆí„°ë§ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-
-@admin_router.get("/metrics/summary", summary="AI í’ˆì§ˆ ëª¨ë‹ˆí„°ë§ ìš”ì•½")
+@admin_router.get("/metrics/summary", summary="AI metrics summary")
 async def get_metrics_summary(_: AdminUser):
-    """
-    - OCR ì„±ê³µ/ì‹¤íŒ¨ìœ¨
-    - LLM ê°€ì´ë“œ ì„±ê³µ/ì‹¤íŒ¨ìœ¨
-    - P95 latency (ModelMetric ê¸°ë°˜)
-    - ì¼ë³„ ê°€ì´ë“œ ìƒì„± ìˆ˜ (ìµœê·¼ 7ì¼)
-    """
     from datetime import datetime, timedelta
-
-    # OCR ì„±ê³µ/ì‹¤íŒ¨ìœ¨
     total_records = await MedicalRecord.all().count()
     failed_records = await MedicalRecord.filter(status="FAILED").count()
     ocr_success_rate = round((1 - failed_records / total_records) * 100, 1) if total_records else 0
-
-    # LLM ê°€ì´ë“œ ì„±ê³µ/ì‹¤íŒ¨ìœ¨
     total_guides = await Guide.all().count()
     failed_guides = await Guide.filter(status="failed").count()
     guide_success_rate = round((1 - failed_guides / total_guides) * 100, 1) if total_guides else 0
-
-    # P95 latency (ModelMetric)
     metrics = await ModelMetric.filter(success=True).order_by("latency_ms").values_list("latency_ms", flat=True)
     p95_latency = None
     if metrics:
         idx = int(len(metrics) * 0.95)
         p95_latency = round(metrics[min(idx, len(metrics) - 1)], 1)
-
-    # ìµœê·¼ 7ì¼ ì¼ë³„ ê°€ì´ë“œ ìƒì„± ìˆ˜
     now = datetime.now(UTC)
     daily_counts = []
     for i in range(6, -1, -1):
         day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
         day_end = day_start + timedelta(days=1)
         count = await Guide.filter(created_at__gte=day_start, created_at__lt=day_end).count()
-        daily_counts.append(
-            {
-                "date": day_start.strftime("%Y-%m-%d"),
-                "guide_count": count,
-            }
-        )
-
+        daily_counts.append({"date": day_start.strftime("%Y-%m-%d"), "guide_count": count})
     return _ok(
         {
-            "ocr": {
-                "total": total_records,
-                "failed": failed_records,
-                "success_rate_pct": ocr_success_rate,
-            },
-            "llm": {
-                "total": total_guides,
-                "failed": failed_guides,
-                "success_rate_pct": guide_success_rate,
-            },
+            "ocr": {"total": total_records, "failed": failed_records, "success_rate_pct": ocr_success_rate},
+            "llm": {"total": total_guides, "failed": failed_guides, "success_rate_pct": guide_success_rate},
             "p95_latency_ms": p95_latency,
             "daily_guides": daily_counts,
         },
-        "AI í’ˆì§ˆ ëª¨ë‹ˆí„°ë§ ì¡°íšŒ ì„±ê³µ",
+        "ok",
     )
 
 
-# â”€â”€ 4. ì‚¬ìš©ìž ëª©ë¡ ì¡°íšŒ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-
-@admin_router.get("/users", summary="ì‚¬ìš©ìž ëª©ë¡ ì¡°íšŒ (ê´€ë¦¬ìž)")
+@admin_router.get("/users", summary="user list")
 async def list_users(
     _: AdminUser,
     page: int = Query(default=1, ge=1),
@@ -170,11 +121,10 @@ async def list_users(
         }
         for r in rows
     ]
-    return _ok({"total": total, "page": page, "limit": limit, "items": items}, "ì‚¬ìš©ìž ëª©ë¡ ì¡°íšŒ ì„±ê³µ")
+    return _ok({"total": total, "page": page, "limit": limit, "items": items}, "ok")
 
 
-# 5. ÇÁ·ÒÇÁÆ® ¹öÀüº° ¼º´É ºñ±³ (2°³ ÀÌ»ó ÁöÇ¥)
-@admin_router.get("/metrics/model-comparison", summary="ÇÁ·ÒÇÁÆ® ¹öÀüº° ¼º´É ºñ±³")
+@admin_router.get("/metrics/model-comparison", summary="model version comparison")
 async def get_model_comparison(_: AdminUser):
     from app.models.model_metrics import MetricSnapshot
     snapshots = await MetricSnapshot.all().order_by("model_type", "snapshot_date")
@@ -182,13 +132,7 @@ async def get_model_comparison(_: AdminUser):
     for s in snapshots:
         v = s.model_type
         if v not in version_map:
-            version_map[v] = {
-                "version": v,
-                "avg_latency_ms": [],
-                "success_rates": [],
-                "avg_ratings": [],
-                "total_count": 0,
-            }
+            version_map[v] = {"version": v, "avg_latency_ms": [], "success_rates": [], "avg_ratings": [], "total_count": 0}
         if s.avg_latency_ms is not None:
             version_map[v]["avg_latency_ms"].append(s.avg_latency_ms)
         if s.success_rate is not None:
@@ -196,7 +140,6 @@ async def get_model_comparison(_: AdminUser):
         if s.avg_rating is not None:
             version_map[v]["avg_ratings"].append(s.avg_rating)
         version_map[v]["total_count"] += s.total_count or 0
-
     result = []
     for d in version_map.values():
         latencies = d["avg_latency_ms"]
@@ -210,13 +153,11 @@ async def get_model_comparison(_: AdminUser):
             "total_count": d["total_count"],
         })
     result.sort(key=lambda x: x["version"], reverse=True)
-    return _ok(result, "¸ðµ¨ ¹öÀü ºñ±³ Á¶È¸ ¼º°ø")
+    return _ok(result, "ok")
 
 
-# 6. ¹Ýº¹ Å×½ºÆ® ÆíÂ÷ ºÐ¼®
-@admin_router.get("/metrics/consistency", summary="µ¿ÀÏ ÀÔ·Â ¹Ýº¹ Å×½ºÆ® ÆíÂ÷ ºÐ¼®")
+@admin_router.get("/metrics/consistency", summary="consistency analysis")
 async def get_consistency_analysis(_: AdminUser):
-    from app.models.model_metrics import ModelMetric
     import statistics
     metrics = await ModelMetric.filter(success=True).values("model_type", "latency_ms", "confidence_score")
     type_map: dict[str, dict] = {}
@@ -228,7 +169,6 @@ async def get_consistency_analysis(_: AdminUser):
             type_map[t]["latencies"].append(m["latency_ms"])
         if m["confidence_score"] is not None:
             type_map[t]["confidences"].append(m["confidence_score"])
-
     result = []
     for model_type, data in type_map.items():
         lat = data["latencies"]
@@ -241,11 +181,10 @@ async def get_consistency_analysis(_: AdminUser):
             "confidence_mean": round(sum(conf) / len(conf), 4) if conf else None,
             "sample_count": len(lat),
         })
-    return _ok(result, "¹Ýº¹ Å×½ºÆ® ÆíÂ÷ ºÐ¼® ¼º°ø")
+    return _ok(result, "ok")
 
 
-# 7. ÇÇµå¹é ¼öÁý¡æÀúÀå¡æ°³¼± Èå¸§ ¿ä¾à
-@admin_router.get("/metrics/feedback-flow", summary="ÇÇµå¹é ¼öÁý¡æ°³¼± Èå¸§ ¿ä¾à")
+@admin_router.get("/metrics/feedback-flow", summary="feedback flow summary")
 async def get_feedback_flow(_: AdminUser):
     from app.models.model_metrics import MetricSnapshot
     total_feedback = await Feedback.all().count()
@@ -267,22 +206,19 @@ async def get_feedback_flow(_: AdminUser):
         "positive_count": positive,
         "negative_count": negative,
         "improvement_trend": trend,
-    }, "ÇÇµå¹é Èå¸§ ¿ä¾à ¼º°ø")
+    }, "ok")
 
 
-# 8. Å×½ºÆ® º¸°í¼­ ÀÚµ¿»ý¼º
-@admin_router.get("/report", summary="3-3 ¹Ýº¹ Å×½ºÆ® º¸°í¼­ ÀÚµ¿»ý¼º")
+@admin_router.get("/report", summary="test report")
 async def generate_test_report(_: AdminUser):
-    from datetime import datetime
-    from app.models.model_metrics import MetricSnapshot, ModelMetric
     import statistics
-
+    from datetime import datetime
+    from app.models.model_metrics import MetricSnapshot, ModelMetric as MM
     now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M")
-    metrics = await ModelMetric.filter(success=True).values("model_type", "latency_ms", "confidence_score")
+    metrics = await MM.filter(success=True).values("model_type", "latency_ms", "confidence_score")
     snapshots = await MetricSnapshot.all().order_by("-snapshot_date").limit(30)
     feedbacks = await Feedback.all().count()
     positive = await Feedback.filter(rating__gte=4).count()
-
     type_map: dict[str, list] = {}
     for m in metrics:
         t = m["model_type"]
@@ -290,34 +226,28 @@ async def generate_test_report(_: AdminUser):
             type_map[t] = []
         if m["latency_ms"]:
             type_map[t].append(m["latency_ms"])
-
-    consistency = []
-    for model_type, latencies in type_map.items():
-        consistency.append({
+    consistency = [
+        {
             "model_type": model_type,
             "mean_ms": round(sum(latencies) / len(latencies), 2) if latencies else None,
             "stddev_ms": round(statistics.stdev(latencies), 2) if len(latencies) >= 2 else None,
             "sample_count": len(latencies),
-        })
-
-    version_ratings = {}
+        }
+        for model_type, latencies in type_map.items()
+    ]
+    version_ratings: dict[str, list] = {}
     for s in snapshots:
         v = s.model_type
         if v not in version_ratings:
             version_ratings[v] = []
         if s.avg_rating:
             version_ratings[v].append(s.avg_rating)
-
     model_comparison = [
-        {
-            "version": v,
-            "avg_rating": round(sum(r) / len(r), 4) if r else None,
-        }
+        {"version": v, "avg_rating": round(sum(r) / len(r), 4) if r else None}
         for v, r in version_ratings.items()
     ]
-
     report = {
-        "title": "MediLog 8Á¶ ? 3-3 ¹Ýº¹ Å×½ºÆ® º¸°í¼­",
+        "title": "MediLog 8\uc870 \u2014 3-3 \ubc18\ubcf5 \ud14c\uc2a4\ud2b8 \ubcf4\uace0\uc11c",
         "generated_at": now,
         "summary": {
             "total_feedback": feedbacks,
@@ -327,14 +257,14 @@ async def generate_test_report(_: AdminUser):
         "model_comparison": model_comparison,
         "consistency_analysis": consistency,
         "async_processing": {
-            "description": "Celery ±â¹Ý ºñµ¿±â Ã³¸® Àû¿ë (OCR/LLM/Image Å¥ ºÐ¸®)",
+            "description": "Celery \uae30\ubc18 \ube44\ub3d9\uae30 \ucc98\ub9ac \uc801\uc6a9 (OCR/LLM/Image \ud050 \ubd84\ub9ac)",
             "queues": ["image", "llm"],
             "workers": ["ai-worker", "llm-worker"],
             "beat_tasks": ["daily-tip", "check-notifications", "daily-metric-snapshot"],
         },
         "feedback_structure": {
-            "flow": "»ç¿ëÀÚ ÇÇµå¹é Á¦Ãâ ¡æ Feedback DB ÀúÀå ¡æ MetricSnapshot ½Ç½Ã°£ ¾÷µ¥ÀÌÆ® ¡æ ÀÏº° Áý°è ¡æ ÇÁ·ÒÇÁÆ® ¹öÀü °³¼±",
+            "flow": "\uc0ac\uc6a9\uc790 \ud53c\ub4dc\ubc31 \uc81c\ucd9c \u2192 Feedback DB \uc800\uc7a5 \u2192 MetricSnapshot \uc2e4\uc2dc\uac04 \uc5c5\ub370\uc774\ud2b8 \u2192 \uc77c\ubcc4 \uc9d1\uacc4 \u2192 \ud504\ub86c\ud504\ud2b8 \ubc84\uc804 \uac1c\uc120",
             "implemented": True,
         },
     }
-    return _ok(report, "Å×½ºÆ® º¸°í¼­ »ý¼º ¼º°ø")
+    return _ok(report, "ok")
