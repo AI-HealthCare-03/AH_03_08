@@ -16,7 +16,7 @@ import {
   usePillResult,
 } from '@/entities/medical-record/api'
 import { RECORD_TYPE_META } from '@/entities/medical-record/model'
-import type { ParsedData } from '@/entities/medical-record/model'
+import type { ParsedData, PillResult } from '@/entities/medical-record/model'
 import type { RecordType } from '@/shared/types'
 
 export function RecordUploadForm() {
@@ -277,13 +277,15 @@ export function RecordUploadForm() {
 
       {pillResult?.status === 'COMPLETED' && selectedType === 'pill_photo' && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-gray-700">3. 약품 정보</h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700">3. 약품 정보 확인</h2>
+            <span className="text-xs text-gray-400">식별코드를 확인하고 수정해주세요</span>
+          </div>
           <PillResultCard
-            drugName={pillResult.drug_name ?? null}
-            dlCompany={pillResult.dl_company ?? null}
-            dlMaterial={pillResult.dl_material ?? null}
-            diClassNo={pillResult.di_class_no ?? null}
-            diEtcOtcCode={pillResult.di_etc_otc_code ?? null}
+            pillResult={pillResult as PillResult}
+            onRematch={(result) => {
+              qc.setQueryData(['pill-result', recordId], { ...pillResult, ...result, status: 'COMPLETED' })
+            }}
           />
           <Button
             className="mt-4 w-full"
