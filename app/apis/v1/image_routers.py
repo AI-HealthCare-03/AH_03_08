@@ -58,6 +58,7 @@ async def get_analysis_result(
             chart=drug_info.get("chart"),
             print_front=drug_info.get("print_front"),
             print_back=drug_info.get("print_back"),
+            ocr_texts=parsed_data.get("ocr_texts", []),
         ).model_dump(),
         status_code=status.HTTP_200_OK,
     )
