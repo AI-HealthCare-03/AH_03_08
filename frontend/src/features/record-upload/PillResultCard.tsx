@@ -89,7 +89,7 @@ export function PillResultCard({ pillResult, onRematch }: PillResultCardProps) {
       {/* OCR 식별코드 확인/수정 */}
       <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
         <p className="mb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">OCR 식별코드 확인</p>
-        <p className="mb-3 text-xs text-gray-400">태그를 눌러 수정하거나 삭제하고, 반대면 식별코드가 있다면 추가하면 정확도가 올라가요.</p>
+        <p className="mb-3 text-xs text-gray-400">태그를 눌러 수정하거나 삭제하고, 반대면 식별코드가 있다면 추가하면 정확도를 높일 수 있습니다.</p>
         <div className="flex flex-wrap gap-2 mb-3">
           {tokens.map((token, idx) => (
             <EditableToken
