@@ -142,14 +142,36 @@ export function RecordUploadForm() {
 
   function handleGenerateGuideForPill() {
     if (!recordId) return
-    generateGuide(recordId, {
-      onSuccess: (data) => {
-        invalidateGuides()
-        toast.success('가이드 생성 요청 완료! 가이드 탭에서 확인하세요.')
-        navigate(`/guide?id=${data.guide_id}`)
+    const currentPillResult = qc.getQueryData(['pill-result', recordId]) as PillResult | undefined
+    const drugInfo = currentPillResult ? {
+      drug_name: currentPillResult.drug_name,
+      dl_company: currentPillResult.dl_company,
+      dl_material: currentPillResult.dl_material,
+      drug_shape: currentPillResult.drug_shape,
+      color_class1: currentPillResult.color_class1,
+      color_class2: currentPillResult.color_class2,
+      di_class_no: currentPillResult.di_class_no,
+      di_etc_otc_code: currentPillResult.di_etc_otc_code,
+      chart: currentPillResult.chart,
+      print_front: currentPillResult.print_front,
+      print_back: currentPillResult.print_back,
+    } : {}
+    updateRecord(
+      { id: recordId, parsed_data: { drug_info: drugInfo } as unknown as ParsedData },
+      {
+        onSuccess: () => {
+          generateGuide(recordId, {
+            onSuccess: (data) => {
+              invalidateGuides()
+              toast.success('가이드 생성 요청 완료! 가이드 탭에서 확인하세요.')
+              navigate(`/guide?id=${data.guide_id}`)
+            },
+            onError: () => toast.error('가이드 생성에 실패했습니다.'),
+          })
+        },
+        onError: () => toast.error('데이터 저장에 실패했습니다.'),
       },
-      onError: () => toast.error('가이드 생성에 실패했습니다.'),
-    })
+    )
   }
 
   const isProcessing = (record?.status === 'pending' || record?.status === 'processing') && selectedType !== 'pill_photo'
