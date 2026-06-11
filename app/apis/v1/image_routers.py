@@ -117,4 +117,5 @@ async def match_pill_by_ocr(
         color_class2=info.get("color_class2"),
         drug_shape=info.get("drug_shape"),
         chart=info.get("chart"),
+        dl_company=info.get("dl_company"),
     )
