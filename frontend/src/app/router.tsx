@@ -6,6 +6,7 @@ import { LoginPage } from '@/pages/auth'
 import { RegisterPage } from '@/pages/auth/register'
 import { GoogleCallbackPage } from '@/pages/auth/google-callback'
 import { KakaoCallbackPage } from '@/pages/auth/kakao-callback'
+import { AdminPage } from '@/pages/admin'
 import { HomePage } from '@/pages/home'
 import { MedicalRecordPage } from '@/pages/medical-record'
 import { GuidePage } from '@/pages/guide'
@@ -19,6 +20,14 @@ function ProtectedRoute() {
   return isAuthenticated ? <Outlet /> : <Navigate to="/auth/login" replace />
 }
 
+function AdminRoute() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
+  const isAdmin = useAuthStore((s) => s.isAdmin)
+  if (!isAuthenticated) return <Navigate to="/auth/login" replace />
+  if (!isAdmin) return <Navigate to="/home" replace />
+  return <Outlet />
+}
+
 function RootRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
   return isAuthenticated ? <Navigate to="/home" replace /> : <Navigate to="/auth/login" replace />
@@ -30,6 +39,12 @@ export const router = createBrowserRouter([
   { path: '/auth/register', element: <RegisterPage /> },
   { path: '/auth/google/callback', element: <GoogleCallbackPage /> },
   { path: '/auth/kakao/callback', element: <KakaoCallbackPage /> },
+  {
+    element: <AdminRoute />,
+    children: [
+      { path: '/admin', element: <AdminPage /> },
+    ],
+  },
   {
     element: <ProtectedRoute />,
     children: [

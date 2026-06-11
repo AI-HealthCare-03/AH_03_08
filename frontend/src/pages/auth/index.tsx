@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { login, loginSchema, redirectToGoogle, redirectToKakao, type LoginFormValues } from '@/features/auth/api'
+import { useAuthStore } from '@/app/providers/auth-store'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -25,7 +26,8 @@ export function LoginPage() {
     setServerError(null)
     try {
       await login(values)
-      navigate('/home', { replace: true })
+      const isAdmin = useAuthStore.getState().isAdmin
+      navigate(isAdmin ? '/admin' : '/home', { replace: true })
     } catch {
       setServerError('이메일 또는 비밀번호가 올바르지 않습니다.')
     }
@@ -34,7 +36,6 @@ export function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--color-background-primary)' }}>
       <div className="w-full max-w-sm">
-        {/* 로고 */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold" style={{ color: '#1D9E75' }}>메디로그</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
@@ -42,7 +43,6 @@ export function LoginPage() {
           </p>
         </div>
 
-        {/* 로그인 폼 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <h2 className="text-lg font-semibold text-gray-800 mb-6">로그인</h2>
 
@@ -53,7 +53,6 @@ export function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-            {/* 이메일 */}
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-gray-700">이메일</label>
               <input
@@ -65,12 +64,9 @@ export function LoginPage() {
                   focus:border-[#1D9E75] focus:ring-2 focus:ring-[#1D9E75]/20
                   ${errors.email ? 'border-red-400' : 'border-gray-200'}`}
               />
-              {errors.email && (
-                <p className="text-xs text-red-500">{errors.email.message}</p>
-              )}
+              {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
             </div>
 
-            {/* 비밀번호 */}
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-gray-700">비밀번호</label>
               <div className="relative">
@@ -92,17 +88,11 @@ export function LoginPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-xs text-red-500">{errors.password.message}</p>
-              )}
+              {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
             </div>
 
-            {/* 서버 에러 */}
-            {serverError && (
-              <p className="text-xs text-red-500 text-center">{serverError}</p>
-            )}
+            {serverError && <p className="text-xs text-red-500 text-center">{serverError}</p>}
 
-            {/* 로그인 버튼 */}
             <Button
               type="submit"
               disabled={isSubmitting}
@@ -113,14 +103,12 @@ export function LoginPage() {
             </Button>
           </form>
 
-          {/* 구분선 */}
           <div className="flex items-center gap-3 my-5">
             <div className="flex-1 h-px bg-gray-200" />
             <span className="text-xs text-gray-400">또는</span>
             <div className="flex-1 h-px bg-gray-200" />
           </div>
 
-          {/* 소셜 로그인 버튼 */}
           <div className="flex flex-col gap-3">
             <button
               type="button"
@@ -150,7 +138,6 @@ export function LoginPage() {
           </div>
         </div>
 
-        {/* 회원가입 링크 */}
         <p className="text-center text-sm mt-5" style={{ color: 'var(--color-text-tertiary)' }}>
           아직 계정이 없으신가요?{' '}
           <Link
