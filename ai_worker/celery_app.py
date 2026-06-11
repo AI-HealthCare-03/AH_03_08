@@ -1,5 +1,4 @@
 import os
-
 from celery import Celery
 from dotenv import load_dotenv
 
@@ -47,6 +46,11 @@ celery_app.conf.beat_schedule = {
     "check-notifications-every-minute": {
         "task": "ai_worker.tasks.llm_task.check_and_send_notifications",
         "schedule": 60.0,
+        "options": {"queue": "llm"},
+    },
+    "daily-metric-snapshot": {
+        "task": "ai_worker.tasks.llm_task.aggregate_metric_snapshots",
+        "schedule": 86400.0,
         "options": {"queue": "llm"},
     },
 }
