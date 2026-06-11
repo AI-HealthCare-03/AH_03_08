@@ -37,3 +37,4 @@ class PillMatchResponse(BaseModel):
     color_class2: str | None = None
     drug_shape: str | None = None
     chart: str | None = None
+    dl_company: str | None = None
