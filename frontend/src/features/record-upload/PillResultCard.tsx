@@ -127,23 +127,23 @@ export function PillResultCard({ pillResult, onRematch }: PillResultCardProps) {
         <div className="space-y-2">
           <div>
             <p className="text-xs text-gray-500">약품명</p>
-            <p className="text-sm font-medium text-gray-800">{pillResult.drug_name ?? '-'}</p>
+            <p className="text-sm font-medium text-gray-800">{pillResult.drug_name || '-'}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500">제조사</p>
-            <p className="text-sm font-medium text-gray-800">{pillResult.dl_company ?? '-'}</p>
+            <p className="text-sm font-medium text-gray-800">{pillResult.dl_company || '-'}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500">성분</p>
-            <p className="text-sm font-medium text-gray-800">{pillResult.dl_material ?? '-'}</p>
+            <p className="text-sm font-medium text-gray-800">{pillResult.dl_material || '-'}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500">효능/효과</p>
-            <p className="text-sm font-medium text-gray-800">{pillResult.di_class_no ?? '-'}</p>
+            <p className="text-sm font-medium text-gray-800">{pillResult.di_class_no || '-'}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500">구분</p>
-            <p className="text-sm font-medium text-gray-800">{pillResult.di_etc_otc_code ?? '-'}</p>
+            <p className="text-sm font-medium text-gray-800">{pillResult.di_etc_otc_code || '-'}</p>
           </div>
           {(pillResult.color_class1 || pillResult.drug_shape || pillResult.chart) && (
             <>
@@ -153,11 +153,11 @@ export function PillResultCard({ pillResult, onRematch }: PillResultCardProps) {
               </div>
               <div>
                 <p className="text-xs text-gray-500">모양</p>
-                <p className="text-sm font-medium text-gray-800">{pillResult.drug_shape ?? '-'}</p>
+                <p className="text-sm font-medium text-gray-800">{pillResult.drug_shape || '-'}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">제형</p>
-                <p className="text-sm font-medium text-gray-800">{pillResult.chart ?? '-'}</p>
+                <p className="text-sm font-medium text-gray-800">{pillResult.chart || '-'}</p>
               </div>
             </>
           )}
