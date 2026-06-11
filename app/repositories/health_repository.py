@@ -13,7 +13,7 @@ class HealthRepository:
         self._disease = UnderlyingDisease
         self._allergy = Allergy
 
-    # ── MedicalRecord ────────────────────────────────────────
+    # MedicalRecord
     async def create_record(self, user_id, ocr_raw_text=None, parsed_data=None, record_type=0):
         return await self._record.create(
             user_id=user_id,
@@ -28,7 +28,7 @@ class HealthRepository:
     async def get_records_by_user(self, user_id, limit=20, offset=0):
         return await self._record.filter(user_id=user_id).order_by("-created_at").offset(offset).limit(limit)
 
-    # ── Guide (AI 분석 결과) ──────────────────────────────────
+    # Guide
     async def create_guide(self, user_id, medical_record_id):
         return await self._guide.create(
             user_id=user_id,
@@ -45,9 +45,18 @@ class HealthRepository:
             llm_model=llm_model,
         )
 
-    # ── Medication ────────────────────────────────────────────
+    # Medication
     async def create_medication(
-        self, medical_record_id, drug_name, dosage=None, frequency=None, instructions=None, warnings=None
+        self,
+        medical_record_id,
+        drug_name,
+        dosage=None,
+        frequency=None,
+        instructions=None,
+        warnings=None,
+        start_date=None,
+        end_date=None,
+        interval_days=None,
     ):
         return await self._medication.create(
             medical_record_id=medical_record_id,
@@ -56,6 +65,9 @@ class HealthRepository:
             frequency=frequency,
             instructions=instructions,
             warnings=warnings,
+            start_date=start_date,
+            end_date=end_date,
+            interval_days=interval_days,
         )
 
     async def get_medications_by_record(self, medical_record_id):
@@ -64,7 +76,7 @@ class HealthRepository:
     async def get_medications_by_user(self, user_id):
         return await self._medication.filter(medical_record__user_id=user_id).order_by("-created_at")
 
-    # ── UnderlyingDisease ─────────────────────────────────────
+    # UnderlyingDisease
     async def create_disease(self, user_id, name, severity=None):
         return await self._disease.create(user_id=user_id, underlying_disease_name=name, severity=severity)
 
@@ -74,7 +86,7 @@ class HealthRepository:
     async def delete_disease(self, disease_id, user_id):
         return await self._disease.filter(id=disease_id, user_id=user_id).delete()
 
-    # ── Allergy ───────────────────────────────────────────────
+    # Allergy
     async def create_allergy(self, user_id, name, severity=None):
         return await self._allergy.create(user_id=user_id, allergy_name=name, severity=severity)
 
