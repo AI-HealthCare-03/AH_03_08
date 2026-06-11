@@ -32,5 +32,6 @@ class PillMatchResponse(BaseModel):
     print_front: str | None = None
     print_back: str | None = None
     color_class1: str | None = None
+    color_class2: str | None = None
     drug_shape: str | None = None
     chart: str | None = None
