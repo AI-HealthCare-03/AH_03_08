@@ -112,6 +112,7 @@ async def match_pill_by_ocr(
         print_front=info.get("print_front"),
         print_back=info.get("print_back"),
         color_class1=info.get("color_class1"),
+        color_class2=info.get("color_class2"),
         drug_shape=info.get("drug_shape"),
         chart=info.get("chart"),
     )
