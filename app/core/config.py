@@ -57,6 +57,9 @@ class Config(BaseSettings):
     CLOVA_OCR_URL: str = ""
     CLOVA_OCR_SECRET: str = ""
 
+    # Pill Classification
+    PILL_PRINT_INDEX_PATH: str = ""
+
     # Celery
     CELERY_BROKER_URL: str = "redis://localhost:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
