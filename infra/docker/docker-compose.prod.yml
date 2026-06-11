@@ -49,6 +49,8 @@ services:
     volumes:
       - static_volume:/app/templates
       - media_volume:/app/media
+      - uploads_tmp:/tmp/uploads
+      - /home/ubuntu/project/data:/app/data
     restart: always
     ports:
       - "8000:8000"
@@ -70,6 +72,9 @@ services:
     command: uv run --no-sync celery -A ai_worker.celery_app worker -Q image -c 2 --loglevel=info
     restart: always
     mem_limit: 4G
+    volumes:
+      - uploads_tmp:/tmp/uploads
+      - /home/ubuntu/project/data:/app/data
     networks:
       - ws
     depends_on:
@@ -90,6 +95,7 @@ services:
     mem_limit: 4G
     volumes:
       - chroma_data:/data/chromadb
+      - /home/ubuntu/project/data:/app/data
     networks:
       - ws
     depends_on:
@@ -149,6 +155,8 @@ volumes:
     name: media_volume
   chroma_data:
     name: chroma_data
+  uploads_tmp:
+    name: uploads_tmp
   certbot-conf:
     name: certbot-conf
   certbot-www:
