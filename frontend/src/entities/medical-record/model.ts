@@ -75,4 +75,5 @@ export interface PillResult {
   print_front: string | null
   print_back: string | null
   disclaimer: string | null
+  ocr_texts: string[]
 }
