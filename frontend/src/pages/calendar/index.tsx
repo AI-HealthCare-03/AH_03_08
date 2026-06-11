@@ -34,7 +34,7 @@ function EventCard({ item, medication }: { item: CalendarEvent; medication?: Med
 
   return (
     <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-4">
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-800">{formatTime(item.scheduled_time)}</p>
           {medication && (
@@ -49,28 +49,31 @@ function EventCard({ item, medication }: { item: CalendarEvent; medication?: Med
           )}
           {item.note && <p className="text-xs text-gray-500 mt-0.5 truncate">{item.note}</p>}
         </div>
-        <button
-          onClick={() => setDeleteOpen(true)}
-          disabled={isDeleting}
-          className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-50 transition-colors disabled:opacity-40"
-        >
-          <TrashIcon />
-        </button>
-      </div>
-
-      <div className="flex gap-1.5 mt-3">
-        {(['TAKEN', 'MISSED', 'PENDING'] as const).map((s) => (
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 gap-0.5">
+            {(['TAKEN', 'MISSED', 'PENDING'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => updateStatus({ id: item.id, status: s })}
+                disabled={isUpdating}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all disabled:opacity-60 ${
+                  item.status === s
+                    ? STATUS_CONFIG[s].active + ' shadow-sm'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                {STATUS_CONFIG[s].label}
+              </button>
+            ))}
+          </div>
           <button
-            key={s}
-            onClick={() => updateStatus({ id: item.id, status: s })}
-            disabled={isUpdating || item.status === s}
-            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:cursor-default ${
-              item.status === s ? STATUS_CONFIG[s].active : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
-            }`}
+            onClick={() => setDeleteOpen(true)}
+            disabled={isDeleting}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-50 transition-colors disabled:opacity-40"
           >
-            {STATUS_CONFIG[s].label}
+            <TrashIcon />
           </button>
-        ))}
+        </div>
       </div>
 
       <ConfirmDialog

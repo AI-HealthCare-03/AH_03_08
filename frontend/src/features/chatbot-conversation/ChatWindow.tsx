@@ -152,7 +152,7 @@ export function ChatWindow({ sessionId }: Props) {
   }
 
   return (
-    <div className="flex flex-col bg-white overflow-hidden md:rounded-xl md:border md:border-gray-100 h-full">
+    <div className="flex flex-col bg-white overflow-hidden rounded-xl border border-gray-100 h-full">
       {/* 헤더 */}
       <div className="flex shrink-0 items-center gap-3 border-b border-gray-100 px-4 py-3">
         <button
