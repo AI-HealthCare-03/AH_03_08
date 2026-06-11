@@ -5,6 +5,48 @@ import { Button } from '@/components/ui/button'
 import { usePillMatchOcr } from '@/entities/medical-record/api'
 import type { PillResult } from '@/entities/medical-record/model'
 
+interface EditableTokenProps {
+  value: string
+  onChange: (v: string) => void
+  onRemove: () => void
+}
+
+function EditableToken({ value, onChange, onRemove }: EditableTokenProps) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+
+  function commit() {
+    const trimmed = draft.trim().toUpperCase()
+    if (trimmed) onChange(trimmed)
+    else onRemove()
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === 'Enter' && commit()}
+        className="rounded-md border border-primary px-3 py-1 text-sm outline-none w-24"
+      />
+    )
+  }
+
+  return (
+    <span className="flex items-center gap-1 rounded-md bg-gray-100 px-3 py-1 text-sm text-gray-700">
+      <button type="button" onClick={() => { setDraft(value); setEditing(true) }} className="hover:text-primary">
+        {value}
+      </button>
+      <button type="button" onClick={onRemove} className="text-gray-400 hover:text-gray-600">
+        <X size={12} />
+      </button>
+    </span>
+  )
+}
+
 interface PillResultCardProps {
   pillResult: PillResult
   onRematch: (result: PillResult) => void
@@ -47,15 +89,17 @@ export function PillResultCard({ pillResult, onRematch }: PillResultCardProps) {
       {/* OCR 식별코드 확인/수정 */}
       <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
         <p className="mb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">OCR 식별코드 확인</p>
-        <p className="mb-3 text-xs text-gray-400">잘못 인식된 텍스트는 삭제하고, 반대면 식별코드가 있다면 추가하면 정확도가 올라가요.</p>
+        <p className="mb-3 text-xs text-gray-400">태그를 눌러 수정하거나 삭제하고, 반대면 식별코드가 있다면 추가하면 정확도가 올라가요.</p>
         <div className="flex flex-wrap gap-2 mb-3">
-          {tokens.map((token) => (
-            <span key={token} className="flex items-center gap-1 rounded-md bg-gray-100 px-3 py-1 text-sm text-gray-700">
-              {token}
-              <button type="button" onClick={() => removeToken(token)} className="text-gray-400 hover:text-gray-600">
-                <X size={12} />
-              </button>
-            </span>
+          {tokens.map((token, idx) => (
+            <EditableToken
+              key={idx}
+              value={token}
+              onChange={(newVal) => {
+                setTokens((prev) => prev.map((t, i) => (i === idx ? newVal : t)))
+              }}
+              onRemove={() => removeToken(token)}
+            />
           ))}
         </div>
         <div className="flex gap-2">
@@ -118,7 +162,7 @@ export function PillResultCard({ pillResult, onRematch }: PillResultCardProps) {
             </>
           )}
         </div>
-        <p className="mt-3 text-xs text-gray-400">약품 정보가 맞지 않으면 식별코드를 수정 후 재매칭하세요.</p>
+        <p className="mt-3 text-xs text-gray-400">약품 정보(색상, 모양)가 내가 올린 알약 이미지와 다르다면 식별코드를 수정 후 재매칭하세요.</p>
         <Button
           variant="outline"
           className="mt-2 w-full"
