@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from fastapi import HTTPException
 from starlette import status
 
@@ -7,6 +9,7 @@ from app.dtos.health import (
     MedicationCreateRequest,
     UnderlyingDiseaseRequest,
 )
+from app.models.calendar_events import CalendarEvent
 from app.models.users import User
 from app.repositories.health_repository import HealthRepository
 
@@ -34,14 +37,51 @@ class HealthService:
 
     async def create_medication(self, user: User, data: MedicationCreateRequest):
         await self.get_record_or_404(record_id=data.medical_record_id, user=user)
-        return await self.repo.create_medication(
+        medication = await self.repo.create_medication(
             medical_record_id=data.medical_record_id,
             drug_name=data.drug_name,
             dosage=data.dosage,
             frequency=data.frequency,
             instructions=data.instructions,
             warnings=data.warnings,
+            start_date=data.start_date,
+            end_date=data.end_date,
+            interval_days=data.interval_days,
         )
+        # 캘린더 자동생성: start_date, end_date, interval_days 모두 있을 때
+        if data.start_date and data.end_date and data.interval_days:
+            await self._generate_calendar_events(
+                user_id=user.id,
+                medication_id=medication.id,
+                start_date=data.start_date,
+                end_date=data.end_date,
+                interval_days=data.interval_days,
+            )
+        return medication
+
+    async def _generate_calendar_events(
+        self,
+        user_id,
+        medication_id,
+        start_date: date,
+        end_date: date,
+        interval_days: int,
+    ):
+        current = start_date
+        events = []
+        while current <= end_date:
+            events.append(
+                CalendarEvent(
+                    user_id=user_id,
+                    medication_id=medication_id,
+                    event_date=current,
+                    scheduled_time="08:00:00",
+                    status="PENDING",
+                )
+            )
+            current += timedelta(days=interval_days)
+        if events:
+            await CalendarEvent.bulk_create(events)
 
     async def get_medications(self, user: User):
         return await self.repo.get_medications_by_user(user_id=user.id)
