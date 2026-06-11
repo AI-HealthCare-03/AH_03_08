@@ -71,12 +71,20 @@ function AddMedicationsModal({ record, onClose }: { record: MedicalRecord; onClo
           instructions,
         })
         successCount++
-      } catch (err) {
-        console.error('[의약품 추가 실패]', med.name, err)
+      } catch (err: unknown) {
+        const axiosErr = err as { response?: { status: number; data?: unknown } }
+        const detail = axiosErr?.response?.data
+          ? JSON.stringify(axiosErr.response.data)
+          : err instanceof Error ? err.message : String(err)
+        console.error('[의약품 추가 실패]', med.name, detail)
+        toast.error(`'${med.name}' 추가 실패 (${axiosErr?.response?.status ?? '?'}): ${detail}`)
       }
     }
     setIsSubmitting(false)
-    toast.success(`${successCount}개 의약품이 추가되었습니다.`)
+    const failCount = targets.length - successCount
+    if (successCount > 0) toast.success(`${successCount}개 의약품이 추가되었습니다.`)
+    if (failCount > 0) toast.error(`${failCount}개 의약품 추가에 실패했습니다.`)
+    if (successCount === 0) return
     onClose()
   }
 
@@ -131,17 +139,15 @@ function AddMedicationsModal({ record, onClose }: { record: MedicalRecord; onClo
                   ) : null}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-1.5 flex-wrap">
-                    {category ? (
-                      <>
-                        <p className="text-sm font-semibold text-gray-800">{category}</p>
-                        <p className="text-[11px] text-gray-400 truncate">{parsed.name}</p>
-                      </>
-                    ) : (
-                      <p className="text-sm font-semibold text-gray-800 truncate">{parsed.name}</p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {category && (
+                      <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-[#1D9E75]/10 text-[#1D9E75] shrink-0">
+                        {category}
+                      </span>
                     )}
+                    <p className="text-xs font-medium text-gray-700 truncate">{parsed.name}</p>
                     {isRegistered && (
-                      <span className="text-[10px] text-gray-400 font-normal">이미 등록됨</span>
+                      <span className="text-[10px] text-gray-400 shrink-0">이미 등록됨</span>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1 mt-1">
