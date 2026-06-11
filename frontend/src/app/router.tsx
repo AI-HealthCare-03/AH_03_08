@@ -4,6 +4,8 @@ import { AppShell } from '@/widgets/layout/AppShell'
 import { LandingPage } from '@/pages/landing'
 import { LoginPage } from '@/pages/auth'
 import { RegisterPage } from '@/pages/auth/register'
+import { GoogleCallbackPage } from '@/pages/auth/google-callback'
+import { KakaoCallbackPage } from '@/pages/auth/kakao-callback'
 import { HomePage } from '@/pages/home'
 import { MedicalRecordPage } from '@/pages/medical-record'
 import { GuidePage } from '@/pages/guide'
@@ -26,6 +28,8 @@ export const router = createBrowserRouter([
   { path: '/', element: <RootRoute /> },
   { path: '/auth/login', element: <LoginPage /> },
   { path: '/auth/register', element: <RegisterPage /> },
+  { path: '/auth/google/callback', element: <GoogleCallbackPage /> },
+  { path: '/auth/kakao/callback', element: <KakaoCallbackPage /> },
   {
     element: <ProtectedRoute />,
     children: [
