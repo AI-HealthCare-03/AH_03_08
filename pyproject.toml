@@ -1,7 +1,7 @@
 [project]
 name = "ai-health-example"
 version = "0.1.0"
-description = "AI 헬스케어 파이널 프로젝트 예시용"
+description = "AI ?ъ뒪耳???뚯씠???꾨줈?앺듃 ?덉떆??
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -50,6 +50,7 @@ app = [
     "bcrypt<=4.0.1",
     "fastapi[standard]>=0.128.0",
     "httpx>=0.28.1",
+    "boto3>=1.0.0",
     "openai>=1.0.0",
     "orjson>=3.11.5",
     "passlib[bcrypt]>=1.7.4",
@@ -91,16 +92,16 @@ src_folder = "./."
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 markers = [
-    "no_db: Tortoise MySQL 초기화 없이 실행하는 순수 unit 테스트",
+    "no_db: Tortoise MySQL 珥덇린???놁씠 ?ㅽ뻾?섎뒗 ?쒖닔 unit ?뚯뒪??,
 ]
 
 [tool.ruff]
-# 기본 라인 길이 설정
+# 湲곕낯 ?쇱씤 湲몄씠 ?ㅼ젙
 line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]
-# 사용할 린트 규칙들 선택
+# ?ъ슜??由고듃 洹쒖튃???좏깮
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -113,13 +114,13 @@ select = [
 ]
 ignore = ["UP046", "E501", "B008", "N802"]
 
-# 특정 파일에서 무시할 규칙들
+# ?뱀젙 ?뚯씪?먯꽌 臾댁떆??洹쒖튃??
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "db/migrations/*" = ["ALL"]
 
 [tool.ruff.format]
-# 포매터 설정
+# ?щℓ???ㅼ젙
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
