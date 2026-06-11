@@ -11,10 +11,9 @@ interface PillResultCardProps {
 }
 
 export function PillResultCard({ pillResult, onRematch }: PillResultCardProps) {
-  const initialTokens = [
-    pillResult.print_front,
-    pillResult.print_back,
-  ].filter((t): t is string => !!t)
+  const initialTokens = pillResult.ocr_texts.length > 0
+    ? pillResult.ocr_texts
+    : [pillResult.print_front, pillResult.print_back].filter((t): t is string => !!t)
 
   const [tokens, setTokens] = useState<string[]>(initialTokens)
   const [input, setInput] = useState('')
