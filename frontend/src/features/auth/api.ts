@@ -14,6 +14,16 @@ export async function login(values: LoginFormValues) {
   useAuthStore.getState().setTokens(data.data.access_token, data.data.is_admin)
 }
 
+export async function googleLogin(code: string) {
+  const { data } = await apiClient.post('/auth/google', { code })
+  useAuthStore.getState().setTokens(data.data.access_token)
+}
+
+export async function kakaoLogin(code: string) {
+  const { data } = await apiClient.post('/auth/kakao', { code })
+  useAuthStore.getState().setTokens(data.data.access_token)
+}
+
 export async function logout() {
   useAuthStore.getState().logout()
 }
