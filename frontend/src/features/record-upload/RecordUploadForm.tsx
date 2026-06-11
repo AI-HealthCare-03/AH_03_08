@@ -187,6 +187,14 @@ export function RecordUploadForm() {
     )
   }
 
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [zoom, setZoom] = useState(1)
+
+  function closeLightbox() {
+    setLightboxOpen(false)
+    setZoom(1)
+  }
+
   const isProcessing = (record?.status === 'pending' || record?.status === 'processing') && selectedType !== 'pill_photo'
   const isCompleted = record?.status === 'completed'
   const isFailed = record?.status === 'failed'
@@ -292,6 +300,37 @@ export function RecordUploadForm() {
             <h2 className="text-sm font-semibold text-gray-700">3. 내용 확인 및 수정</h2>
             <span className="text-xs text-gray-400">틀린 내용이 있으면 수정해주세요</span>
           </div>
+          {previewUrl && (
+            <div
+              className="mb-4 overflow-hidden rounded-xl border border-gray-100 bg-[#F5F5F4] cursor-zoom-in"
+              onClick={() => setLightboxOpen(true)}
+            >
+              <img
+                src={previewUrl}
+                alt="업로드 이미지"
+                className="w-full object-contain max-h-[480px]"
+              />
+              <p className="text-center text-xs text-gray-400 py-1">클릭하면 크게 볼 수 있어요</p>
+            </div>
+          )}
+
+          {lightboxOpen && previewUrl && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 cursor-zoom-out"
+              onClick={closeLightbox}
+            >
+              <img
+                src={previewUrl}
+                alt="원본 이미지"
+                className="max-h-screen max-w-screen object-contain"
+                style={{ transform: `scale(${zoom})`, transformOrigin: 'center', transition: 'transform 0.1s' }}
+                onWheel={(e) => {
+                  e.stopPropagation()
+                  setZoom(prev => Math.min(Math.max(prev + (e.deltaY > 0 ? -0.15 : 0.15), 0.5), 5))
+                }}
+              />
+            </div>
+          )}
           <ParsedDataForm data={editedData} onChange={setEditedData} />
           <Button
             className="mt-4 w-full"

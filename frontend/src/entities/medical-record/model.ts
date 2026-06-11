@@ -3,10 +3,12 @@ import type { RecordType } from '@/shared/types'
 
 const medicationSchema = z.object({
   name: z.string(),
-  dosage: z.coerce.string().nullish(),
-  frequency: z.coerce.string().nullish(),
+  concentration: z.string().nullish(),
+  dosage: z.coerce.number().nullish(),
+  frequency: z.coerce.number().nullish(),
   days: z.number().nullish(),
   instructions: z.string().nullish(),
+  drug_class: z.string().nullish(),
 })
 
 export type Medication = z.infer<typeof medicationSchema>
