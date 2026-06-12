@@ -59,3 +59,21 @@ export const RECORD_TYPE_META: Record<RecordType, { label: string; description: 
     icon: 'camera',
   },
 }
+
+export interface PillResult {
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
+  record_id: string
+  drug_name: string | null
+  dl_company: string | null
+  dl_material: string | null
+  drug_shape: string | null
+  color_class1: string | null
+  color_class2: string | null
+  di_class_no: string | null
+  di_etc_otc_code: string | null
+  chart: string | null
+  print_front: string | null
+  print_back: string | null
+  disclaimer: string | null
+  ocr_texts: string[]
+}
