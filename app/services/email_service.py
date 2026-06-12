@@ -36,4 +36,4 @@ class EmailService:
                 },
             )
         except ClientError as e:
-            raise RuntimeError(f"이메일 발송 실패: {e.response['Error']['Message']}")
+            raise RuntimeError(f"이메일 발송 실패: {e.response['Error']['Message']}") from e
