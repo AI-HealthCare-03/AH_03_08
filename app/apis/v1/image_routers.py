@@ -112,4 +112,5 @@ async def match_pill_by_ocr(
         drug_shape=kcode_info.get(info["kcode"], {}).get("drug_shape"),
         chart=kcode_info.get(info["kcode"], {}).get("chart"),
         dl_company=kcode_info.get(info["kcode"], {}).get("dl_company"),
+        candidates=candidates_list if len(candidates_list) > 1 else None,
     )
