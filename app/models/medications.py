@@ -15,7 +15,7 @@ class Medication(models.Model):
     drug_class = fields.CharField(max_length=200, null=True)  # 약효분류명
     start_date = fields.DateField(null=True)  # 복용 시작일
     end_date = fields.DateField(null=True)  # 복용 종료일
-    interval = fields.IntField(null=True)  # 투여 주기 (시간 단위)
+    interval_days = fields.IntField(null=True)  # 투여 주기 (일 단위)
     memo = fields.TextField(null=True)  # 메모
     created_at = fields.DatetimeField(auto_now_add=True)
 

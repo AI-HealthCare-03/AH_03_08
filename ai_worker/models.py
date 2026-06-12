@@ -91,7 +91,7 @@ class Medication(models.Model):
     drug_class = fields.CharField(max_length=200, null=True)
     start_date = fields.DateField(null=True)
     end_date = fields.DateField(null=True)
-    interval = fields.IntField(null=True)
+    interval_days = fields.IntField(null=True)
     memo = fields.TextField(null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
 
