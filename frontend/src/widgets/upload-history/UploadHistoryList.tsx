@@ -370,13 +370,15 @@ export function UploadHistoryList() {
 
                   {isMenuOpen && (
                     <div className="absolute right-0 top-7 z-10 w-28 rounded-lg border border-gray-100 bg-white py-1 shadow-lg">
-                      <button
-                        className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
-                        onClick={() => { setMenuOpen(null); openEdit(record) }}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        수정
-                      </button>
+                      {record.record_type !== 'pill_photo' && (
+                        <button
+                          className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+                          onClick={() => { setMenuOpen(null); openEdit(record) }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          수정
+                        </button>
+                      )}
                       <button
                         className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
                         onClick={() => { setMenuOpen(null); setDeleteTarget(record) }}
