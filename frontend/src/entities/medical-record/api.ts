@@ -144,3 +144,14 @@ export function usePillResult(id: string | null) {
     },
   })
 }
+
+async function matchPillByOcr(ocr_texts: string[]) {
+  const { data } = await apiClient.post('/images/pill-match', { ocr_texts })
+  return data
+}
+
+export function usePillMatchOcr() {
+  return useMutation({
+    mutationFn: matchPillByOcr,
+  })
+}

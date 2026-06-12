@@ -1,36 +1,176 @@
 // frontend/src/features/record-upload/PillResultCard.tsx
-interface PillResultCardProps {
-  drugName: string | null
-  dlCompany: string | null
-  dlMaterial: string | null
-  diClassNo: string | null
-  diEtcOtcCode: string | null
+import { useState } from 'react'
+import { X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { usePillMatchOcr } from '@/entities/medical-record/api'
+import type { PillResult } from '@/entities/medical-record/model'
+
+interface EditableTokenProps {
+  value: string
+  onChange: (v: string) => void
+  onRemove: () => void
 }
-export function PillResultCard({ drugName, dlCompany, dlMaterial, diClassNo, diEtcOtcCode }: PillResultCardProps) {
+
+function EditableToken({ value, onChange, onRemove }: EditableTokenProps) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+
+  function commit() {
+    const trimmed = draft.trim().toUpperCase()
+    if (trimmed) onChange(trimmed)
+    else onRemove()
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === 'Enter' && commit()}
+        className="rounded-md border border-primary px-3 py-1 text-sm outline-none w-24"
+      />
+    )
+  }
+
   return (
-    <div className="mt-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-      <p className="mb-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">약품 정보</p>
-      <div className="space-y-2">
-        <div>
-          <p className="text-xs text-gray-500">약품명</p>
-          <p className="text-sm font-medium text-gray-800">{drugName ?? '-'}</p>
+    <span className="flex items-center gap-1 rounded-md bg-gray-100 px-3 py-1 text-sm text-gray-700">
+      <button type="button" onClick={() => { setDraft(value); setEditing(true) }} className="hover:text-primary">
+        {value}
+      </button>
+      <button type="button" onClick={onRemove} className="text-gray-400 hover:text-gray-600">
+        <X size={12} />
+      </button>
+    </span>
+  )
+}
+
+interface PillResultCardProps {
+  pillResult: PillResult
+  onRematch: (result: PillResult) => void
+}
+
+export function PillResultCard({ pillResult, onRematch }: PillResultCardProps) {
+  const initialTokens = pillResult.ocr_texts.length > 0
+    ? pillResult.ocr_texts
+    : [pillResult.print_front, pillResult.print_back].filter((t): t is string => !!t)
+
+  const [tokens, setTokens] = useState<string[]>(initialTokens)
+  const [input, setInput] = useState('')
+
+  const { mutate: matchOcr, isPending } = usePillMatchOcr()
+
+  function addToken() {
+    const trimmed = input.trim().toUpperCase()
+    if (trimmed && !tokens.includes(trimmed)) {
+      setTokens((prev) => [...prev, trimmed])
+    }
+    setInput('')
+  }
+
+  function removeToken(token: string) {
+    setTokens((prev) => prev.filter((t) => t !== token))
+  }
+
+  function handleRematch() {
+    matchOcr(tokens, {
+      onSuccess: (data) => onRematch(data),
+    })
+  }
+
+  const colorLabel = [pillResult.color_class1, pillResult.color_class2]
+    .filter(Boolean)
+    .join(' / ')
+
+  return (
+    <div className="space-y-4">
+      {/* OCR 식별코드 확인/수정 */}
+      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <p className="mb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">OCR 식별코드 확인</p>
+        <p className="mb-3 text-xs text-gray-400">태그를 눌러 수정하거나 삭제하고, 반대면 식별코드가 있다면 추가하면 정확도를 높일 수 있습니다.</p>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {tokens.map((token, idx) => (
+            <EditableToken
+              key={idx}
+              value={token}
+              onChange={(newVal) => {
+                setTokens((prev) => prev.map((t, i) => (i === idx ? newVal : t)))
+              }}
+              onRemove={() => removeToken(token)}
+            />
+          ))}
         </div>
-        <div>
-          <p className="text-xs text-gray-500">제조사</p>
-          <p className="text-sm font-medium text-gray-800">{dlCompany ?? '-'}</p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && addToken()}
+            placeholder="식별코드 입력 (예: ER)"
+            className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+          <button
+            type="button"
+            onClick={addToken}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+          >
+            추가
+          </button>
         </div>
-        <div>
-          <p className="text-xs text-gray-500">성분</p>
-          <p className="text-sm font-medium text-gray-800">{dlMaterial ?? '-'}</p>
+      </div>
+
+      {/* 약품 정보 */}
+      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <p className="mb-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">약품 정보</p>
+        <div className="space-y-2">
+          <div>
+            <p className="text-xs text-gray-500">약품명</p>
+            <p className="text-sm font-medium text-gray-800">{pillResult.drug_name || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">제조사</p>
+            <p className="text-sm font-medium text-gray-800">{pillResult.dl_company || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">성분</p>
+            <p className="text-sm font-medium text-gray-800">{pillResult.dl_material || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">효능/효과</p>
+            <p className="text-sm font-medium text-gray-800">{pillResult.di_class_no || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">구분</p>
+            <p className="text-sm font-medium text-gray-800">{pillResult.di_etc_otc_code || '-'}</p>
+          </div>
+          {(pillResult.color_class1 || pillResult.drug_shape || pillResult.chart) && (
+            <>
+              <div>
+                <p className="text-xs text-gray-500">색상</p>
+                <p className="text-sm font-medium text-gray-800">{colorLabel || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">모양</p>
+                <p className="text-sm font-medium text-gray-800">{pillResult.drug_shape || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">제형</p>
+                <p className="text-sm font-medium text-gray-800">{pillResult.chart || '-'}</p>
+              </div>
+            </>
+          )}
         </div>
-        <div>
-          <p className="text-xs text-gray-500">효능/효과</p>
-          <p className="text-sm font-medium text-gray-800">{diClassNo ?? '-'}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-500">구분</p>
-          <p className="text-sm font-medium text-gray-800">{diEtcOtcCode ?? '-'}</p>
-        </div>
+        <p className="mt-3 text-xs text-gray-400">약품 정보(색상, 모양)가 내가 올린 알약 이미지와 다르다면 식별코드를 수정 후 재매칭하세요.</p>
+        <Button
+          variant="outline"
+          className="mt-2 w-full"
+          disabled={isPending || tokens.length === 0}
+          onClick={handleRematch}
+        >
+          {isPending ? '매칭 중...' : '재매칭'}
+        </Button>
       </div>
     </div>
   )

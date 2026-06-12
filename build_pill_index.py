@@ -45,6 +45,7 @@ def build_index():  # noqa: C901
         dl_material = img.get("dl_material", "")
         di_class_no = img.get("di_class_no", "")
         di_etc_otc_code = img.get("di_etc_otc_code", "")
+        dl_company = img.get("dl_company", "")
         color_class1 = img.get("color_class1", "")
         color_class2 = img.get("color_class2", "")
         drug_shape = img.get("drug_shape", "")
@@ -57,6 +58,7 @@ def build_index():  # noqa: C901
             "dl_material": dl_material,
             "di_class_no": di_class_no,
             "di_etc_otc_code": di_etc_otc_code,
+            "dl_company": dl_company,
             "color_class1": color_class1,
             "color_class2": color_class2,
             "drug_shape": drug_shape,
