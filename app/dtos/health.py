@@ -1,13 +1,17 @@
 from datetime import date, datetime
 from typing import Annotated
 from uuid import UUID
+
 from pydantic import BaseModel, Field
+
 from app.dtos.base import BaseSerializerModel
+
 
 class MedicalRecordCreateRequest(BaseModel):
     ocr_raw_text: str | None = None
     parsed_data: dict | None = None
     record_type: int = 0
+
 
 class MedicalRecordResponse(BaseSerializerModel):
     id: UUID
@@ -16,6 +20,7 @@ class MedicalRecordResponse(BaseSerializerModel):
     status: str
     record_type: int
     created_at: datetime
+
 
 class MedicationCreateRequest(BaseModel):
     medical_record_id: str
@@ -27,6 +32,7 @@ class MedicationCreateRequest(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     interval_days: int | None = None
+
 
 class MedicationResponse(BaseSerializerModel):
     id: UUID
@@ -41,9 +47,11 @@ class MedicationResponse(BaseSerializerModel):
     interval_days: int | None
     created_at: datetime
 
+
 class UnderlyingDiseaseRequest(BaseModel):
     underlying_disease_name: str
     severity: str | None = None
+
 
 class UnderlyingDiseaseResponse(BaseSerializerModel):
     id: UUID
@@ -51,9 +59,11 @@ class UnderlyingDiseaseResponse(BaseSerializerModel):
     severity: str | None
     created_at: datetime
 
+
 class AllergyRequest(BaseModel):
     allergy_name: str
     severity: str | None = None
+
 
 class AllergyResponse(BaseSerializerModel):
     id: UUID
@@ -61,8 +71,10 @@ class AllergyResponse(BaseSerializerModel):
     severity: str | None
     created_at: datetime
 
+
 class AIAnalysisRequest(BaseModel):
     medical_record_id: str
+
 
 class GuideResponse(BaseSerializerModel):
     id: UUID

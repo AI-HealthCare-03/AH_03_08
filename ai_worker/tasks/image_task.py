@@ -143,7 +143,9 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
                 "method": method,
                 "candidates": candidates,  # 추가
             },
-            "message": "낱알약 분류가 완료되었습니다." if not candidates else "복수 후보가 있습니다. 약품명을 확인해 주세요.",
+            "message": "낱알약 분류가 완료되었습니다."
+            if not candidates
+            else "복수 후보가 있습니다. 약품명을 확인해 주세요.",
         }
 
     except Exception as exc:
