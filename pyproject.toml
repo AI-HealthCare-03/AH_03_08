@@ -1,7 +1,7 @@
 [project]
 name = "ai-health-example"
 version = "0.1.0"
-description = "AI ?ъ뒪耳???뚯씠???꾨줈?앺듃 ?덉떆??
+description = "AI Healthcare Project"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -92,16 +92,16 @@ src_folder = "./."
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 markers = [
-    "no_db: Tortoise MySQL 珥덇린???놁씠 ?ㅽ뻾?섎뒗 ?쒖닔 unit ?뚯뒪??,
+    "no_db: Run unit tests without Tortoise MySQL connection",
 ]
 
 [tool.ruff]
-# 湲곕낯 ?쇱씤 湲몄씠 ?ㅼ젙
+# Default line length setting
 line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]
-# ?ъ슜??由고듃 洹쒖튃???좏깮
+# Enable rule codes
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -114,13 +114,13 @@ select = [
 ]
 ignore = ["UP046", "E501", "B008", "N802"]
 
-# ?뱀젙 ?뚯씪?먯꽌 臾댁떆??洹쒖튃??
+# Per-file ignore rules
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "db/migrations/*" = ["ALL"]
 
 [tool.ruff.format]
-# ?щℓ???ㅼ젙
+# Formatter settings
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
