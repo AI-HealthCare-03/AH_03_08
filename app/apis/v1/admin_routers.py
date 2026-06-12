@@ -213,9 +213,10 @@ async def get_feedback_flow(_: AdminUser):
 async def generate_test_report(_: AdminUser):
     import statistics
     from datetime import datetime
-    from app.models.model_metrics import MetricSnapshot, ModelMetric as MM
+
+    from app.models.model_metrics import MetricSnapshot
     now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M")
-    metrics = await MM.filter(success=True).values("model_type", "latency_ms", "confidence_score")
+    metrics = await ModelMetric.filter(success=True).values("model_type", "latency_ms", "confidence_score")
     snapshots = await MetricSnapshot.all().order_by("-snapshot_date").limit(30)
     feedbacks = await Feedback.all().count()
     positive = await Feedback.filter(rating__gte=4).count()
