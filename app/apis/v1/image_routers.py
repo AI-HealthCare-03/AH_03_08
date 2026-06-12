@@ -77,7 +77,7 @@ async def match_pill_by_ocr(
     OCR 식별코드로 약품 매칭 엔드포인트.
     사용자가 식별코드 수정 후 재매칭 시 사용.
     """
-    from ai_worker.image import match_by_print_code
+    from app.services.pill_match import match_by_print_code
 
     try:
         with open(config.PILL_PRINT_INDEX_PATH, encoding="utf-8") as f:
