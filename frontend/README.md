@@ -48,7 +48,7 @@ npm run dev
 
 | 변수 | 설명 | 예시 |
 |------|------|------|
-| `VITE_API_BASE_URL` | 백엔드 API 기본 URL | `http://localhost:8000/api/v1` |
+| `VITE_API_BASE_URL` | 백엔드 API 기본 URL | `http://localhost:8000/api/docs` |
 
 ## 주요 명령어
 
