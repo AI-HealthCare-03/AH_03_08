@@ -3,6 +3,7 @@ import uuid
 import zoneinfo
 from enum import StrEnum
 from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -84,3 +85,4 @@ class Config(BaseSettings):
 
 
 config = Config()
+settings = config
