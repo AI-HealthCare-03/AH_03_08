@@ -1,4 +1,5 @@
 from enum import StrEnum
+
 from tortoise import fields, models
 
 

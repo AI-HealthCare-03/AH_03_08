@@ -33,7 +33,7 @@ async def _do_aggregate_metric_snapshots():
         modules={"models": ["ai_worker.models"]},
     )
     try:
-        from app.models.model_metrics import ModelMetric, MetricSnapshot
+        from app.models.model_metrics import MetricSnapshot, ModelMetric
 
         today = datetime.now(UTC).date()
         yesterday = today - timedelta(days=1)
