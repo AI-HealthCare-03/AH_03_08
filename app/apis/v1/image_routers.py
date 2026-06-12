@@ -77,6 +77,8 @@ async def match_pill_by_ocr(
     OCR 식별코드로 약품 매칭 엔드포인트.
     사용자가 식별코드 수정 후 재매칭 시 사용.
     """
+    from ai_worker.image import match_by_print_code
+
     try:
         with open(config.PILL_PRINT_INDEX_PATH, encoding="utf-8") as f:
             index_data = json.load(f)
@@ -89,33 +91,25 @@ async def match_pill_by_ocr(
     print_index = index_data.get("print_index", {})
     kcode_info = index_data.get("kcode_info", {})
 
-    candidates: dict[str, int] = {}
-    for text in request.ocr_texts:
-        text_upper = text.strip().upper()
-        if text_upper in print_index:
-            for kcode in print_index[text_upper]:
-                candidates[kcode] = candidates.get(kcode, 0) + 1
-
-    if not candidates:
+    result = match_by_print_code(request.ocr_texts, print_index, kcode_info)
+    if not result:
         return PillMatchResponse(matched=False)
 
-    best_kcode = max(candidates, key=lambda k: candidates[k])
-    info = kcode_info.get(best_kcode)
-    if not info:
-        return PillMatchResponse(matched=False)
+    candidates_list, _ = result
+    info = candidates_list[0]
 
     return PillMatchResponse(
         matched=True,
-        kcode=best_kcode,
-        drug_name=info.get("dl_name"),
-        dl_material=info.get("dl_material"),
-        di_class_no=info.get("di_class_no"),
-        di_etc_otc_code=info.get("di_etc_otc_code"),
-        print_front=info.get("print_front"),
-        print_back=info.get("print_back"),
-        color_class1=info.get("color_class1"),
-        color_class2=info.get("color_class2"),
-        drug_shape=info.get("drug_shape"),
-        chart=info.get("chart"),
-        dl_company=info.get("dl_company"),
+        kcode=info["kcode"],
+        drug_name=info["drug_name"],
+        dl_material=info["dl_material"],
+        di_class_no=info["di_class_no"],
+        di_etc_otc_code=info["di_etc_otc_code"],
+        print_front=info["print_front"],
+        print_back=info["print_back"],
+        color_class1=kcode_info.get(info["kcode"], {}).get("color_class1"),
+        color_class2=kcode_info.get(info["kcode"], {}).get("color_class2"),
+        drug_shape=kcode_info.get(info["kcode"], {}).get("drug_shape"),
+        chart=kcode_info.get(info["kcode"], {}).get("chart"),
+        dl_company=kcode_info.get(info["kcode"], {}).get("dl_company"),
     )
