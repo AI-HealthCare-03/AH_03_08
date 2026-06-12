@@ -32,6 +32,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "celery-types" },
     { name = "cryptography" },
+    { name = "pillow" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-dateutil" },
@@ -68,6 +69,7 @@ app = [
     { name = "aerich" },
     { name = "asyncmy" },
     { name = "bcrypt" },
+    { name = "boto3" },
     { name = "celery" },
     { name = "email-validator" },
     { name = "fastapi", extra = ["standard"] },
@@ -98,6 +100,7 @@ eval = [
 requires-dist = [
     { name = "celery-types", specifier = ">=0.26.0" },
     { name = "cryptography", specifier = ">=46.0.3" },
+    { name = "pillow", specifier = ">=10.0.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
@@ -134,6 +137,7 @@ app = [
     { name = "aerich", specifier = ">=0.9.2" },
     { name = "asyncmy", specifier = ">=0.2.11" },
     { name = "bcrypt", specifier = "<=4.0.1" },
+    { name = "boto3", specifier = ">=1.0.0" },
     { name = "celery", specifier = ">=5.4.0" },
     { name = "email-validator", specifier = ">=2.0.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.128.0" },

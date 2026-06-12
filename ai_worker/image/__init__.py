@@ -95,16 +95,18 @@ def _build_candidates(sorted_kcodes: list[str], kcode_info: dict, scores: dict) 
         info = kcode_info.get(kcode)
         if not info:
             continue
-        candidates.append({
-            "kcode": kcode,
-            "drug_name": info["dl_name"],
-            "dl_material": info["dl_material"],
-            "di_class_no": info["di_class_no"],
-            "di_etc_otc_code": info["di_etc_otc_code"],
-            "print_front": info["print_front"],
-            "print_back": info["print_back"],
-            "score": scores[kcode],
-        })
+        candidates.append(
+            {
+                "kcode": kcode,
+                "drug_name": info["dl_name"],
+                "dl_material": info["dl_material"],
+                "di_class_no": info["di_class_no"],
+                "di_etc_otc_code": info["di_etc_otc_code"],
+                "print_front": info["print_front"],
+                "print_back": info["print_back"],
+                "score": scores[kcode],
+            }
+        )
     return candidates
 
 

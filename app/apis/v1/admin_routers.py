@@ -72,6 +72,7 @@ async def get_prompt_versions(_: AdminUser):
 @admin_router.get("/metrics/summary", summary="AI metrics summary")
 async def get_metrics_summary(_: AdminUser):
     from datetime import datetime, timedelta
+
     total_records = await MedicalRecord.all().count()
     failed_records = await MedicalRecord.filter(status="FAILED").count()
     ocr_success_rate = round((1 - failed_records / total_records) * 100, 1) if total_records else 0
@@ -127,12 +128,19 @@ async def list_users(
 @admin_router.get("/metrics/model-comparison", summary="model version comparison")
 async def get_model_comparison(_: AdminUser):
     from app.models.model_metrics import MetricSnapshot
+
     snapshots = await MetricSnapshot.all().order_by("model_type", "snapshot_date")
     version_map: dict[str, dict] = {}
     for s in snapshots:
         v = s.model_type
         if v not in version_map:
-            version_map[v] = {"version": v, "avg_latency_ms": [], "success_rates": [], "avg_ratings": [], "total_count": 0}
+            version_map[v] = {
+                "version": v,
+                "avg_latency_ms": [],
+                "success_rates": [],
+                "avg_ratings": [],
+                "total_count": 0,
+            }
         if s.avg_latency_ms is not None:
             version_map[v]["avg_latency_ms"].append(s.avg_latency_ms)
         if s.success_rate is not None:
@@ -145,13 +153,15 @@ async def get_model_comparison(_: AdminUser):
         latencies = d["avg_latency_ms"]
         rates = d["success_rates"]
         ratings = d["avg_ratings"]
-        result.append({
-            "version": d["version"],
-            "avg_latency_ms": round(sum(latencies) / len(latencies), 2) if latencies else None,
-            "success_rate": round(sum(rates) / len(rates), 4) if rates else None,
-            "avg_rating": round(sum(ratings) / len(ratings), 4) if ratings else None,
-            "total_count": d["total_count"],
-        })
+        result.append(
+            {
+                "version": d["version"],
+                "avg_latency_ms": round(sum(latencies) / len(latencies), 2) if latencies else None,
+                "success_rate": round(sum(rates) / len(rates), 4) if rates else None,
+                "avg_rating": round(sum(ratings) / len(ratings), 4) if ratings else None,
+                "total_count": d["total_count"],
+            }
+        )
     result.sort(key=lambda x: x["version"], reverse=True)
     return _ok(result, "ok")
 
@@ -159,6 +169,7 @@ async def get_model_comparison(_: AdminUser):
 @admin_router.get("/metrics/consistency", summary="consistency analysis")
 async def get_consistency_analysis(_: AdminUser):
     import statistics
+
     metrics = await ModelMetric.filter(success=True).values("model_type", "latency_ms", "confidence_score")
     type_map: dict[str, dict] = {}
     for m in metrics:
@@ -173,20 +184,23 @@ async def get_consistency_analysis(_: AdminUser):
     for model_type, data in type_map.items():
         lat = data["latencies"]
         conf = data["confidences"]
-        result.append({
-            "model_type": model_type,
-            "latency_stddev": round(statistics.stdev(lat), 2) if len(lat) >= 2 else None,
-            "latency_mean": round(sum(lat) / len(lat), 2) if lat else None,
-            "confidence_stddev": round(statistics.stdev(conf), 2) if len(conf) >= 2 else None,
-            "confidence_mean": round(sum(conf) / len(conf), 4) if conf else None,
-            "sample_count": len(lat),
-        })
+        result.append(
+            {
+                "model_type": model_type,
+                "latency_stddev": round(statistics.stdev(lat), 2) if len(lat) >= 2 else None,
+                "latency_mean": round(sum(lat) / len(lat), 2) if lat else None,
+                "confidence_stddev": round(statistics.stdev(conf), 2) if len(conf) >= 2 else None,
+                "confidence_mean": round(sum(conf) / len(conf), 4) if conf else None,
+                "sample_count": len(lat),
+            }
+        )
     return _ok(result, "ok")
 
 
 @admin_router.get("/metrics/feedback-flow", summary="feedback flow summary")
 async def get_feedback_flow(_: AdminUser):
     from app.models.model_metrics import MetricSnapshot
+
     total_feedback = await Feedback.all().count()
     positive = await Feedback.filter(rating__gte=4).count()
     negative = await Feedback.filter(rating__lte=2).count()
@@ -201,12 +215,15 @@ async def get_feedback_flow(_: AdminUser):
         }
         for s in snapshots
     ]
-    return _ok({
-        "feedback_total": total_feedback,
-        "positive_count": positive,
-        "negative_count": negative,
-        "improvement_trend": trend,
-    }, "ok")
+    return _ok(
+        {
+            "feedback_total": total_feedback,
+            "positive_count": positive,
+            "negative_count": negative,
+            "improvement_trend": trend,
+        },
+        "ok",
+    )
 
 
 @admin_router.get("/report", summary="test report")
@@ -215,6 +232,7 @@ async def generate_test_report(_: AdminUser):
     from datetime import datetime
 
     from app.models.model_metrics import MetricSnapshot
+
     now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M")
     metrics = await ModelMetric.filter(success=True).values("model_type", "latency_ms", "confidence_score")
     snapshots = await MetricSnapshot.all().order_by("-snapshot_date").limit(30)
@@ -244,8 +262,7 @@ async def generate_test_report(_: AdminUser):
         if s.avg_rating:
             version_ratings[v].append(s.avg_rating)
     model_comparison = [
-        {"version": v, "avg_rating": round(sum(r) / len(r), 4) if r else None}
-        for v, r in version_ratings.items()
+        {"version": v, "avg_rating": round(sum(r) / len(r), 4) if r else None} for v, r in version_ratings.items()
     ]
     report = {
         "title": "MediLog 8\uc870 \u2014 3-3 \ubc18\ubcf5 \ud14c\uc2a4\ud2b8 \ubcf4\uace0\uc11c",
