@@ -38,3 +38,4 @@ class PillMatchResponse(BaseModel):
     drug_shape: str | None = None
     chart: str | None = None
     dl_company: str | None = None
+    candidates: list[dict] | None = None

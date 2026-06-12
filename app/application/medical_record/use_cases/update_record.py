@@ -69,13 +69,15 @@ class UpdateRecordUseCase:
                 events = []
                 current = start
                 while current <= end:
-                    events.append(CalendarEvent(
-                        user_id=user_id,
-                        medication_id=med.id,
-                        event_date=current,
-                        scheduled_time="08:00:00",
-                        status="PENDING",
-                    ))
+                    events.append(
+                        CalendarEvent(
+                            user_id=user_id,
+                            medication_id=med.id,
+                            event_date=current,
+                            scheduled_time="08:00:00",
+                            status="PENDING",
+                        )
+                    )
                     current += timedelta(days=interval)
                 if events:
                     await CalendarEvent.bulk_create(events)
