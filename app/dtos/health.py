@@ -1,17 +1,13 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated
 from uuid import UUID
-
 from pydantic import BaseModel, Field
-
 from app.dtos.base import BaseSerializerModel
-
 
 class MedicalRecordCreateRequest(BaseModel):
     ocr_raw_text: str | None = None
     parsed_data: dict | None = None
     record_type: int = 0
-
 
 class MedicalRecordResponse(BaseSerializerModel):
     id: UUID
@@ -21,7 +17,6 @@ class MedicalRecordResponse(BaseSerializerModel):
     record_type: int
     created_at: datetime
 
-
 class MedicationCreateRequest(BaseModel):
     medical_record_id: str
     drug_name: str
@@ -29,7 +24,9 @@ class MedicationCreateRequest(BaseModel):
     frequency: Annotated[str | None, Field(None, max_length=100)]
     instructions: str | None = None
     warnings: str | None = None
-
+    start_date: date | None = None
+    end_date: date | None = None
+    interval_days: int | None = None
 
 class MedicationResponse(BaseSerializerModel):
     id: UUID
@@ -39,39 +36,36 @@ class MedicationResponse(BaseSerializerModel):
     frequency: str | None
     instructions: str | None
     warnings: str | None
+    start_date: date | None
+    end_date: date | None
+    interval_days: int | None
     created_at: datetime
-
 
 class UnderlyingDiseaseRequest(BaseModel):
     underlying_disease_name: str
     severity: str | None = None
 
-
 class UnderlyingDiseaseResponse(BaseSerializerModel):
-    id: UUID  # str → UUID
+    id: UUID
     underlying_disease_name: str
     severity: str | None
     created_at: datetime
-
 
 class AllergyRequest(BaseModel):
     allergy_name: str
     severity: str | None = None
 
-
 class AllergyResponse(BaseSerializerModel):
-    id: UUID  # str → UUID
+    id: UUID
     allergy_name: str
     severity: str | None
     created_at: datetime
 
-
 class AIAnalysisRequest(BaseModel):
     medical_record_id: str
 
-
 class GuideResponse(BaseSerializerModel):
-    id: UUID  # str → UUID
+    id: UUID
     medical_record_id: UUID
     medication_guide: str | None
     lifestyle_guide: str | None

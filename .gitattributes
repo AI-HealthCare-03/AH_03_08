@@ -1,0 +1,4 @@
+* text=auto
+infra/docker/docker-compose.prod.yml text eol=lf
+infra/nginx/*.conf text eol=lf
+frontend/.env.production text eol=lf
