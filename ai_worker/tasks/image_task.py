@@ -98,7 +98,7 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
         logger.info(f"OCR 추출 텍스트: {ocr_texts}")
 
         # OCR 결과 활용하여 분류
-        kcode, drug_info, confidence_score, method = classifier.classify_with_ocr(image_bytes, ocr_texts)
+        kcode, drug_info, confidence_score, method, candidates = classifier.classify_with_ocr(image_bytes, ocr_texts)
         logger.info(f"분류 방법: {method}, kcode: {kcode}, confidence: {confidence_score:.4f}")
 
         from ai_worker.callback import image_done, image_failed
