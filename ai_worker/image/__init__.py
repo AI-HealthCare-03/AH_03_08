@@ -1,6 +1,7 @@
 # ai_worker/image/__init__.py
 
 import json
+import re
 
 from ai_worker.core.config import Config
 from ai_worker.image.lookup import get_drug_info, get_kcode
@@ -14,9 +15,111 @@ def load_print_index(index_path: str) -> dict:
         return json.load(f)
 
 
-def match_by_print_code(ocr_texts: list[str], print_index: dict, kcode_info: dict) -> tuple[str, dict] | None:
+def _normalize_print_code(text: str) -> str:
+    """식별코드에서 '분할선' 제거 후 공백 strip."""
+    return text.replace("분할선", "").strip()
+
+
+def _build_normalized_index(print_index: dict) -> dict[str, list[str]]:
+    """
+    원본 print_index를 normalize한 역방향 인덱스를 빌드한다.
+    normalize 결과가 빈 문자열이거나 순수 한글인 경우 제외.
+
+    Returns:
+        dict: { normalize된_키(대문자): [원본_키1, 원본_키2, ...] }
+    """
+    normalized: dict[str, list[str]] = {}
+    for key in print_index:
+        norm = _normalize_print_code(key)
+        if not norm:
+            continue
+        # 순수 한글만 남은 경우 제외 (예: "십자", "마크")
+        if re.fullmatch(r"[가-힣\s]+", norm):
+            continue
+        norm_upper = norm.upper()
+        if norm_upper not in normalized:
+            normalized[norm_upper] = []
+        if key not in normalized[norm_upper]:
+            normalized[norm_upper].append(key)
+    return normalized
+
+
+def _match_exact(ocr_texts: list[str], print_index: dict, scores: dict) -> bool:
+    """1단계: 완전 일치 매칭 (가중치 3). 매칭 발생 시 True 반환."""
+    matched = False
+    for text in ocr_texts:
+        text_upper = text.strip().upper()
+        if text_upper in print_index:
+            for kcode in print_index[text_upper]:
+                scores[kcode] = scores.get(kcode, 0) + 3
+            matched = True
+    return matched
+
+
+def _match_normalized(ocr_texts: list[str], print_index: dict, normalized_index: dict, scores: dict) -> bool:
+    """2단계: 분할선 제거 후 normalize 매칭 (가중치 2). 매칭 발생 시 True 반환."""
+    matched = False
+    for text in ocr_texts:
+        text_upper = text.strip().upper()
+        if text_upper in print_index:
+            continue  # 완전 일치 텍스트는 건너뜀
+        norm = _normalize_print_code(text_upper)
+        if norm and norm in normalized_index:
+            for orig_key in normalized_index[norm]:
+                for kcode in print_index[orig_key]:
+                    scores[kcode] = scores.get(kcode, 0) + 2
+            matched = True
+    return matched
+
+
+def _match_partial(ocr_texts: list[str], print_index: dict, scores: dict) -> bool:
+    """3단계: 부분 문자열 포함 검색 fallback (가중치 1, 2글자 이상만). 매칭 발생 시 True 반환."""
+    matched = False
+    for text in ocr_texts:
+        text_upper = text.strip().upper()
+        if len(text_upper) < 2:
+            continue
+        for key in print_index:
+            norm_key = _normalize_print_code(key).upper()
+            if text_upper in norm_key or norm_key in text_upper:
+                for kcode in print_index[key]:
+                    scores[kcode] = scores.get(kcode, 0) + 1
+                matched = True
+    return matched
+
+
+def _build_candidates(sorted_kcodes: list[str], kcode_info: dict, scores: dict) -> list[dict]:
+    """K코드 목록으로 후보 약품 리스트를 빌드한다."""
+    candidates = []
+    for kcode in sorted_kcodes:
+        info = kcode_info.get(kcode)
+        if not info:
+            continue
+        candidates.append({
+            "kcode": kcode,
+            "drug_name": info["dl_name"],
+            "dl_material": info["dl_material"],
+            "di_class_no": info["di_class_no"],
+            "di_etc_otc_code": info["di_etc_otc_code"],
+            "print_front": info["print_front"],
+            "print_back": info["print_back"],
+            "score": scores[kcode],
+        })
+    return candidates
+
+
+def match_by_print_code(
+    ocr_texts: list[str],
+    print_index: dict,
+    kcode_info: dict,
+) -> tuple[list[dict], str] | None:
     """
     OCR 추출 텍스트로 식별코드 인덱스에서 약품을 매칭한다.
+
+    매칭 전략 (우선순위 순):
+    1. 완전 일치 (original key, 가중치 3)
+    2. normalize 후 일치 — 분할선 제거 (가중치 2)
+    3. 부분 문자열 포함 검색 fallback (가중치 1, 2글자 이상만)
 
     Args:
         ocr_texts: OCR로 추출된 텍스트 목록
@@ -24,33 +127,35 @@ def match_by_print_code(ocr_texts: list[str], print_index: dict, kcode_info: dic
         kcode_info: K코드 → 약품 정보
 
     Returns:
-        tuple[str, dict] | None: (K코드, 약품 정보) 또는 None
+        tuple[list[dict], str] | None:
+            - (후보 약품 리스트 최대 5개, 매칭 방법)
+            - 매칭 방법: "exact" | "normalized" | "partial"
+            - 매칭 실패 시 None
     """
-    candidates = {}
-    for text in ocr_texts:
-        text_upper = text.strip().upper()
-        if text_upper in print_index:
-            for kcode in print_index[text_upper]:
-                candidates[kcode] = candidates.get(kcode, 0) + 1
-
-    if not candidates:
+    if not ocr_texts:
         return None
 
-    # 매칭 횟수가 가장 많은 K코드 선택
-    best_kcode = max(candidates, key=lambda k: candidates[k])
-    info = kcode_info.get(best_kcode)
-    if not info:
+    normalized_index = _build_normalized_index(print_index)
+    scores: dict[str, int] = {}
+
+    exact_hit = _match_exact(ocr_texts, print_index, scores)
+    norm_hit = _match_normalized(ocr_texts, print_index, normalized_index, scores)
+
+    if not scores:
+        _match_partial(ocr_texts, print_index, scores)
+        matched_method = "partial" if scores else None
+    elif exact_hit:
+        matched_method = "exact"
+    else:
+        matched_method = "normalized" if norm_hit else None
+
+    if not scores or not matched_method:
         return None
 
-    drug_info = {
-        "drug_name": info["dl_name"],
-        "dl_material": info["dl_material"],
-        "di_class_no": info["di_class_no"],
-        "di_etc_otc_code": info["di_etc_otc_code"],
-        "print_front": info["print_front"],
-        "print_back": info["print_back"],
-    }
-    return best_kcode, drug_info
+    sorted_kcodes = sorted(scores, key=lambda k: scores[k], reverse=True)[:5]
+    candidates = _build_candidates(sorted_kcodes, kcode_info, scores)
+
+    return (candidates, matched_method) if candidates else None
 
 
 class PillClassifier:
@@ -83,7 +188,11 @@ class PillClassifier:
         drug_info = get_drug_info(kcode, self.data_path)
         return kcode, drug_info, confidence_score
 
-    def classify_with_ocr(self, image_bytes: bytes, ocr_texts: list[str]) -> tuple[str, dict, float, str]:
+    def classify_with_ocr(
+        self,
+        image_bytes: bytes,
+        ocr_texts: list[str],
+    ) -> tuple[str, dict, float, str, list[dict] | None]:
         """
         OCR 결과를 우선 활용하여 약품을 분류한다.
 
@@ -92,19 +201,32 @@ class PillClassifier:
             ocr_texts: CLOVA OCR로 추출된 텍스트 목록
 
         Returns:
-            tuple[str, dict, float, str]: (K코드, 약품 정보, confidence score, 분류 방법)
-            분류 방법: "ocr" | "resnet"
+            tuple[str, dict, float, str, list[dict] | None]:
+                (K코드, 약품 정보, confidence score, 분류 방법, 후보 리스트)
+            분류 방법: "ocr_exact" | "ocr_normalized" | "ocr_partial" | "ocr_candidates" | "resnet"
+            후보 리스트: 단일 매칭이면 None, 복수 후보면 candidates 리스트
         """
-        # OCR 매칭 시도
         if self.print_index and ocr_texts:
             result = match_by_print_code(ocr_texts, self.print_index, self.kcode_info)
             if result:
-                kcode, drug_info = result
-                return kcode, drug_info, 1.0, "ocr"
+                candidates, ocr_method = result
+                best = candidates[0]
+                drug_info = {
+                    "drug_name": best["drug_name"],
+                    "dl_material": best["dl_material"],
+                    "di_class_no": best["di_class_no"],
+                    "di_etc_otc_code": best["di_etc_otc_code"],
+                    "print_front": best["print_front"],
+                    "print_back": best["print_back"],
+                }
+                # 후보가 복수면 candidates 함께 반환
+                candidates_out = candidates if len(candidates) > 1 else None
+                method = f"ocr_{ocr_method}" if len(candidates) == 1 else "ocr_candidates"
+                return best["kcode"], drug_info, 1.0, method, candidates_out
 
         # OCR 실패 시 ResNet152 fallback
         kcode, drug_info, confidence_score = self.classify(image_bytes)
-        return kcode, drug_info, confidence_score, "resnet"
+        return kcode, drug_info, confidence_score, "resnet", None
 
 
 def get_image_classifier(config: Config) -> PillClassifier:
