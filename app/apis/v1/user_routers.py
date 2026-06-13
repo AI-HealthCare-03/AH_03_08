@@ -293,7 +293,6 @@ async def schedule_medication(medication_id: str, body: MedicationScheduleReques
 
     from app.models.calendar_events import CalendarEvent
     from app.models.medications import Medication
-
     from app.models.notifications import Notification
 
     med = await Medication.filter(id=medication_id, medical_record__user_id=current_user.id).first()
