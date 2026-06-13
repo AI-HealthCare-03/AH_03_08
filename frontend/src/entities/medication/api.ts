@@ -36,7 +36,7 @@ export function useMedications() {
   })
 }
 
-type MedicationBody = { drug_name: string; dosage?: string; frequency?: string; instructions?: string; drug_class?: string | null; start_date?: string | null; end_date?: string | null; scheduled_time?: string | null; record_type?: number | null }
+type MedicationBody = { drug_name: string; dosage?: string; frequency?: string; instructions?: string; drug_class?: string | null; start_date?: string | null; end_date?: string | null; scheduled_time?: string | null; record_type?: number | null; memo?: string | null }
 
 export function useAddMedication() {
   const qc = useQueryClient()

@@ -155,6 +155,7 @@ class ManualMedicationRequest(BaseModel):
     end_date: str | None = None
     scheduled_time: str | None = None
     record_type: int | None = None  # 0=처방전, 1=약봉투, None=수동(99)
+    memo: str | None = None
 
 
 class ManualMedicationResponse(BaseModel):
@@ -235,6 +236,7 @@ async def add_my_medication(body: ManualMedicationRequest, current_user=Depends(
         drug_class=body.drug_class,
         start_date=body.start_date,
         end_date=body.end_date,
+        memo=body.memo,
     )
     sched_time = body.scheduled_time or "08:00:00"
     if body.start_date:
@@ -339,6 +341,7 @@ async def update_my_medication(
         ("drug_class", body.drug_class),
         ("start_date", body.start_date),
         ("end_date", body.end_date),
+        ("memo", body.memo),
     ]:
         if value is not None:
             setattr(med, field, value)
