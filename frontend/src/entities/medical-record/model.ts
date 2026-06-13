@@ -76,4 +76,20 @@ export interface PillResult {
   print_back: string | null
   disclaimer: string | null
   ocr_texts: string[]
+  candidates?: CandidateResult[] | null
+}
+
+export interface CandidateResult {
+  kcode: string
+  drug_name: string
+  dl_material: string | null
+  di_class_no: string | null
+  di_etc_otc_code: string | null
+  print_front: string | null
+  print_back: string | null
+  color_class1: string | null
+  drug_shape: string | null
+  chart: string | null
+  dl_company: string | null
+  score: number
 }
