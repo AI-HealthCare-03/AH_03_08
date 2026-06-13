@@ -9,9 +9,8 @@ import { useGuides } from '@/entities/guide/api'
 import { useNotifications } from '@/entities/notification/api'
 import { useChatSessions } from '@/entities/chatbot/api'
 import { useDailyCalendar, useUpdateEventStatus } from '@/entities/calendar/api'
-import { useMedications } from '@/entities/medication/api'
+import { useMedications, useDrugClassFallback } from '@/entities/medication/api'
 import { RECORD_TYPE_META } from '@/entities/medical-record/model'
-import { getDrugCategory } from '@/shared/lib/drug-category'
 import type { MedicationItem } from '@/entities/medication/model'
 
 const STATUS_CONFIG = {
@@ -36,6 +35,52 @@ function formatTime(time: string): string {
   return `${ampm} ${String(display).padStart(2, '0')}:${m}`
 }
 
+function TodayEventItem({ event, med, idx, onStatusChange }: {
+  event: { id: string; scheduled_time: string; status: 'TAKEN' | 'MISSED' | 'PENDING'; medication_id: string }
+  med?: MedicationItem
+  idx: number
+  onStatusChange: (id: string, status: 'TAKEN' | 'MISSED' | 'PENDING') => void
+}) {
+  const category = useDrugClassFallback(med?.drug_name ?? '', med?.drug_class, med?.id)
+  const displayCategory = category
+  const dosage = med?.dosage ? ` ${med.dosage}` : ''
+  const color = PILL_COLORS[idx % PILL_COLORS.length]
+  return (
+    <div className="flex items-center gap-3 py-3">
+      <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${color.bg}`}>
+        <PillIcon className={`h-4 w-4 ${color.text}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {displayCategory && (
+            <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-[#1D9E75]/10 text-[#1D9E75] shrink-0">
+              {displayCategory}
+            </span>
+          )}
+          <p className="text-sm font-semibold text-gray-800 truncate">{med?.drug_name ?? '알 수 없음'}{dosage}</p>
+        </div>
+        <p className="text-xs text-gray-400 mt-0.5">
+          {formatTime(event.scheduled_time)}
+          {med?.instructions ? ` · ${med.instructions}` : ''}
+        </p>
+      </div>
+      <div className="inline-flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 gap-0.5">
+        {(['TAKEN', 'MISSED', 'PENDING'] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => onStatusChange(event.id, s)}
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+              event.status === s ? STATUS_CONFIG[s].active + ' shadow-sm' : 'text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            {STATUS_CONFIG[s].label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function StatCard({ label, count, isLoading, href }: { label: string; count: number | undefined; isLoading: boolean; href: string }) {
   return (
     <Link to={href} className="rounded-2xl bg-white border border-gray-100 shadow-sm p-3.5 flex flex-col gap-1 hover:bg-gray-50 transition-colors">
@@ -51,7 +96,8 @@ function StatCard({ label, count, isLoading, href }: { label: string; count: num
 
 export function HomePage() {
   const navigate = useNavigate()
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const _today = new Date()
+  const todayStr = `${_today.getFullYear()}-${String(_today.getMonth() + 1).padStart(2, '0')}-${String(_today.getDate()).padStart(2, '0')}`
 
   const { data: user, isLoading: userLoading } = useCurrentUser()
   const { data: records, isLoading: recordsLoading } = useMedicalRecords()
@@ -68,17 +114,10 @@ export function HomePage() {
     return map
   }, [medications])
 
-  const activeNotifMedIds = useMemo(
-    () => new Set(notifications?.filter(n => n.is_active).map(n => n.medication_id) ?? []),
-    [notifications],
-  )
-
   const todayActiveEvents = useMemo(() => {
     const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
-    return (todayEvents ?? [])
-      .filter(e => activeNotifMedIds.has(e.medication_id))
-      .sort((a, b) => toMin(a.scheduled_time) - toMin(b.scheduled_time))
-  }, [todayEvents, activeNotifMedIds])
+    return (todayEvents ?? []).sort((a, b) => toMin(a.scheduled_time) - toMin(b.scheduled_time))
+  }, [todayEvents])
 
   const greeting = (() => {
     const hour = new Date().getHours()
@@ -212,51 +251,23 @@ export function HomePage() {
             알림 관리
           </Link>
         </div>
-        <p className="text-xs text-gray-400 mb-3">활성화된 알림만 표시</p>
+        <p className="text-xs text-gray-400 mb-3">오늘 복약 일정</p>
 
         {todayActiveEvents.length === 0 ? (
           <div className="py-6 flex items-center justify-center">
-            <p className="text-sm text-gray-400">오늘 예정된 복약 알림이 없습니다.</p>
+            <p className="text-sm text-gray-400">오늘 예정된 복약 일정이 없습니다.</p>
           </div>
         ) : (
           <div className="flex flex-col divide-y divide-gray-50">
-            {todayActiveEvents.map((event, idx) => {
-              const med = medMap[event.medication_id]
-              const rawName = med?.drug_name ?? '알 수 없음'
-              const displayName = getDrugCategory(rawName) ?? rawName
-              const dosage = med?.dosage ? ` ${med.dosage}` : ''
-              const color = PILL_COLORS[idx % PILL_COLORS.length]
-
-              return (
-                <div key={event.id} className="flex items-center gap-3 py-3">
-                  <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${color.bg}`}>
-                    <PillIcon className={`h-4 w-4 ${color.text}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate">{displayName}{dosage}</p>
-                    <p className="text-xs text-gray-400">
-                      {formatTime(event.scheduled_time)}
-                      {med?.instructions ? ` · ${med.instructions}` : ''}
-                    </p>
-                  </div>
-                  <div className="inline-flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5 gap-0.5">
-                    {(['TAKEN', 'MISSED', 'PENDING'] as const).map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => updateStatus({ id: event.id, status: s })}
-                        className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                          event.status === s
-                            ? STATUS_CONFIG[s].active + ' shadow-sm'
-                            : 'text-gray-400 hover:text-gray-600'
-                        }`}
-                      >
-                        {STATUS_CONFIG[s].label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
+            {todayActiveEvents.map((event, idx) => (
+              <TodayEventItem
+                key={event.id}
+                event={event}
+                med={medMap[event.medication_id]}
+                idx={idx}
+                onStatusChange={(id, status) => updateStatus({ id, status })}
+              />
+            ))}
           </div>
         )}
         <p className="text-xs text-gray-300 mt-2">버튼을 눌러 복약 상태를 변경하세요.</p>
