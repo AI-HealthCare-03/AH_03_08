@@ -64,7 +64,7 @@ def _score_medications(pred: list[dict], label: list[dict]) -> dict:
     if not label:
         return {"matched": 0, "total": 0, "accuracy": 1.0, "details": []}
 
-    MED_FIELDS = ["concentration", "dosage", "frequency", "days"]
+    med_fields = ["concentration", "dosage", "frequency", "days"]
     details = []
     matched = 0
 
@@ -81,7 +81,7 @@ def _score_medications(pred: list[dict], label: list[dict]) -> dict:
         field_scores: dict[str, bool] = {}
         if name_matched and best:
             matched += 1
-            for f in MED_FIELDS:
+            for f in med_fields:
                 pv = best.get(f)
                 lv = lm.get(f)
                 # 숫자 필드는 값 동일 여부, 문자열은 유사도
@@ -91,7 +91,7 @@ def _score_medications(pred: list[dict], label: list[dict]) -> dict:
                     field_scores[f] = _exact(str(pv) if pv is not None else None,
                                              str(lv) if lv is not None else None)
         else:
-            field_scores = {f: False for f in MED_FIELDS}
+            field_scores = {f: False for f in med_fields}
 
         details.append({
             "expected_name": lm.get("name"),
@@ -100,7 +100,7 @@ def _score_medications(pred: list[dict], label: list[dict]) -> dict:
             "field_scores": field_scores,
         })
 
-    field_total = len(label) * len(MED_FIELDS)
+    field_total = len(label) * len(med_fields)
     field_correct = sum(
         1 for d in details for ok in d["field_scores"].values() if ok
     )
