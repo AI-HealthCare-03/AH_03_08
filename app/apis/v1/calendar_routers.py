@@ -105,6 +105,22 @@ async def update_calendar_status(
     return _ok(_to_resp(row))
 
 
+class CalendarTimeUpdateRequest(BaseModel):
+    scheduled_time: str = Field(..., description="HH:MM:SS")
+
+
+@calendar_router.patch("/{event_id}/time", summary="Update event scheduled time")
+async def update_calendar_time(
+    event_id: str, body: CalendarTimeUpdateRequest, current_user=Depends(get_request_user)
+):
+    row = await CalendarEvent.filter(id=event_id, user_id=current_user.id).first()
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Calendar event not found.")
+    row.scheduled_time = body.scheduled_time
+    await row.save(update_fields=["scheduled_time"])
+    return _ok(_to_resp(row))
+
+
 @calendar_router.delete("/{event_id}", summary="Delete calendar event")
 async def delete_calendar_event(event_id: str, current_user=Depends(get_request_user)):
     deleted = await CalendarEvent.filter(id=event_id, user_id=current_user.id).delete()
