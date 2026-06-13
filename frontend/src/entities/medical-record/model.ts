@@ -9,6 +9,8 @@ const medicationSchema = z.object({
   days: z.number().nullish(),
   instructions: z.string().nullish(),
   drug_class: z.string().nullish(),
+  start_date: z.string().nullish(),
+  end_date: z.string().nullish(),
 })
 
 export type Medication = z.infer<typeof medicationSchema>
@@ -35,6 +37,7 @@ export const medicalRecordSchema = z.object({
   ocr_raw_text: z.string().nullish(),
   parsed_data: parsedDataSchema.nullish(),
   created_at: z.string(),
+  file_url: z.string().nullable().optional(),
   // 하위 호환 — 백엔드 미지원 필드
   file_name: z.string().optional(),
   guide_id: z.union([z.string(), z.number()]).nullable().optional(),

@@ -28,6 +28,12 @@ async def generate_guide_api(request: GuideGenerateRequest, current_user: Curren
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="진료기록을 찾을 수 없습니다.")
 
+    from app.models.guide import Guide
+
+    existing = await Guide.get_or_none(record_id=request.record_id, user_id=current_user.id)
+    if existing:
+        return _ok({"guide_id": str(existing.id), "status": existing.status}, "가이드 생성 요청 완료")
+
     guide = await create_guide(user_id=current_user.id, record_id=request.record_id)
     celery_app.send_task(
         GENERATE_GUIDE_TASK,

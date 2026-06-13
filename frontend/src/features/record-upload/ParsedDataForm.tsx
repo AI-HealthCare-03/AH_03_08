@@ -108,21 +108,21 @@ export function ParsedDataForm({ data, onChange }: ParsedDataFormProps) {
       </div>
 
       <div>
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2">
           <p className="text-sm font-semibold text-gray-900">의약품 ({meds.length}개)</p>
-          <p className="text-xs text-blue-500">* 이 정보를 바탕으로 캘린더에 일정이 추가됩니다</p>
         </div>
         <div className="rounded-xl border border-gray-100 overflow-hidden">
           {/* 헤더 */}
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1.2rem] bg-gray-50 border-b border-gray-100">
-            {['약품명', '함량', '1회 용량', '1일 횟수', '투약일수'].map((h) => (
+          <div className="grid grid-cols-[2fr_0.8fr_0.6fr_0.6fr_0.6fr_1.2rem] md:grid-cols-[2fr_0.8fr_0.6fr_0.6fr_0.6fr_1.5fr_1.2rem] bg-gray-50 border-b border-gray-100">
+            {['약품명', '함량', '용량', '횟수', '일수'].map((h) => (
               <div key={h} className="px-3 py-2 text-xs font-semibold text-gray-400">{h}</div>
             ))}
+            <div className="hidden md:block px-3 py-2 text-xs font-semibold text-gray-400">용법</div>
             <div />
           </div>
           {/* 행 */}
           {meds.map((med, i) => (
-            <div key={i} className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1.2rem] hover:bg-blue-50/40 transition-colors ${i < meds.length - 1 ? 'border-b border-gray-100' : ''}`}>
+            <div key={i} className={`grid grid-cols-[2fr_0.8fr_0.6fr_0.6fr_0.6fr_1.2rem] md:grid-cols-[2fr_0.8fr_0.6fr_0.6fr_0.6fr_1.5fr_1.2rem] hover:bg-blue-50/40 transition-colors ${i < meds.length - 1 ? 'border-b border-gray-100' : ''}`}>
               <div className={`px-2 py-2 border-r border-gray-100 ${!med.name ? 'animate-pulse bg-red-50' : ''}`}>
                 {med.drug_class && (
                   <span className="inline-block mb-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: '#E1F5EE', color: '#0F6E56' }}>
@@ -130,6 +130,14 @@ export function ParsedDataForm({ data, onChange }: ParsedDataFormProps) {
                   </span>
                 )}
                 <TableCell value={med.name ?? ''} onChange={(v) => setMedField(i, 'name', v)} />
+                {/* 모바일 전용 서브행 */}
+                <div className="md:hidden mt-1 flex items-center gap-1">
+                  <span className="shrink-0 text-[9px] text-gray-300">용법</span>
+                  <TableCell
+                    value={med.instructions != null ? String(med.instructions) : ''}
+                    onChange={(v) => setMedField(i, 'instructions', v)}
+                  />
+                </div>
               </div>
               <div className="px-2 py-2 border-r border-gray-100 flex items-center">
                 <TableCell value={med.concentration ?? ''} onChange={(v) => setMedField(i, 'concentration', v)} />
@@ -143,12 +151,16 @@ export function ParsedDataForm({ data, onChange }: ParsedDataFormProps) {
               <div className={`px-2 py-2 border-r border-gray-100 flex items-center ${med.days == null ? 'animate-pulse bg-red-50' : ''}`}>
                 <TableCell value={med.days != null ? String(med.days) : ''} onChange={(v) => setMedField(i, 'days', v)} />
               </div>
+              {/* 데스크탑 전용 용법 열 */}
+              <div className="hidden md:flex px-2 py-2 border-r border-gray-100 items-center">
+                <TableCell
+                  value={med.instructions != null ? String(med.instructions) : ''}
+                  onChange={(v) => setMedField(i, 'instructions', v)}
+                />
+              </div>
               <div className="flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={() => removeMed(i)}
-                  className="p-0.5 rounded text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
-                >
+                <button type="button" onClick={() => removeMed(i)}
+                  className="p-0.5 rounded text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors">
                   <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                   </svg>
