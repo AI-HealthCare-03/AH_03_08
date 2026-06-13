@@ -37,8 +37,8 @@ export function useCreateNotification() {
 export function useUpdateNotification() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      await apiClient.put(`/notifications/${id}`, { is_active })
+    mutationFn: async ({ id, is_active, scheduled_time }: { id: string; is_active?: boolean; scheduled_time?: string }) => {
+      await apiClient.put(`/notifications/${id}`, { is_active, scheduled_time })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEYS.list })
