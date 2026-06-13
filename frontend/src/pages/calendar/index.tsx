@@ -119,6 +119,7 @@ function MedicationModal({ onClose, editItem }: { onClose: () => void; editItem?
   const [scheduledTime, setScheduledTime] = useState('08:00')
   // 수정 모드: 빈값이면 시간 변경 없음
   const [newTime, setNewTime] = useState('')
+  const [memo, setMemo] = useState(editItem?.memo ?? '')
   const [searchQuery, setSearchQuery] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -162,6 +163,7 @@ function MedicationModal({ onClose, editItem }: { onClose: () => void; editItem?
           frequency: frequency || undefined,
           instructions: instructions || undefined,
           drug_class: drugClass || null,
+          memo: memo || null,
           ...(newTime ? { scheduled_time: `${newTime}:00` } : {}),
         },
         { onSuccess: onClose },
@@ -174,6 +176,7 @@ function MedicationModal({ onClose, editItem }: { onClose: () => void; editItem?
           frequency: frequency || undefined,
           instructions: instructions || undefined,
           drug_class: drugClass || null,
+          memo: memo || null,
           start_date: startDate || null,
           end_date: endDate || null,
           scheduled_time: endDate ? `${scheduledTime}:00` : null,
@@ -272,6 +275,18 @@ function MedicationModal({ onClose, editItem }: { onClose: () => void; editItem?
             </div>
           </>
         )}
+
+        {/* 메모 */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-semibold text-gray-500">메모</label>
+          <textarea
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            placeholder="복용 관련 메모를 입력하세요"
+            rows={2}
+            className={INPUT_CLS + ' resize-none'}
+          />
+        </div>
 
         {/* 수정 전용: 시간 변경 (선택) */}
         {isEdit && (

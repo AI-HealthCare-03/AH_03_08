@@ -11,6 +11,7 @@ export interface MedicationItem {
   diagnosis?: string | null
   start_date?: string | null
   end_date?: string | null
+  memo?: string | null
 }
 
 export interface DrugSearchItem {
