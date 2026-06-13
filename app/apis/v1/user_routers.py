@@ -150,6 +150,11 @@ class ManualMedicationRequest(BaseModel):
     dosage: str | None = None
     frequency: str | None = None
     instructions: str | None = None
+    drug_class: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    scheduled_time: str | None = None
+    record_type: int | None = None  # 0=처방전, 1=약봉투, None=수동(99)
 
 
 class ManualMedicationResponse(BaseModel):
@@ -158,9 +163,13 @@ class ManualMedicationResponse(BaseModel):
     dosage: str | None
     frequency: str | None
     instructions: str | None
+    drug_class: str | None = None
     created_at: str
     record_type: int | None = None
     source_name: str | None = None
+    diagnosis: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
 
 
 @user_router.get("/me/medications", summary="내 의약품 목록 조회")
@@ -172,14 +181,21 @@ async def list_my_medications(current_user=Depends(get_request_user)):
         .prefetch_related("medical_record")
         .order_by("-created_at")
     )
+    from app.presentation.api.v1.chats.router import _kcd_name
+
     result = []
     for r in rows:
         rec = r.medical_record
         rt = getattr(rec, "record_type", None)
         source_name = None
+        diagnosis = None
         if rec and rec.parsed_data:
             if rt == 0:
                 source_name = rec.parsed_data.get("hospital")
+                disease_code = rec.parsed_data.get("disease_code")
+                if disease_code:
+                    kcd_name = _kcd_name(disease_code)
+                    diagnosis = kcd_name or disease_code
             elif rt == 1:
                 source_name = rec.parsed_data.get("pharmacy")
         result.append(
@@ -189,9 +205,13 @@ async def list_my_medications(current_user=Depends(get_request_user)):
                 dosage=r.dosage,
                 frequency=r.frequency,
                 instructions=r.instructions,
+                drug_class=r.drug_class,
                 created_at=str(r.created_at),
-                record_type=rt if rt not in (None, 99) else None,
+                record_type=rt,
                 source_name=source_name,
+                diagnosis=diagnosis,
+                start_date=str(r.start_date) if getattr(r, "start_date", None) else None,
+                end_date=str(r.end_date) if getattr(r, "end_date", None) else None,
             )
         )
     return _ok(result)
@@ -199,17 +219,52 @@ async def list_my_medications(current_user=Depends(get_request_user)):
 
 @user_router.post("/me/medications", summary="의약품 수동 등록", status_code=status.HTTP_201_CREATED)
 async def add_my_medication(body: ManualMedicationRequest, current_user=Depends(get_request_user)):
+    from datetime import date, timedelta
+
+    from app.models.calendar_events import CalendarEvent
     from app.models.medical_records import MedicalRecord
     from app.models.medications import Medication
 
-    record = await MedicalRecord.create(user_id=current_user.id, record_type=99, status="completed")
+    record = await MedicalRecord.create(user_id=current_user.id, record_type=body.record_type if body.record_type is not None else 99, status="completed")
     med = await Medication.create(
         medical_record_id=record.id,
         drug_name=body.drug_name,
         dosage=body.dosage,
         frequency=body.frequency,
         instructions=body.instructions,
+        drug_class=body.drug_class,
+        start_date=body.start_date,
+        end_date=body.end_date,
     )
+    sched_time = body.scheduled_time or "08:00:00"
+    if body.start_date:
+        try:
+            from app.models.notifications import Notification
+
+            start = date.fromisoformat(body.start_date)
+            if body.end_date:
+                end = date.fromisoformat(body.end_date)
+                events, cur = [], start
+                while cur <= end:
+                    events.append(CalendarEvent(user_id=current_user.id, medication_id=med.id, event_date=cur, scheduled_time=sched_time, status="PENDING"))
+                    cur += timedelta(days=1)
+            else:
+                events = [
+                    CalendarEvent(user_id=current_user.id, medication_id=med.id, event_date=start + timedelta(days=i), scheduled_time=sched_time, status="PENDING")
+                    for i in range(30)
+                ]
+            if events:
+                await CalendarEvent.bulk_create(events)
+            await Notification.create(
+                user_id=current_user.id,
+                medication_id=med.id,
+                title=f"{med.drug_name} 복용 알림",
+                type="push",
+                scheduled_time=sched_time,
+                is_active=True,
+            )
+        except ValueError:
+            pass
     return _ok(
         ManualMedicationResponse(
             id=str(med.id),
@@ -217,16 +272,60 @@ async def add_my_medication(body: ManualMedicationRequest, current_user=Depends(
             dosage=med.dosage,
             frequency=med.frequency,
             instructions=med.instructions,
+            drug_class=med.drug_class,
             created_at=str(med.created_at),
         )
     )
+
+
+class MedicationScheduleRequest(BaseModel):
+    start_date: str
+    end_date: str
+    scheduled_time: str = "08:00:00"
+    interval_days: int = 1
+
+
+@user_router.post("/me/medications/{medication_id}/schedule", summary="기존 의약품 복약 일정 등록")
+async def schedule_medication(medication_id: str, body: MedicationScheduleRequest, current_user=Depends(get_request_user)):
+    from datetime import date, timedelta
+
+    from app.models.calendar_events import CalendarEvent
+    from app.models.medications import Medication
+
+    from app.models.notifications import Notification
+
+    med = await Medication.filter(id=medication_id, medical_record__user_id=current_user.id).first()
+    if not med:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="의약품을 찾을 수 없습니다.")
+    start = date.fromisoformat(body.start_date)
+    end = date.fromisoformat(body.end_date)
+    interval = max(1, body.interval_days)
+    events, cur = [], start
+    while cur <= end:
+        events.append(CalendarEvent(user_id=current_user.id, medication_id=med.id, event_date=cur, scheduled_time=body.scheduled_time, status="PENDING"))
+        cur += timedelta(days=interval)
+    if events:
+        await CalendarEvent.bulk_create(events)
+    await Notification.create(
+        user_id=current_user.id,
+        medication_id=med.id,
+        title=f"{med.drug_name} 복용 알림",
+        type="push",
+        scheduled_time=body.scheduled_time,
+        is_active=True,
+    )
+    return _ok({"created": len(events)})
 
 
 @user_router.patch("/me/medications/{medication_id}", summary="의약품 수정")
 async def update_my_medication(
     medication_id: str, body: ManualMedicationRequest, current_user=Depends(get_request_user)
 ):
+    from datetime import date
+
+    from app.models.calendar_events import CalendarEvent
     from app.models.medications import Medication
+    from app.models.notifications import Notification
 
     med = await Medication.filter(id=medication_id, medical_record__user_id=current_user.id).first()
     if not med:
@@ -237,12 +336,28 @@ async def update_my_medication(
         ("dosage", body.dosage),
         ("frequency", body.frequency),
         ("instructions", body.instructions),
+        ("drug_class", body.drug_class),
+        ("start_date", body.start_date),
+        ("end_date", body.end_date),
     ]:
         if value is not None:
             setattr(med, field, value)
             update_fields.append(field)
     if update_fields:
         await med.save(update_fields=update_fields)
+    # scheduled_time 변경 요청 시 미래 PENDING 이벤트 + 알림 시간 일괄 업데이트
+    if body.scheduled_time:
+        today = date.today()
+        await CalendarEvent.filter(
+            user_id=current_user.id,
+            medication_id=medication_id,
+            event_date__gte=today,
+            status="PENDING",
+        ).update(scheduled_time=body.scheduled_time)
+        await Notification.filter(
+            user_id=current_user.id,
+            medication_id=medication_id,
+        ).update(scheduled_time=body.scheduled_time)
     return _ok(
         ManualMedicationResponse(
             id=str(med.id),
@@ -250,6 +365,7 @@ async def update_my_medication(
             dosage=med.dosage,
             frequency=med.frequency,
             instructions=med.instructions,
+            drug_class=med.drug_class,
             created_at=str(med.created_at),
         )
     )
