@@ -109,7 +109,11 @@ export function useDeleteRecord() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: deleteRecord,
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.list() }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEYS.list() })
+      qc.invalidateQueries({ queryKey: ['chatbot', 'guides'] })
+      qc.invalidateQueries({ queryKey: ['chatbot', 'sessions'] })
+    },
   })
 }
 

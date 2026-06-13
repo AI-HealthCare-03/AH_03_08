@@ -15,6 +15,7 @@ class TortoiseRecordRepository(AbstractRecordRepository):
             status=RecordStatus(orm.status),
             ocr_raw_text=orm.ocr_raw_text,
             parsed_data=orm.parsed_data,
+            file_url=orm.file_url,
             created_at=orm.created_at,
             guide_id=guide_id,
         )
@@ -27,6 +28,7 @@ class TortoiseRecordRepository(AbstractRecordRepository):
             status=str(record.status),
             ocr_raw_text=record.ocr_raw_text,
             parsed_data=record.parsed_data,
+            file_url=record.file_url,
         )
         return self._to_domain(orm)
 
