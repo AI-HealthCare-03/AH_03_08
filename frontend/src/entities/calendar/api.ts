@@ -50,6 +50,16 @@ export function useCreateCalendarEvent() {
   })
 }
 
+export function useUpdateEventTime() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, scheduled_time }: { id: string; scheduled_time: string }) => {
+      await apiClient.patch(`/calendars/${id}/time`, { scheduled_time })
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['calendar'] }),
+  })
+}
+
 export function useDeleteCalendarEvent() {
   const qc = useQueryClient()
   return useMutation({

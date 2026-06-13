@@ -1,12 +1,16 @@
+import logging
 from typing import Annotated
 
+import httpx
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import ORJSONResponse as Response
 
+from app.core.config import config
 from app.dependencies.security import get_request_user
 from app.dtos.health import (
     AllergyRequest,
     AllergyResponse,
+    DrugSearchItem,
     MedicalRecordCreateRequest,
     MedicalRecordResponse,
     MedicationCreateRequest,
@@ -16,6 +20,10 @@ from app.dtos.health import (
 )
 from app.models.users import User
 from app.services.health import HealthService
+
+logger = logging.getLogger(__name__)
+
+_DRUG_API_URL = "https://apis.data.go.kr/1471000/DrugPrdtPrmsnInfoService07/getDrugPrdtPrmsnInq07"
 
 health_router = APIRouter(prefix="/health", tags=["health"])
 
@@ -48,6 +56,57 @@ async def get_medications(
 ) -> Response:
     medications = await health_service.get_medications(user=user)
     return Response([MedicationResponse.model_validate(m).model_dump() for m in medications])
+
+
+@health_router.get("/medications/drug-search", response_model=list[DrugSearchItem], status_code=status.HTTP_200_OK)
+async def search_drug(
+    q: Annotated[str, Query(min_length=1, max_length=100)],
+    _: Annotated[User, Depends(get_request_user)],
+) -> Response:
+    if not config.PUBLIC_DATA_API_KEY:
+        return Response([])
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(
+                _DRUG_API_URL,
+                params={"serviceKey": config.PUBLIC_DATA_API_KEY, "item_name": q, "numOfRows": "8", "pageNo": "1", "type": "json"},
+            )
+            items = (resp.json().get("body") or {}).get("items") or []
+            # 결과 없거나 drug_class 없으면 캅셀↔캡슐 표기 변환 후 재검색
+            no_class = items and not any(item.get("PRDUCT_TYPE") for item in items)
+            if not items or no_class:
+                if "캅셀" in q:
+                    q2 = q.replace("캅셀", "캡슐")
+                elif "캡슐" in q:
+                    q2 = q.replace("캡슐", "캅셀")
+                else:
+                    q2 = None
+                if q2:
+                    resp2 = await client.get(
+                        _DRUG_API_URL,
+                        params={"serviceKey": config.PUBLIC_DATA_API_KEY, "item_name": q2, "numOfRows": "8", "pageNo": "1", "type": "json"},
+                    )
+                    items2 = (resp2.json().get("body") or {}).get("items") or []
+                    if items2:
+                        items = items2
+        results = []
+        seen = set()
+        for item in items:
+            name = (item.get("ITEM_NAME") or "").strip()
+            if not name or name in seen:
+                continue
+            seen.add(name)
+            raw_class = item.get("PRDUCT_TYPE") or ""
+            drug_class = raw_class.split("]")[-1].strip() if "]" in raw_class else raw_class or None
+            results.append(DrugSearchItem(
+                drug_name=name,
+                drug_class=drug_class or None,
+                dosage=None,
+            ))
+        return Response([r.model_dump() for r in results])
+    except Exception as e:
+        logger.warning(f"[drug-search] 실패: {e}")
+        return Response([])
 
 
 @health_router.post("/medications", response_model=MedicationResponse, status_code=status.HTTP_201_CREATED)

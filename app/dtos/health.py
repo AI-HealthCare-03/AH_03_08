@@ -42,9 +42,11 @@ class MedicationResponse(BaseSerializerModel):
     frequency: str | None
     instructions: str | None
     warnings: str | None
+    drug_class: str | None
     start_date: date | None
     end_date: date | None
     interval_days: int | None
+    memo: str | None
     created_at: datetime
 
 
@@ -70,6 +72,12 @@ class AllergyResponse(BaseSerializerModel):
     allergy_name: str
     severity: str | None
     created_at: datetime
+
+
+class DrugSearchItem(BaseModel):
+    drug_name: str
+    drug_class: str | None
+    dosage: str | None
 
 
 class AIAnalysisRequest(BaseModel):
