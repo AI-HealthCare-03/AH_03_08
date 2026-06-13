@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MessageCircle, Plus } from 'lucide-react'
-import { useChatSessions, useCreateSession, useGuides } from '@/entities/chatbot/api'
+import { useChatSessions, useCreateSession, useDeleteSession, useGuides } from '@/entities/chatbot/api'
 import { useMedicalRecords } from '@/entities/medical-record/api'
 import { RECORD_TYPE_META } from '@/entities/medical-record/model'
 import { PageHeader } from '@/shared/ui/PageHeader'
@@ -22,6 +22,7 @@ export function SessionList({ selectedSessionId }: SessionListProps) {
   const { data: guides, isFetching: guidesFetching, refetch: refetchGuides } = useGuides()
   const { data: records, refetch: refetchRecords } = useMedicalRecords()
   const { mutate: createSession, isPending } = useCreateSession()
+  const { mutate: deleteSession } = useDeleteSession()
 
   function handleSelectGuide(guideId: string) {
     const existingSession = sessions?.find((s) => s.guide_id === guideId)
@@ -136,6 +137,7 @@ export function SessionList({ selectedSessionId }: SessionListProps) {
                 diseaseCode={record?.parsed_data?.disease_name ?? record?.parsed_data?.disease_code ?? null}
                 recordType={record?.record_type ?? null}
                 onClick={() => navigate(`/chatbot/${session.id}`)}
+                onDelete={() => deleteSession(session.id)}
               />
             )
           })}
