@@ -190,6 +190,7 @@ async def _enrich_medications(parsed: ParsedRecord) -> None:
 
     # 결과 반영
     from ai_worker.services.drug_lookup_service import normalize_dosage_string
+
     for med, result in zip(parsed.medications, results, strict=False):
         med.name = result["item_name"] or med.name
         med.drug_class = result["class_name"]

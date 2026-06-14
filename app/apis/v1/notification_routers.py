@@ -49,16 +49,18 @@ async def list_notifications(current_user=Depends(get_request_user)):
         if r.is_active and end_date and end_date < today:
             r.is_active = False
             expired_ids.append(r.id)
-        result.append(NotificationResponse(
-            id=str(r.id),
-            medication_id=str(r.medication_id),
-            title=r.title,
-            type=r.type,
-            scheduled_time=str(r.scheduled_time),
-            is_active=r.is_active,
-            end_date=str(end_date) if end_date else None,
-            created_at=str(r.created_at),
-        ))
+        result.append(
+            NotificationResponse(
+                id=str(r.id),
+                medication_id=str(r.medication_id),
+                title=r.title,
+                type=r.type,
+                scheduled_time=str(r.scheduled_time),
+                is_active=r.is_active,
+                end_date=str(end_date) if end_date else None,
+                created_at=str(r.created_at),
+            )
+        )
     if expired_ids:
         await Notification.filter(id__in=expired_ids).update(is_active=False)
     return _ok(result)

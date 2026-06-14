@@ -226,7 +226,11 @@ async def add_my_medication(body: ManualMedicationRequest, current_user=Depends(
     from app.models.medical_records import MedicalRecord
     from app.models.medications import Medication
 
-    record = await MedicalRecord.create(user_id=current_user.id, record_type=body.record_type if body.record_type is not None else 99, status="completed")
+    record = await MedicalRecord.create(
+        user_id=current_user.id,
+        record_type=body.record_type if body.record_type is not None else 99,
+        status="completed",
+    )
     med = await Medication.create(
         medical_record_id=record.id,
         drug_name=body.drug_name,
@@ -248,11 +252,25 @@ async def add_my_medication(body: ManualMedicationRequest, current_user=Depends(
                 end = date.fromisoformat(body.end_date)
                 events, cur = [], start
                 while cur <= end:
-                    events.append(CalendarEvent(user_id=current_user.id, medication_id=med.id, event_date=cur, scheduled_time=sched_time, status="PENDING"))
+                    events.append(
+                        CalendarEvent(
+                            user_id=current_user.id,
+                            medication_id=med.id,
+                            event_date=cur,
+                            scheduled_time=sched_time,
+                            status="PENDING",
+                        )
+                    )
                     cur += timedelta(days=1)
             else:
                 events = [
-                    CalendarEvent(user_id=current_user.id, medication_id=med.id, event_date=start + timedelta(days=i), scheduled_time=sched_time, status="PENDING")
+                    CalendarEvent(
+                        user_id=current_user.id,
+                        medication_id=med.id,
+                        event_date=start + timedelta(days=i),
+                        scheduled_time=sched_time,
+                        status="PENDING",
+                    )
                     for i in range(30)
                 ]
             if events:
@@ -288,7 +306,9 @@ class MedicationScheduleRequest(BaseModel):
 
 
 @user_router.post("/me/medications/{medication_id}/schedule", summary="기존 의약품 복약 일정 등록")
-async def schedule_medication(medication_id: str, body: MedicationScheduleRequest, current_user=Depends(get_request_user)):
+async def schedule_medication(
+    medication_id: str, body: MedicationScheduleRequest, current_user=Depends(get_request_user)
+):
     from datetime import date, timedelta
 
     from app.models.calendar_events import CalendarEvent
@@ -303,7 +323,15 @@ async def schedule_medication(medication_id: str, body: MedicationScheduleReques
     interval = max(1, body.interval_days)
     events, cur = [], start
     while cur <= end:
-        events.append(CalendarEvent(user_id=current_user.id, medication_id=med.id, event_date=cur, scheduled_time=body.scheduled_time, status="PENDING"))
+        events.append(
+            CalendarEvent(
+                user_id=current_user.id,
+                medication_id=med.id,
+                event_date=cur,
+                scheduled_time=body.scheduled_time,
+                status="PENDING",
+            )
+        )
         cur += timedelta(days=interval)
     if events:
         await CalendarEvent.bulk_create(events)

@@ -69,7 +69,13 @@ async def search_drug(
         async with httpx.AsyncClient(timeout=5.0) as client:
             resp = await client.get(
                 _DRUG_API_URL,
-                params={"serviceKey": config.PUBLIC_DATA_API_KEY, "item_name": q, "numOfRows": "8", "pageNo": "1", "type": "json"},
+                params={
+                    "serviceKey": config.PUBLIC_DATA_API_KEY,
+                    "item_name": q,
+                    "numOfRows": "8",
+                    "pageNo": "1",
+                    "type": "json",
+                },
             )
             items = (resp.json().get("body") or {}).get("items") or []
             # 결과 없거나 drug_class 없으면 캅셀↔캡슐 표기 변환 후 재검색
@@ -84,7 +90,13 @@ async def search_drug(
                 if q2:
                     resp2 = await client.get(
                         _DRUG_API_URL,
-                        params={"serviceKey": config.PUBLIC_DATA_API_KEY, "item_name": q2, "numOfRows": "8", "pageNo": "1", "type": "json"},
+                        params={
+                            "serviceKey": config.PUBLIC_DATA_API_KEY,
+                            "item_name": q2,
+                            "numOfRows": "8",
+                            "pageNo": "1",
+                            "type": "json",
+                        },
                     )
                     items2 = (resp2.json().get("body") or {}).get("items") or []
                     if items2:
@@ -98,11 +110,13 @@ async def search_drug(
             seen.add(name)
             raw_class = item.get("PRDUCT_TYPE") or ""
             drug_class = raw_class.split("]")[-1].strip() if "]" in raw_class else raw_class or None
-            results.append(DrugSearchItem(
-                drug_name=name,
-                drug_class=drug_class or None,
-                dosage=None,
-            ))
+            results.append(
+                DrugSearchItem(
+                    drug_name=name,
+                    drug_class=drug_class or None,
+                    dosage=None,
+                )
+            )
         return Response([r.model_dump() for r in results])
     except Exception as e:
         logger.warning(f"[drug-search] 실패: {e}")

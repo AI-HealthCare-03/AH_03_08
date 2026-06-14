@@ -13,17 +13,23 @@ _cache: dict[str, dict] = {}
 
 # 숫자 + 단위 패턴 (그룹1: 숫자, 그룹2: 단위)
 _DOSAGE_RE = re.compile(
-    r'([\d.]+)\s*(밀리그램|밀리그람|마이크로그램|마이크로그람|그람|그래|mg|mcg|ug|μg|ml|mL|g|IU|단위|%)',
+    r"([\d.]+)\s*(밀리그램|밀리그람|마이크로그램|마이크로그람|그람|그래|mg|mcg|ug|μg|ml|mL|g|IU|단위|%)",
     re.IGNORECASE,
 )
-_NOISE_RE = re.compile(r'^[^가-힣a-zA-Z0-9]+')
-_PARENS_RE = re.compile(r'\([^)]*\)')  # 괄호 안 제약사명 제거용
+_NOISE_RE = re.compile(r"^[^가-힣a-zA-Z0-9]+")
+_PARENS_RE = re.compile(r"\([^)]*\)")  # 괄호 안 제약사명 제거용
 
 _UNIT_NORM: dict[str, str] = {
-    '밀리그램': 'mg', '밀리그람': 'mg',
-    '마이크로그램': 'mcg', '마이크로그람': 'mcg', 'ug': 'mcg', 'μg': 'mcg',
-    '그람': 'g', '그래': 'g',
-    '밀리리터': 'mL', 'ml': 'mL',
+    "밀리그램": "mg",
+    "밀리그람": "mg",
+    "마이크로그램": "mcg",
+    "마이크로그람": "mcg",
+    "ug": "mcg",
+    "μg": "mcg",
+    "그람": "g",
+    "그래": "g",
+    "밀리리터": "mL",
+    "ml": "mL",
 }
 
 _CORRECT_SYSTEM_PROMPT = (
@@ -50,7 +56,7 @@ def normalize_dosage_string(s: str) -> str | None:
 
 
 def _clean_name(name: str) -> str:
-    return _NOISE_RE.sub('', name).strip()
+    return _NOISE_RE.sub("", name).strip()
 
 
 def _extract_dosage(name: str) -> tuple[str, str | None]:
@@ -66,7 +72,7 @@ def _extract_dosage(name: str) -> tuple[str, str | None]:
     unit = m.group(2)
     std_unit = _UNIT_NORM.get(unit.lower(), unit)
     dosage = f"{number}{std_unit}"
-    return name[:m.start()].strip(), dosage
+    return name[: m.start()].strip(), dosage
 
 
 async def lookup_drug(raw_name: str) -> dict:
@@ -115,7 +121,7 @@ async def lookup_drug(raw_name: str) -> dict:
 
         item = items[0]
         api_item_name = item.get("itemName") or item.get("ITEM_NAME") or clean
-        api_item_name = _PARENS_RE.sub('', api_item_name).strip()  # (삼일제약) 등 제거
+        api_item_name = _PARENS_RE.sub("", api_item_name).strip()  # (삼일제약) 등 제거
         class_name = item.get("classnm") or item.get("CLASS_NM")
 
         clean_name, api_dosage = _extract_dosage(api_item_name)
@@ -144,6 +150,7 @@ async def correct_names_batch(names: list[str]) -> dict[str, str]:
         return {}
 
     from openai import AsyncOpenAI
+
     client = AsyncOpenAI(api_key=config.OPENAI_API_KEY)
 
     names_text = "\n".join(f"- {n}" for n in names)
