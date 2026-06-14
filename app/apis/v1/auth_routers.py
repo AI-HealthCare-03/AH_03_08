@@ -1,6 +1,7 @@
+import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse as Response
 
 from app.core.config import Env, config
@@ -13,7 +14,9 @@ from app.dtos.auth import (
     TokenRefreshResponse,
 )
 from app.dtos.base import BaseResponse
+from app.models.users import User
 from app.services.auth import AuthService, GoogleAuthService, KakaoAuthService
+from app.services.email_service import EmailService
 from app.services.jwt import JwtService
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
@@ -41,7 +44,7 @@ async def login(
     resp = Response(
         content=BaseResponse(
             success=True,
-            data=LoginResponse(access_token=str(tokens["access_token"])).model_dump(),
+            data=LoginResponse(access_token=str(tokens["access_token"]), is_admin=user.is_admin).model_dump(),
             message="Login successful.",
         ).model_dump(),
         status_code=status.HTTP_200_OK,
@@ -71,6 +74,40 @@ async def token_refresh(
             data=TokenRefreshResponse(access_token=str(access_token)).model_dump(),
             message="Token refreshed.",
         ).model_dump(),
+        status_code=status.HTTP_200_OK,
+    )
+
+
+@auth_router.post("/verify-email/send", status_code=status.HTTP_200_OK)
+async def send_verification_email(
+    email: str = Query(...),
+) -> Response:
+    user = await User.get_or_none(email=email)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="?ъ슜?먮? 李얠쓣 ???놁뒿?덈떎.")
+    if user.is_email_verified:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="?대? ?몄쬆???대찓?쇱엯?덈떎.")
+    token = secrets.token_hex(32)
+    user.email_verify_token = token
+    await user.save(update_fields=["email_verify_token"])
+    email_service = EmailService()
+    await email_service.send_verification_email(to_email=email, token=token)
+    return Response(
+        content=BaseResponse(success=True, data=None, message="?몄쬆 硫붿씪??諛쒖넚?섏뿀?듬땲??").model_dump(),
+        status_code=status.HTTP_200_OK,
+    )
+
+
+@auth_router.get("/verify-email", status_code=status.HTTP_200_OK)
+async def verify_email(token: str = Query(...)) -> Response:
+    user = await User.get_or_none(email_verify_token=token)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="?좏슚?섏? ?딆? ?몄쬆 ?좏겙?낅땲??")
+    user.is_email_verified = True
+    user.email_verify_token = None
+    await user.save(update_fields=["is_email_verified", "email_verify_token"])
+    return Response(
+        content=BaseResponse(success=True, data=None, message="?대찓???몄쬆???꾨즺?섏뿀?듬땲??").model_dump(),
         status_code=status.HTTP_200_OK,
     )
 

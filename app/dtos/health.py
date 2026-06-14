@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -29,6 +29,9 @@ class MedicationCreateRequest(BaseModel):
     frequency: Annotated[str | None, Field(None, max_length=100)]
     instructions: str | None = None
     warnings: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    interval_days: int | None = None
 
 
 class MedicationResponse(BaseSerializerModel):
@@ -39,6 +42,9 @@ class MedicationResponse(BaseSerializerModel):
     frequency: str | None
     instructions: str | None
     warnings: str | None
+    start_date: date | None
+    end_date: date | None
+    interval_days: int | None
     created_at: datetime
 
 
@@ -48,7 +54,7 @@ class UnderlyingDiseaseRequest(BaseModel):
 
 
 class UnderlyingDiseaseResponse(BaseSerializerModel):
-    id: UUID  # str → UUID
+    id: UUID
     underlying_disease_name: str
     severity: str | None
     created_at: datetime
@@ -60,7 +66,7 @@ class AllergyRequest(BaseModel):
 
 
 class AllergyResponse(BaseSerializerModel):
-    id: UUID  # str → UUID
+    id: UUID
     allergy_name: str
     severity: str | None
     created_at: datetime
@@ -71,7 +77,7 @@ class AIAnalysisRequest(BaseModel):
 
 
 class GuideResponse(BaseSerializerModel):
-    id: UUID  # str → UUID
+    id: UUID
     medical_record_id: UUID
     medication_guide: str | None
     lifestyle_guide: str | None
