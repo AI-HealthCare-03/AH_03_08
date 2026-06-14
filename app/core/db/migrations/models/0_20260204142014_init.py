@@ -3,8 +3,8 @@ from tortoise import BaseDBAsyncClient
 RUN_IN_TRANSACTION = True
 
 
-async def upgrade(db: BaseDBAsyncClient) -> str:
-    return """
+async def upgrade(db: BaseDBAsyncClient) -> None:
+    await db.execute_script("""
         CREATE TABLE IF NOT EXISTS `aerich` (
     `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     `version` VARCHAR(255) NOT NULL,
@@ -24,12 +24,12 @@ CREATE TABLE IF NOT EXISTS `users` (
     `last_login` DATETIME(6),
     `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     `updated_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)
-) CHARACTER SET utf8mb4;"""
+) CHARACTER SET utf8mb4;""")
 
 
-async def downgrade(db: BaseDBAsyncClient) -> str:
-    return """
-        """
+async def downgrade(db: BaseDBAsyncClient) -> None:
+    await db.execute_script("""
+        """)
 
 
 MODELS_STATE = (

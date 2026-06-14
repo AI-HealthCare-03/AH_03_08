@@ -3,20 +3,20 @@ from tortoise import BaseDBAsyncClient
 RUN_IN_TRANSACTION = True
 
 
-async def upgrade(db: BaseDBAsyncClient) -> str:
-    return """
+async def upgrade(db: BaseDBAsyncClient) -> None:
+    await db.execute_script("""
         ALTER TABLE `users` ADD `height_cm` DOUBLE;
         ALTER TABLE `users` ADD `weight_kg` DOUBLE;
         ALTER TABLE `users` ADD `oauth_id` VARCHAR(100);
-        ALTER TABLE `users` ADD `oauth_provider` VARCHAR(20);"""
+        ALTER TABLE `users` ADD `oauth_provider` VARCHAR(20);""")
 
 
-async def downgrade(db: BaseDBAsyncClient) -> str:
-    return """
+async def downgrade(db: BaseDBAsyncClient) -> None:
+    await db.execute_script("""
         ALTER TABLE `users` DROP COLUMN `height_cm`;
         ALTER TABLE `users` DROP COLUMN `weight_kg`;
         ALTER TABLE `users` DROP COLUMN `oauth_id`;
-        ALTER TABLE `users` DROP COLUMN `oauth_provider`;"""
+        ALTER TABLE `users` DROP COLUMN `oauth_provider`;""")
 
 
 MODELS_STATE = (

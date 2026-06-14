@@ -3,11 +3,11 @@ from tortoise import BaseDBAsyncClient
 RUN_IN_TRANSACTION = True
 
 
-async def upgrade(db: BaseDBAsyncClient) -> str:
+async def upgrade(db: BaseDBAsyncClient) -> None:
     return "SELECT 1;"
 
 
-async def downgrade(db: BaseDBAsyncClient) -> str:
+async def downgrade(db: BaseDBAsyncClient) -> None:
     return "SELECT 1;"
 
 

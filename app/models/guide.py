@@ -31,17 +31,3 @@ class Guide(Model):
     class Meta:
         table = "guides"
 
-
-class Feedback(Model):
-    id = fields.UUIDField(pk=True)
-    guide_id = fields.UUIDField()
-    user_id = fields.UUIDField()
-    rating = fields.IntField(null=True)
-    comment = fields.CharField(max_length=500, null=True)
-    status = fields.CharField(max_length=20, null=True)
-    deactive_at = fields.DatetimeField(null=True)
-    deactive_by = fields.UUIDField(null=True)
-    created_at = fields.DatetimeField(auto_now_add=True)
-
-    class Meta:
-        table = "feedbacks"

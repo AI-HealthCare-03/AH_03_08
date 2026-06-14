@@ -7,6 +7,10 @@ from pydantic import BaseModel, Field
 from app.dependencies.security import get_request_user
 from app.models.allergies import Allergy
 from app.models.underlying_diseases import UnderlyingDisease
+from app.models.users import User
+
+from typing import Annotated
+
 
 user_router = APIRouter(prefix="/users", tags=["users"])
 
@@ -290,3 +294,15 @@ async def update_my_profile(
     if update_fields:
         await current_user.save(update_fields=update_fields)
     return _ok({"message": "Updated."})
+
+CurrentUser = Annotated[User, Depends(get_request_user)]
+
+class FcmTokenRequest(BaseModel):
+    fcm_token: str
+
+@user_router.post("/fcm-token", status_code=200)
+async def save_fcm_token(body: FcmTokenRequest, current_user: CurrentUser):
+    from app.models.users import User
+    await User.filter(id=current_user.id).update(fcm_token=body.fcm_token)
+    return {"message": "FCM 토큰 저장 완료"}
+

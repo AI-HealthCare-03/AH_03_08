@@ -26,6 +26,7 @@ class User(models.Model):
     weight_kg = fields.FloatField(null=True)
     oauth_provider = fields.CharField(max_length=20, null=True)
     oauth_id = fields.CharField(max_length=100, null=True)
+    fcm_token = fields.CharField(max_length=300, null=True)
 
     class Meta:
         table = "users"

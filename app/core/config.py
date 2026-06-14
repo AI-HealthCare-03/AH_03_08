@@ -62,7 +62,10 @@ class Config(BaseSettings):
     UPLOAD_DIR: str = "/tmp/uploads"
 
     # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:3000"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+
+    def get_allowed_origins(self) -> list[str]:
+        return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
 
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""

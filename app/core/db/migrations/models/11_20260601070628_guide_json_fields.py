@@ -3,8 +3,8 @@ from tortoise import BaseDBAsyncClient
 RUN_IN_TRANSACTION = True
 
 
-async def upgrade(db: BaseDBAsyncClient) -> str:
-    return """
+async def upgrade(db: BaseDBAsyncClient) -> None:
+    await db.execute_script("""
         CREATE TABLE IF NOT EXISTS `users` (
     `id` BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     `email` VARCHAR(40) NOT NULL,
@@ -216,11 +216,11 @@ async def upgrade(db: BaseDBAsyncClient) -> str:
     `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     `reference_id` CHAR(36),
     CONSTRAINT `fk_model_me_guides_9d0aaa6f` FOREIGN KEY (`reference_id`) REFERENCES `guides` (`id`) ON DELETE CASCADE
-) CHARACTER SET utf8mb4;"""
+) CHARACTER SET utf8mb4;""")
 
 
-async def downgrade(db: BaseDBAsyncClient) -> str:
-    return """
+async def downgrade(db: BaseDBAsyncClient) -> None:
+    await db.execute_script("""
         DROP TABLE IF EXISTS `underlying_diseases`;
         DROP TABLE IF EXISTS `feedback_tag_selections`;
         DROP TABLE IF EXISTS `audit_logs`;
@@ -239,7 +239,7 @@ async def downgrade(db: BaseDBAsyncClient) -> str:
         DROP TABLE IF EXISTS `feedback_tags`;
         DROP TABLE IF EXISTS `allergies`;
         DROP TABLE IF EXISTS `guide_assets`;
-        DROP TABLE IF EXISTS `notifications`;"""
+        DROP TABLE IF EXISTS `notifications`;""")
 
 
 MODELS_STATE = (

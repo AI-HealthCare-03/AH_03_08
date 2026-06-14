@@ -3,8 +3,8 @@ from tortoise import BaseDBAsyncClient
 RUN_IN_TRANSACTION = True
 
 
-async def upgrade(db: BaseDBAsyncClient) -> str:
-    return """
+async def upgrade(db: BaseDBAsyncClient) -> None:
+    await db.execute_script("""
         CREATE TABLE IF NOT EXISTS `calendar_events` (
     `id` CHAR(36) NOT NULL PRIMARY KEY,
     `event_date` DATE NOT NULL,
@@ -65,17 +65,17 @@ async def upgrade(db: BaseDBAsyncClient) -> str:
     `tag_id` CHAR(36) NOT NULL,
     CONSTRAINT `fk_feedback_feedback_6a4342eb` FOREIGN KEY (`feedback_id`) REFERENCES `feedbacks` (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_feedback_feedback_ddc9327f` FOREIGN KEY (`tag_id`) REFERENCES `feedback_tags` (`id`) ON DELETE CASCADE
-) CHARACTER SET utf8mb4;"""
+) CHARACTER SET utf8mb4;""")
 
 
-async def downgrade(db: BaseDBAsyncClient) -> str:
-    return """
+async def downgrade(db: BaseDBAsyncClient) -> None:
+    await db.execute_script("""
         DROP TABLE IF EXISTS `feedbacks`;
         DROP TABLE IF EXISTS `feedback_tag_selections`;
         DROP TABLE IF EXISTS `calendar_events`;
         DROP TABLE IF EXISTS `notifications`;
         DROP TABLE IF EXISTS `guide_assets`;
-        DROP TABLE IF EXISTS `feedback_tags`;"""
+        DROP TABLE IF EXISTS `feedback_tags`;""")
 
 
 MODELS_STATE = (

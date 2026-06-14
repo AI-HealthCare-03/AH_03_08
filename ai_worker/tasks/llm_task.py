@@ -16,6 +16,8 @@ import logging
 import os
 from datetime import datetime
 
+import firebase_admin
+from firebase_admin import credentials
 import redis
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
@@ -67,6 +69,12 @@ def _get_llm_stream() -> ChatOpenAI:
             api_key=os.getenv("OPENAI_API_KEY", ""),
         )
     return _llm_stream
+
+
+def _init_firebase():
+    if not firebase_admin._apps:
+        cred = credentials.Certificate("envs/firebase-service-account.json")
+        firebase_admin.initialize_app(cred)
 
 
 def _db_url() -> str:
@@ -233,12 +241,12 @@ def _format_lifestyle_guide(guide_dict: dict) -> str:
     acks_late=True,
     time_limit=60,
 )
-def process_chat_message_task(self, session_id: int, message_id: int, user_id: int, user_message: str):
+def process_chat_message_task(self, session_id: str, message_id: str, user_id: str, user_message: str):
     logger.info(f"[chat] session={session_id} msg={message_id}")
     asyncio.run(_process_chat(self, session_id, message_id, user_id, user_message))
 
 
-async def _process_chat(task, session_id: int, message_id: int, user_id: int, user_message: str):
+async def _process_chat(task, session_id: str, message_id: str, user_id: str, user_message: str):
     from tortoise import Tortoise
 
     await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
@@ -248,7 +256,7 @@ async def _process_chat(task, session_id: int, message_id: int, user_id: int, us
         await Tortoise.close_connections()
 
 
-async def _do_process_chat(task, session_id: int, message_id: int, user_id: int, user_message: str):
+async def _do_process_chat(task, session_id: str, message_id: str, user_id: str, user_message: str):
     from ai_worker.models import ChatMessage, ChatSession, User
     from ai_worker.prompts.llm_prompts import build_chat_system_prompt
     from ai_worker.services.disease_code_service import lookup_disease_name_async
@@ -528,7 +536,7 @@ def _drug_interaction_check(message: str, user_health: dict) -> str | None:
     return None
 
 
-def _get_history(session_id: int) -> list[dict]:
+def _get_history(session_id: str) -> list[dict]:
     raw = _redis.lrange(f"chat:history:{session_id}", -20, -1)
     history = []
     for i in range(0, len(raw) - 1, 2):
@@ -544,7 +552,7 @@ def _get_history(session_id: int) -> list[dict]:
     return history
 
 
-def _save_and_publish(session_id: int, message_id: int, user_msg: str, answer: str):
+def _save_and_publish(session_id: str, message_id: str, user_msg: str, answer: str):
     key = f"chat:history:{session_id}"
     pipe = _redis.pipeline()
     pipe.rpush(key, json.dumps({"role": "user", "content": user_msg}, ensure_ascii=False))
@@ -588,7 +596,6 @@ def _parse_and_validate_guide(raw: str) -> dict | None:
 
     return parsed
 
-# ai_worker/tasks/llm_task.py 파일 끝에 추가
 @celery_app.task(
     name="ai_worker.tasks.llm_task.check_and_send_notifications",
     bind=True,
@@ -600,16 +607,16 @@ def check_and_send_notifications(self):
 
 
 async def _do_check_notifications():
+    _init_firebase()
     from datetime import datetime, timedelta, timezone
     from tortoise import Tortoise
+    from ai_worker.models import Notification, User
 
     await Tortoise.init(
         db_url=_db_url(),
         modules={"models": ["ai_worker.models"]},
     )
     try:
-        from ai_worker.models import Notification
-
         now = datetime.now(timezone.utc)
         trigger_window = (now + timedelta(minutes=10)).time()
         now_time = now.time()
@@ -621,10 +628,23 @@ async def _do_check_notifications():
         )
 
         for notif in due:
-            logger.info(
-                f"[notification] 알림 트리거: user_id={notif.user_id} "
-                f"title={notif.title} type={notif.type}"
-            )
+            try:
+                user = await User.get_or_none(id=notif.user_id)
+                if not user or not getattr(user, "fcm_token", None):
+                    logger.warning(f"FCM 토큰 없음: user_id={notif.user_id}")
+                    continue
+                from firebase_admin import messaging as fcm_messaging
+                message = fcm_messaging.Message(
+                    notification=fcm_messaging.Notification(
+                        title=notif.title,
+                        body=f"복약 시간입니다. {notif.scheduled_time} 에 복용하세요.",
+                    ),
+                    token=user.fcm_token,
+                )
+                fcm_messaging.send(message)
+                logger.info(f"[FCM] 발송 완료: user_id={notif.user_id}")
+            except Exception as e:
+                logger.error(f"[FCM] 발송 실패: user_id={notif.user_id}, error={e}")
 
     finally:
         await Tortoise.close_connections()

@@ -30,7 +30,7 @@ async def _do_aggregate_metric_snapshots():
 
     await Tortoise.init(
         db_url=_db_url(),
-        modules={"models": ["ai_worker.models"]},
+        modules={"models": ["ai_worker.models", "app.models.model_metrics"]},
     )
     try:
         from app.models.model_metrics import ModelMetric, MetricSnapshot

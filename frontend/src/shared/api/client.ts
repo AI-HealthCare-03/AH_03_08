@@ -6,7 +6,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 export const apiClient = axios.create({
   baseURL: `${BASE_URL}/api/v1`,
   headers: { 'Content-Type': 'application/json' },
-  // withCredentials는 BE CORS에서 allow_credentials=True + 명시적 origin 설정 후 활성화
+  withCredentials: true,
 })
 
 apiClient.interceptors.request.use((config) => {
@@ -24,7 +24,7 @@ apiClient.interceptors.response.use(
       original._retry = true
       try {
         // refresh_token은 httpOnly 쿠키로 자동 전송됨
-        const { data } = await axios.get(`${BASE_URL}/api/v1/auth/token/refresh`)
+        const { data } = await apiClient.get('/auth/token/refresh')
         localStorage.setItem('access_token', data.access_token)
         useAuthStore.getState().setTokens(data.access_token)
         original.headers.Authorization = `Bearer ${data.access_token}`

@@ -56,6 +56,7 @@ async def login(
         secure=True if config.ENV == Env.PROD else False,
         domain=config.COOKIE_DOMAIN or None,
         expires=tokens["access_token"].payload["exp"],
+        samesite="none" if config.ENV == Env.PROD else "lax",
     )
     return resp
 
@@ -134,6 +135,7 @@ async def google_login(
         secure=True if config.ENV == Env.PROD else False,
         domain=config.COOKIE_DOMAIN or None,
         expires=tokens["access_token"].payload["exp"],
+        samesite="none" if config.ENV == Env.PROD else "lax",
     )
     return resp
 
@@ -160,5 +162,6 @@ async def kakao_login(
         secure=True if config.ENV == Env.PROD else False,
         domain=config.COOKIE_DOMAIN or None,
         expires=tokens["access_token"].payload["exp"],
+        samesite="none" if config.ENV == Env.PROD else "lax",
     )
     return resp

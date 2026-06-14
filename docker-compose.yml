@@ -62,6 +62,7 @@ services:
       - static_volume:/app/templates
       - /tmp/uploads:/tmp/uploads
       - ./data:/app/data
+      - ./envs/firebase-service-account.json:/app/envs/firebase-service-account.json:ro
     restart: always
     ports:
       - "8000:8000"
@@ -126,6 +127,7 @@ services:
       - ./ai_worker:/app/ai_worker
       - ./scripts:/app/scripts
       - ./app:/app/app
+      - ./envs/firebase-service-account.json:/app/envs/firebase-service-account.json:ro
     networks:
       - ws
     depends_on:
@@ -151,6 +153,7 @@ services:
       - ws
     volumes:
       - ./ai_worker:/app/ai_worker
+      - ./envs/firebase-service-account.json:/app/envs/firebase-service-account.json:ro
     depends_on:
       - redis
 

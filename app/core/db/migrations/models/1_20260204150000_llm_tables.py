@@ -3,8 +3,8 @@ from tortoise import BaseDBAsyncClient
 RUN_IN_TRANSACTION = True
 
 
-async def upgrade(db: BaseDBAsyncClient) -> str:
-    return """
+async def upgrade(db: BaseDBAsyncClient) -> None:
+    await db.execute_script("""
         CREATE TABLE IF NOT EXISTS `medical_records` (
     `id` CHAR(36) NOT NULL PRIMARY KEY,
     `record_type` VARCHAR(20) NOT NULL,
@@ -63,16 +63,16 @@ CREATE TABLE IF NOT EXISTS `chat_messages` (
     `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     `session_id` CHAR(36) NOT NULL,
     CONSTRAINT `fk_chat_messages_chat_sessions_session_id` FOREIGN KEY (`session_id`) REFERENCES `chat_sessions` (`id`) ON DELETE CASCADE
-) CHARACTER SET utf8mb4;"""
+) CHARACTER SET utf8mb4;""")
 
 
-async def downgrade(db: BaseDBAsyncClient) -> str:
-    return """
+async def downgrade(db: BaseDBAsyncClient) -> None:
+    await db.execute_script("""
         DROP TABLE IF EXISTS `chat_messages`;
         DROP TABLE IF EXISTS `chat_sessions`;
         DROP TABLE IF EXISTS `guide_assets`;
         DROP TABLE IF EXISTS `guides`;
-        DROP TABLE IF EXISTS `medical_records`;"""
+        DROP TABLE IF EXISTS `medical_records`;""")
 
 
 MODELS_STATE = (
