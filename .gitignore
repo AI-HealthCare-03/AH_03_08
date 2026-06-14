@@ -20,3 +20,4 @@ app/models/pill_data_croped
 
 scripts/eval/chatbot/results/*.json
 scripts/eval/ocr/results/*.json
+pill_print_index.json

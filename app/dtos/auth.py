@@ -18,10 +18,7 @@ class ConditionInput(BaseModel):
 
 
 class SignUpRequest(BaseModel):
-    email: Annotated[
-        EmailStr,
-        Field(None, max_length=40),
-    ]
+    email: Annotated[EmailStr, Field(None, max_length=40)]
     password: Annotated[str, Field(min_length=8), AfterValidator(validate_password)]
     name: Annotated[str, Field(max_length=20)]
     gender: Gender
@@ -40,14 +37,16 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     access_token: str
+    is_admin: bool = False
 
 
-class TokenRefreshResponse(LoginResponse): ...
+class TokenRefreshResponse(BaseModel):
+    access_token: str
 
 
 class GoogleLoginRequest(BaseModel):
-    code: str  # Google OAuth ?멸? 肄붾뱶
+    code: str
 
 
 class KakaoLoginRequest(BaseModel):
-    code: str  # Kakao OAuth authorization code
+    code: str

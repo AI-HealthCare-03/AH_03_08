@@ -250,42 +250,43 @@ async def _process_chat(task, session_id: int, message_id: int, user_id: int, us
         await Tortoise.close_connections()
 
 
-async def _do_process_chat(task, session_id: int, message_id: int, user_id: int, user_message: str):  # noqa: C901
-    from ai_worker.models import ChatMessage, ChatSession, User
+async def _fetch_record_context(session_id: int) -> tuple[dict | None, str | None]:
+    """세션의 진료기록 + HIRA 진단명을 조회한다."""
+    from ai_worker.models import ChatSession, MedicalRecord
     from ai_worker.services.disease_code_service import lookup_disease_name_async
+
+    try:
+        session = await ChatSession.get_or_none(id=session_id)
+        if not session or not session.record_id:
+            return None, None
+        record = await MedicalRecord.get_or_none(id=session.record_id)
+        if not record or not record.parsed_data:
+            return None, None
+        disease_code = record.parsed_data.get("disease_code")
+        current_record = {
+            "disease_code": disease_code,
+            "medications": record.parsed_data.get("medications", []),
+            "hospital_name": record.parsed_data.get("hospital_name"),
+            "prescription_date": record.parsed_data.get("prescription_date"),
+        }
+        disease_name = None
+        if disease_code:
+            disease_name = await lookup_disease_name_async(disease_code)
+            logger.info(f"[chat] HIRA 진단명 조회 완료 {disease_code} → {disease_name} session={session_id}")
+        return current_record, disease_name
+    except Exception as rec_exc:
+        logger.warning(f"[chat] 진료기록/HIRA 조회 실패 (무시): {rec_exc}")
+        return None, None
+
+
+# 변경 후
+async def _do_process_chat(task, session_id: int, message_id: int, user_id: int, user_message: str):
+    from ai_worker.models import ChatMessage, User
 
     try:
         user = await User.get_or_none(id=user_id)
         user_health = await load_user_health(user_id, user)
-
-        # ── 현재 세션의 진료기록 + HIRA API 진단명 조회 ──────────
-        current_record = None
-        disease_name = None
-        try:
-            session = await ChatSession.get_or_none(id=session_id)
-            if session and session.record_id:
-                from ai_worker.models import MedicalRecord
-
-                record = await MedicalRecord.get_or_none(id=session.record_id)
-                if record and record.parsed_data:
-                    disease_code = record.parsed_data.get("disease_code")
-                    current_record = {
-                        "disease_code": disease_code,
-                        "medications": record.parsed_data.get("medications", []),
-                        "hospital_name": record.parsed_data.get("hospital_name"),
-                        "prescription_date": record.parsed_data.get("prescription_date"),
-                    }
-
-                    # HIRA API로 정확한 진단명 조회
-                    if disease_code:
-                        disease_name = await lookup_disease_name_async(disease_code)
-                        logger.info(
-                            f"[chat] HIRA 진단명 조회 완료 {disease_code} → {disease_name} session={session_id}"
-                        )
-
-        except Exception as rec_exc:
-            logger.warning(f"[chat] 진료기록/HIRA 조회 실패 (무시): {rec_exc}")
-        # ──────────────────────────────────────────────────────────
+        current_record, disease_name = await _fetch_record_context(session_id)
 
         if _is_off_topic(user_message):
             answer = (

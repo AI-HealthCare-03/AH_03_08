@@ -1,8 +1,6 @@
 import os
 import uuid
 import zoneinfo
-
-# from dataclasses import field
 from enum import StrEnum
 from pathlib import Path
 
@@ -21,12 +19,11 @@ class Config(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
-
     ENV: Env = Env.LOCAL
     SECRET_KEY: str = f"default-secret-key{uuid.uuid4().hex}"
 
     @property
-    def TIMEZONE(self) -> zoneinfo.ZoneInfo:  # noqa: N802
+    def TIMEZONE(self) -> zoneinfo.ZoneInfo:
         return zoneinfo.ZoneInfo("Asia/Seoul")
 
     TEMPLATE_DIR: str = os.path.join(Path(__file__).resolve().parent.parent, "templates")
@@ -39,7 +36,6 @@ class Config(BaseSettings):
     DB_NAME: str = "ai_health"
     DB_CONNECT_TIMEOUT: int = 5
     DB_CONNECTION_POOL_MAXSIZE: int = 10
-
     COOKIE_DOMAIN: str = "localhost"
 
     # JWT
@@ -63,8 +59,10 @@ class Config(BaseSettings):
     # Celery
     CELERY_BROKER_URL: str = "redis://localhost:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
-
     UPLOAD_DIR: str = "/tmp/uploads"
+
+    # CORS
+    ALLOWED_ORIGINS: str = "http://localhost:3000"
 
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""
@@ -79,5 +77,12 @@ class Config(BaseSettings):
     # Internal
     INTERNAL_SECRET: str = "local-internal-secret-change-in-prod"
 
+    # AWS SES
+    AWS_ACCESS_KEY: str = ""
+    AWS_SECRET_KEY: str = ""
+    AWS_REGION: str = "ap-northeast-2"
+    SES_SENDER_EMAIL: str = ""
+
 
 config = Config()
+settings = config

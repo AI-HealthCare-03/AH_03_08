@@ -1,5 +1,8 @@
+from datetime import date
+
 from fastapi import HTTPException, status
 
+from app.models.model_metrics import MetricSnapshot
 from app.repositories.feedback_repository import (
     create_feedback,
     get_feedbacks_by_user,
@@ -25,7 +28,25 @@ async def submit_feedback(
         comment=comment,
         tag_ids=tag_ids,
     )
+    # 피드백 제출 시 오늘 MetricSnapshot 업데이트
+    await _update_metric_snapshot(model_type=guide.prompt_version or "unknown", rating=rating)
     return {"feedback_id": str(feedback.id)}
+
+
+async def _update_metric_snapshot(model_type: str, rating: int) -> None:
+    today = date.today()
+    snapshot, created = await MetricSnapshot.get_or_create(
+        model_type=model_type,
+        snapshot_date=today,
+        defaults={"avg_rating": rating, "total_count": 1},
+    )
+    if not created:
+        # 누적 평균 업데이트
+        new_total = snapshot.total_count + 1
+        new_avg = ((snapshot.avg_rating or 0) * snapshot.total_count + rating) / new_total
+        snapshot.avg_rating = round(new_avg, 4)
+        snapshot.total_count = new_total
+        await snapshot.save(update_fields=["avg_rating", "total_count"])
 
 
 async def list_my_feedbacks(user_id: int) -> list[dict]:

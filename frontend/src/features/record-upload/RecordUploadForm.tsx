@@ -16,7 +16,7 @@ import {
   usePillResult,
 } from '@/entities/medical-record/api'
 import { RECORD_TYPE_META } from '@/entities/medical-record/model'
-import type { ParsedData } from '@/entities/medical-record/model'
+import type { ParsedData, PillResult } from '@/entities/medical-record/model'
 import type { RecordType } from '@/shared/types'
 
 export function RecordUploadForm() {
@@ -142,14 +142,49 @@ export function RecordUploadForm() {
 
   function handleGenerateGuideForPill() {
     if (!recordId) return
-    generateGuide(recordId, {
-      onSuccess: (data) => {
-        invalidateGuides()
-        toast.success('가이드 생성 요청 완료! 가이드 탭에서 확인하세요.')
-        navigate(`/guide?id=${data.guide_id}`)
+    const currentPillResult = qc.getQueryData(['pill-result', recordId]) as PillResult | undefined
+    const drugInfo = currentPillResult ? {
+      drug_name: currentPillResult.drug_name,
+      dl_company: currentPillResult.dl_company,
+      dl_material: currentPillResult.dl_material,
+      drug_shape: currentPillResult.drug_shape,
+      color_class1: currentPillResult.color_class1,
+      color_class2: currentPillResult.color_class2,
+      di_class_no: currentPillResult.di_class_no,
+      di_etc_otc_code: currentPillResult.di_etc_otc_code,
+      chart: currentPillResult.chart,
+      print_front: currentPillResult.print_front,
+      print_back: currentPillResult.print_back,
+    } : {}
+    updateRecord(
+      { id: recordId, parsed_data: {
+        drug_info: drugInfo,
+        medications: drugInfo.drug_name ? [{
+          name: drugInfo.drug_name,
+          dosage: null,
+          frequency: null,
+          days: null,
+          instructions: drugInfo.dl_material ?? null,
+        }] : [],
+      } as unknown as ParsedData },
+      {
+        onSuccess: () => {
+          generateGuide(recordId, {
+            onSuccess: (data) => {
+              invalidateGuides()
+              toast.success('가이드 생성 요청 완료! 가이드 탭에서 확인하세요.')
+              navigate(`/guide?id=${data.guide_id}`)
+            },
+            onError: () => {
+              toast.error('가이드 생성에 실패했습니다.')
+            },
+          })
+        },
+        onError: () => {
+          toast.error('데이터 저장에 실패했습니다.')
+        },
       },
-      onError: () => toast.error('가이드 생성에 실패했습니다.'),
-    })
+    )
   }
 
   const isProcessing = (record?.status === 'pending' || record?.status === 'processing') && selectedType !== 'pill_photo'
@@ -277,13 +312,14 @@ export function RecordUploadForm() {
 
       {pillResult?.status === 'COMPLETED' && selectedType === 'pill_photo' && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-gray-700">3. 약품 정보</h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700">3. 약품 정보 확인</h2>
+          </div>
           <PillResultCard
-            drugName={pillResult.drug_name ?? null}
-            dlCompany={pillResult.dl_company ?? null}
-            dlMaterial={pillResult.dl_material ?? null}
-            diClassNo={pillResult.di_class_no ?? null}
-            diEtcOtcCode={pillResult.di_etc_otc_code ?? null}
+            pillResult={pillResult as PillResult}
+            onRematch={(result) => {
+              qc.setQueryData(['pill-result', recordId], { ...pillResult, ...result, status: 'COMPLETED' })
+            }}
           />
           <Button
             className="mt-4 w-full"

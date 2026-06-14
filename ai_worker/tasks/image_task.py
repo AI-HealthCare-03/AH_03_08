@@ -98,7 +98,7 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
         logger.info(f"OCR 추출 텍스트: {ocr_texts}")
 
         # OCR 결과 활용하여 분류
-        kcode, drug_info, confidence_score, method = classifier.classify_with_ocr(image_bytes, ocr_texts)
+        kcode, drug_info, confidence_score, method, candidates = classifier.classify_with_ocr(image_bytes, ocr_texts)
         logger.info(f"분류 방법: {method}, kcode: {kcode}, confidence: {confidence_score:.4f}")
 
         from ai_worker.callback import image_done, image_failed
@@ -129,6 +129,7 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
             ],
             "drug_info": drug_info,
             "ocr_texts": ocr_texts,  # 프론트 확인 화면에서 활용
+            "candidates": candidates,  # 추가
         }
         image_done(record_id, parsed_data)
         logger.info(f"낱알약 분류 완료 - kcode: {kcode}, method: {method}")
@@ -140,8 +141,11 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
                 "drug_info": drug_info,
                 "ocr_texts": ocr_texts,
                 "method": method,
+                "candidates": candidates,  # 추가
             },
-            "message": "낱알약 분류가 완료되었습니다.",
+            "message": "낱알약 분류가 완료되었습니다."
+            if not candidates
+            else "복수 후보가 있습니다. 약품명을 확인해 주세요.",
         }
 
     except Exception as exc:
