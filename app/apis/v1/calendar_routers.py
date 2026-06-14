@@ -110,9 +110,7 @@ class CalendarTimeUpdateRequest(BaseModel):
 
 
 @calendar_router.patch("/{event_id}/time", summary="Update event scheduled time")
-async def update_calendar_time(
-    event_id: str, body: CalendarTimeUpdateRequest, current_user=Depends(get_request_user)
-):
+async def update_calendar_time(event_id: str, body: CalendarTimeUpdateRequest, current_user=Depends(get_request_user)):
     row = await CalendarEvent.filter(id=event_id, user_id=current_user.id).first()
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Calendar event not found.")

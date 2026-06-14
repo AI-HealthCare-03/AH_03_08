@@ -86,24 +86,23 @@ def _score_medications(pred: list[dict], label: list[dict]) -> dict:
                 lv = lm.get(f)
                 # 숫자 필드는 값 동일 여부, 문자열은 유사도
                 if isinstance(lv, (int, float)):
-                    field_scores[f] = (pv == lv)
+                    field_scores[f] = pv == lv
                 else:
-                    field_scores[f] = _exact(str(pv) if pv is not None else None,
-                                             str(lv) if lv is not None else None)
+                    field_scores[f] = _exact(str(pv) if pv is not None else None, str(lv) if lv is not None else None)
         else:
             field_scores = {f: False for f in med_fields}
 
-        details.append({
-            "expected_name": lm.get("name"),
-            "predicted_name": best.get("name") if best else None,
-            "name_matched": name_matched,
-            "field_scores": field_scores,
-        })
+        details.append(
+            {
+                "expected_name": lm.get("name"),
+                "predicted_name": best.get("name") if best else None,
+                "name_matched": name_matched,
+                "field_scores": field_scores,
+            }
+        )
 
     field_total = len(label) * len(med_fields)
-    field_correct = sum(
-        1 for d in details for ok in d["field_scores"].values() if ok
-    )
+    field_correct = sum(1 for d in details for ok in d["field_scores"].values() if ok)
 
     return {
         "matched": matched,
@@ -214,8 +213,12 @@ async def main():
     filename = RESULTS_DIR / f"{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.json"
     filename.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    avg_med_name = round(sum(r["scores"]["medications"]["name_accuracy"] for r in valid) / len(valid), 4) if valid else 0.0
-    avg_med_field = round(sum(r["scores"]["medications"]["field_accuracy"] for r in valid) / len(valid), 4) if valid else 0.0
+    avg_med_name = (
+        round(sum(r["scores"]["medications"]["name_accuracy"] for r in valid) / len(valid), 4) if valid else 0.0
+    )
+    avg_med_field = (
+        round(sum(r["scores"]["medications"]["field_accuracy"] for r in valid) / len(valid), 4) if valid else 0.0
+    )
 
     print(f"\n{'=' * 50}")
     print(f"  기본 필드 정확도       : {avg_field:.1%}  (환자명·병원·질병코드 등)")

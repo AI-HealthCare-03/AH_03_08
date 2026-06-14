@@ -3,9 +3,7 @@ from tortoise import fields, models
 
 class Medication(models.Model):
     id = fields.UUIDField(primary_key=True)
-    medical_record = fields.ForeignKeyField(
-        "models.MedicalRecord", related_name="medications"
-    )
+    medical_record = fields.ForeignKeyField("models.MedicalRecord", related_name="medications")
 
     drug_name = fields.CharField(max_length=200)  # 약품명
     dosage = fields.CharField(max_length=100, null=True)  # 용량 (예: 500mg)
