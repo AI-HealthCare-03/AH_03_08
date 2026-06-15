@@ -6,6 +6,7 @@
 # PillClassifier, get_image_classifier는 실제 사용 시점(_load_classifier)에만 import.
 import asyncio
 import base64
+import time
 
 from celery.signals import worker_process_init, worker_process_shutdown
 
@@ -49,8 +50,8 @@ def _get_classifier():
     return _classifier
 
 
-def _run_ocr(image_bytes: bytes) -> list[str]:
-    """CLOVA OCR을 동기 컨텍스트에서 실행한다."""
+async def _run_ocr_async(image_bytes: bytes) -> list[str]:
+    """CLOVA OCR을 비동기로 실행한다."""
     try:
         from ai_worker.ocr.clova import ClovaOCRProvider
 
@@ -58,10 +59,43 @@ def _run_ocr(image_bytes: bytes) -> list[str]:
             return []
 
         ocr = ClovaOCRProvider(url=config.CLOVA_OCR_URL, secret=config.CLOVA_OCR_SECRET)
-        return asyncio.run(ocr.extract_text_from_bytes(image_bytes))
+        return await ocr.extract_text_from_bytes(image_bytes)
     except Exception as exc:
         logger.warning(f"OCR 실행 실패: {exc}")
         return []
+
+
+async def _run_color_shape_async(image_bytes: bytes, classifier) -> tuple[str, str] | None:
+    """색상/모양 분류를 비동기로 실행한다."""
+    try:
+        from ai_worker.image.classifier import predict_color_shape
+
+        if (
+            classifier.color_shape_model is None
+            or classifier.color_classes is None
+            or classifier.shape_classes is None
+        ):
+            return None
+
+        predicted_color, predicted_shape, color_conf, shape_conf = predict_color_shape(
+            classifier.color_shape_model, image_bytes,
+            classifier.color_classes, classifier.shape_classes
+        )
+        logger.info(
+            f"색상/모양 예측 - color: {predicted_color}({color_conf:.2f}), "
+            f"shape: {predicted_shape}({shape_conf:.2f})"
+        )
+        return predicted_color, predicted_shape
+    except Exception as exc:
+        logger.warning(f"색상/모양 예측 실패: {exc}")
+        return None
+
+
+async def _run_parallel(image_bytes: bytes, classifier) -> tuple[list[str], tuple[str, str] | None]:
+    """OCR과 색상/모양 분류를 병렬로 실행한다."""
+    ocr_task = asyncio.create_task(_run_ocr_async(image_bytes))
+    color_shape_task = asyncio.create_task(_run_color_shape_async(image_bytes, classifier))
+    return await asyncio.gather(ocr_task, color_shape_task)
 
 
 @celery_app.task(
@@ -93,12 +127,21 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
         if isinstance(image_bytes, str):
             image_bytes = base64.b64decode(image_bytes)
 
-        # CLOVA OCR 실행
-        ocr_texts = _run_ocr(image_bytes)
-        logger.info(f"OCR 추출 텍스트: {ocr_texts}")
+        # OCR + 색상/모양 병렬 실행
+        start_time = time.time()
+        ocr_texts, color_shape_result = asyncio.run(_run_parallel(image_bytes, classifier))
+        elapsed = time.time() - start_time
+        logger.info(f"병렬 처리 완료 - OCR: {ocr_texts}, 소요시간: {elapsed:.2f}s")
 
-        # OCR 결과 활용하여 분류
-        kcode, drug_info, confidence_score, method, candidates = classifier.classify_with_ocr(image_bytes, ocr_texts)
+        predicted_color = color_shape_result[0] if color_shape_result else None
+        predicted_shape = color_shape_result[1] if color_shape_result else None
+
+        # OCR + 색상/모양 결과로 분류
+        kcode, drug_info, confidence_score, method, candidates = classifier.classify_with_ocr(
+            image_bytes, ocr_texts,
+            predicted_color=predicted_color,
+            predicted_shape=predicted_shape,
+        )
         logger.info(f"분류 방법: {method}, kcode: {kcode}, confidence: {confidence_score:.4f}")
 
         from ai_worker.callback import image_done, image_failed
@@ -128,8 +171,8 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
                 }
             ],
             "drug_info": drug_info,
-            "ocr_texts": ocr_texts,  # 프론트 확인 화면에서 활용
-            "candidates": candidates,  # 추가
+            "ocr_texts": ocr_texts,
+            "candidates": candidates,
         }
         image_done(record_id, parsed_data)
         logger.info(f"낱알약 분류 완료 - kcode: {kcode}, method: {method}")
@@ -141,7 +184,7 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
                 "drug_info": drug_info,
                 "ocr_texts": ocr_texts,
                 "method": method,
-                "candidates": candidates,  # 추가
+                "candidates": candidates,
             },
             "message": "낱알약 분류가 완료되었습니다."
             if not candidates
