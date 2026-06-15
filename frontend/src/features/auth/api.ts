@@ -25,7 +25,13 @@ export async function kakaoLogin(code: string) {
 }
 
 export async function logout() {
-  useAuthStore.getState().logout()
+  try {
+    await apiClient.post('/auth/logout')
+  } catch {
+    // 서버 오류여도 클라이언트 상태는 항상 초기화
+  } finally {
+    useAuthStore.getState().logout()
+  }
 }
 
 export function redirectToGoogle() {

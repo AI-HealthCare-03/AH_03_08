@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.models.users import User
@@ -10,9 +10,23 @@ from app.services.jwt import JwtService
 security = HTTPBearer()
 
 
-async def get_request_user(credential: Annotated[HTTPAuthorizationCredentials, Depends(security)]) -> User:
+async def get_request_user(
+    request: Request,
+    credential: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+) -> User:
     token = credential.credentials
     verified = JwtService().verify_jwt(token=token, token_type="access")
+
+    try:
+        redis = request.app.state.redis
+        is_blacklisted = await redis.exists(f"blacklist:at:{token}")
+        if is_blacklisted:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has been invalidated.")
+    except HTTPException:
+        raise
+    except Exception:
+        pass  # Redis 장애 시 통과
+
     user_id = verified.payload["user_id"]
     user = await UserRepository().get_user(user_id)
     if not user:

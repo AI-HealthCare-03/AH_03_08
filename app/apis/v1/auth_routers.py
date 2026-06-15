@@ -1,7 +1,7 @@
 import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse as Response
 
 from app.core.config import Env, config
@@ -96,6 +96,30 @@ async def send_verification_email(
         content=BaseResponse(success=True, data=None, message="?몄쬆 硫붿씪??諛쒖넚?섏뿀?듬땲??").model_dump(),
         status_code=status.HTTP_200_OK,
     )
+
+@auth_router.post("/logout", status_code=status.HTTP_200_OK)
+async def logout(
+    request: Request,
+    refresh_token: Annotated[str | None, Cookie()] = None,
+) -> Response:
+    if refresh_token:
+        try:
+            redis = request.app.state.redis
+            ttl = config.REFRESH_TOKEN_EXPIRE_MINUTES * 60
+            await redis.setex(f"blacklist:rt:{refresh_token}", ttl, "1")
+        except Exception:
+            pass
+    resp = Response(
+        content=BaseResponse(success=True, data=None, message="Logged out successfully.").model_dump(),
+        status_code=status.HTTP_200_OK,
+    )
+    resp.delete_cookie(
+        key="refresh_token",
+        httponly=True,
+        secure=True if config.ENV == Env.PROD else False,
+        domain=config.COOKIE_DOMAIN or None,
+    )
+    return resp
 
 
 @auth_router.get("/verify-email", status_code=status.HTTP_200_OK)

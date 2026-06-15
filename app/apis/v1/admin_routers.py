@@ -10,6 +10,9 @@ from app.models.medical_records import MedicalRecord
 from app.models.model_metrics import ModelMetric
 from app.models.users import User
 
+from app.models.chat_sessions import ChatSession
+from app.models.notifications import Notification
+
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
 
 AdminUser = Annotated[User, Depends(require_admin)]
@@ -225,6 +228,30 @@ async def get_feedback_flow(_: AdminUser):
         "ok",
     )
 
+@admin_router.get("/dashboard", summary="DAU 및 주요 지표 일별 차트 (REQ-ADMIN-005)")
+async def get_dashboard(_: AdminUser):
+    from datetime import datetime, timedelta
+
+    now = datetime.now(UTC)
+    days = []
+    for i in range(6, -1, -1):
+        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+
+        dau = await User.filter(last_login__gte=day_start, last_login__lt=day_end).count()
+        guide_count = await Guide.filter(created_at__gte=day_start, created_at__lt=day_end).count()
+        ocr_count = await MedicalRecord.filter(created_at__gte=day_start, created_at__lt=day_end).count()
+        chat_count = await ChatSession.filter(created_at__gte=day_start, created_at__lt=day_end).count()
+
+        days.append({
+            "date": day_start.strftime("%Y-%m-%d"),
+            "dau": dau,
+            "guide_count": guide_count,
+            "ocr_upload_count": ocr_count,
+            "chatbot_session_count": chat_count,
+        })
+
+    return _ok({"period": "7d", "daily": days}, "대시보드 조회 성공")
 
 @admin_router.get("/report", summary="test report")
 async def generate_test_report(_: AdminUser):

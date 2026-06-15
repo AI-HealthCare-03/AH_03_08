@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.celery_client import celery_client as celery_app
 from app.dependencies.security import get_request_user
@@ -52,6 +52,29 @@ async def list_feedbacks_api(current_user: CurrentUser):
     items = await feedback_service.list_my_feedbacks(user_id=current_user.id)
     return _ok({"total": len(items), "items": items}, "피드백 목록 조회 성공")
 
+@guide_router.post("/daily-tip", status_code=status.HTTP_202_ACCEPTED)
+async def generate_daily_tip_api(request: Request, current_user: CurrentUser):
+    """오늘의 생활 TIP 생성 요청 (REQ-GUIDE-004)"""
+    import uuid
+    tip_id = str(uuid.uuid4())
+    celery_app.send_task(
+        "ai_worker.tasks.llm_task.generate_daily_tip_task",
+        kwargs={"tip_id": tip_id, "user_id": current_user.id},
+        queue="llm",
+    )
+    return _ok({"tip_id": tip_id, "status": "processing"}, "데일리 TIP 생성 요청 완료")
+
+
+@guide_router.get("/daily-tip/latest", status_code=status.HTTP_200_OK)
+async def get_latest_daily_tip_api(request: Request, current_user: CurrentUser):
+    """최신 데일리 TIP 조회 (Redis 캐시 기반)"""
+    import json
+    from fastapi import HTTPException
+    redis = request.app.state.redis
+    raw = await redis.get(f"daily_tip:user:{current_user.id}")
+    if not raw:
+        raise HTTPException(status_code=404, detail="데일리 TIP이 없습니다.")
+    return _ok(json.loads(raw), "데일리 TIP 조회 성공")
 
 @guide_router.post("/feedbacks")
 async def create_feedback_api(request: FeedbackCreateRequest, current_user: CurrentUser):
