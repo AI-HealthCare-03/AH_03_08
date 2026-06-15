@@ -16,7 +16,7 @@ _SIGNUP = {
     "phone_number": "01055556666",
 }
 _LOGIN = {"email": "record_test@example.com", "password": "Password123!"}
-_FAKE_IMAGE = ("test.jpg", BytesIO(b"fake image content"), "image/jpeg")
+_FAKE_IMAGE = ("test.jpg", BytesIO(b"\xff\xd8\xff" + b"fake image content"), "image/jpeg")
 
 
 async def _get_auth_headers(client: AsyncClient) -> dict:
