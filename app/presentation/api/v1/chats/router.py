@@ -213,15 +213,49 @@ async def chat_websocket(
     session_id: UUID,
     token: str,
 ) -> None:
-    """
-    WebSocket 채팅 엔드포인트.
-    연결: ws://host/api/v1/chats/{session_id}/ws?token=<access_token>
-    클라이언트 → 서버: {"content": "질문 내용"}
-    서버 → 클라이언트: {"type": "token", "content": "토큰"} (스트리밍)
-    서버 → 클라이언트: {"type": "done"} (완료)
-    서버 → 클라이언트: {"type": "error", "detail": "메시지"} (에러)
-    """
     await websocket.accept()
+    user = await _get_ws_user(token)
+    if not user:
+        await websocket.send_text(json.dumps({"type": "error", "detail": "인증에 실패했습니다."}))
+        await websocket.close(code=4001)
+        return
+    guide_context = await _build_guide_context(session_id)
+    use_case = StreamMessageUseCase(
+        TortoiseChatSessionRepository(),
+        TortoiseChatMessageRepository(),
+        OpenAILLMClient(),
+    )
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            try:
+                data = json.loads(raw)
+                content = data.get("content", "").strip()
+            except (json.JSONDecodeError, AttributeError):
+                await websocket.send_text(json.dumps({"type": "error", "detail": "잘못된 메시지 형식입니다."}))
+                continue
+            if not content:
+                await websocket.send_text(json.dumps({"type": "error", "detail": "메시지 내용을 입력해주세요."}))
+                continue
+            allergies = await Allergy.filter(user_id=user.id).values_list("allergy_name", flat=True)
+            diseases = await UnderlyingDisease.filter(user_id=user.id).values_list("underlying_disease_name", flat=True)
+            command = SendMessageCommand(
+                session_id=session_id,
+                user_id=user.id,
+                content=content,
+                allergies=list(allergies),
+                underlying_diseases=list(diseases),
+                guide_context=guide_context,
+            )
+            try:
+                generator = await use_case.execute(command)
+                async for token_chunk in generator:
+                    await websocket.send_text(json.dumps({"type": "token", "content": token_chunk}))
+                await websocket.send_text(json.dumps({"type": "done"}))
+            except Exception as e:
+                await websocket.send_text(json.dumps({"type": "error", "detail": str(e)}))
+    except WebSocketDisconnect:
+        pass
 
     user = await _get_ws_user(token)
     if not user:
