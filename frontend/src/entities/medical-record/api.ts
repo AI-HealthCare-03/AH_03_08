@@ -121,7 +121,7 @@ export function useUpdateRecord() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: updateRecord,
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.list() }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.all }),
   })
 }
 
