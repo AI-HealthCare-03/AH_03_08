@@ -12,7 +12,7 @@ class TortoiseRecordRepository(AbstractRecordRepository):
             id=orm.id,
             user_id=orm.user_id,
             record_type=RecordType(orm.record_type),
-            status=RecordStatus(orm.status),
+            status=RecordStatus(orm.status.upper()),
             ocr_raw_text=orm.ocr_raw_text,
             parsed_data=orm.parsed_data,
             file_url=orm.file_url,
@@ -45,8 +45,12 @@ class TortoiseRecordRepository(AbstractRecordRepository):
 
         record_ids = [r.id for r in orm_records]
         guide_rows = await GuideORM.filter(record_id__in=record_ids).values("id", "record_id")
-        guide_map: dict[str, UUID] = {str(g["record_id"]): g["id"] for g in guide_rows}
-
+        guide_map: dict[str, UUID] = {}
+        for g in guide_rows:
+            try:
+                guide_map[str(g["record_id"])] = g["id"]
+            except Exception:
+                pass
         return [self._to_domain(r, guide_id=guide_map.get(str(r.id))) for r in orm_records], total
 
     async def update_parsed_data(self, record_id: UUID, parsed_data: dict) -> MedicalRecord:
