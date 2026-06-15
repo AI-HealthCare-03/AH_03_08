@@ -245,11 +245,9 @@ uv run python scripts/eval/show_history.py
 
 ```
 [챗봇 KCD 검증 히스토리]
-날짜                   split  모델            주요지표          Δ  보조지표
+날짜                   split  모델            주요지표              Δ  보조지표
 ------------------------------------------------------------------------------
-2026-06-04 10:56:56    all    gpt-4o-mini  f1    =0.2353        -  precision=0.2222
-2026-06-11 14:17:18    all    gpt-4o-mini  f1    =0.7500  +0.5147  precision=0.7800
-2026-06-15 13:00:00    train  gpt-4o-mini  syn_acc=0.9000  +0.1500  name_acc=0.8500
+2026-06-15 13:00:00    train  gpt-4o-mini  syn_acc=0.9000        -  name_acc=0.8500
 2026-06-15 13:05:00    test   gpt-4o-mini  syn_acc=0.8000  -0.1000  name_acc=0.7500
 ```
 
@@ -274,6 +272,51 @@ uv run python scripts/eval/consistency_test.py
 # 5. 비동기 벤치마크
 uv run python scripts/eval/async_benchmark.py
 ```
+
+---
+
+---
+
+## 가이드 생성 플로우 검증 — `scripts/verify_health_guide_flow.py`
+
+> 이 스크립트는 `scripts/eval/` 하위가 아닌 `scripts/` 직하에 위치합니다.
+
+**무엇을 하는가**
+
+실제 서버에 HTTP 요청을 순서대로 보내서 가이드 생성 전체 흐름이 정상 동작하는지 확인합니다.
+자동화된 지표 측정이 아니라, 서버가 살아있고 각 API가 연결되어 있는지 확인하는 수동 연기 테스트(smoke test)입니다.
+
+**실행 전 조건**
+
+- 로컬 서버(`http://127.0.0.1:8000`)가 실행 중이어야 합니다
+- Celery 워커, Redis, DB가 모두 정상 동작 중이어야 합니다
+
+**검증 순서**
+
+| 단계 | 내용 |
+|------|------|
+| 1 | 임시 계정 회원가입 + 로그인 |
+| 2 | 알러지(페니실린 severe), 기저질환(고혈압) 등록 |
+| 3 | 진료기록 생성 (타이레놀 500mg, 1일 3회, 7일) |
+| 4 | 가이드 생성 요청 |
+| 5 | 최대 40회 폴링 (3초 간격) → `done` 또는 `failed` 대기 |
+| 6 | 가이드 상세 조회 — medication_guide 길이, allergy_warnings, condition_interactions 출력 |
+
+**실행 방법**
+
+```bash
+uv run python scripts/verify_health_guide_flow.py
+```
+
+**정상 종료 시 마지막 출력**
+
+```
+OK: Swagger flow verified
+```
+
+**비정상 종료 시**
+
+가이드 상태가 `done`이 아니면 `SystemExit`으로 종료됩니다.
 
 ---
 
