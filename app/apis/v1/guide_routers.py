@@ -11,6 +11,9 @@ from app.repositories.guide_repository import create_guide
 from app.services import feedback_service
 from app.services import guide as guide_service
 
+from datetime import UTC, datetime
+from app.models.guide import Guide as GuideModel
+
 GENERATE_GUIDE_TASK = "ai_worker.tasks.llm_task.generate_guide_task"
 
 guide_router = APIRouter(prefix="/guides", tags=["guides"])
@@ -80,4 +83,10 @@ async def get_guide_status_api(guide_id: str, current_user: CurrentUser):
 @guide_router.get("/{guide_id}")
 async def get_guide_api(guide_id: str, current_user: CurrentUser):
     data = await guide_service.get_my_guide(guide_id=guide_id, user_id=current_user.id)
+    guide_obj = await GuideModel.get_or_none(id=guide_id, user_id=current_user.id)
+    if guide_obj and not guide_obj.is_read:
+        guide_obj.is_read = True
+        guide_obj.read_at = datetime.now(UTC)
+        await guide_obj.save(update_fields=["is_read", "read_at"])
+    
     return _ok(data, "가이드 조회 성공")
