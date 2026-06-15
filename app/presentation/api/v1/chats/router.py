@@ -208,7 +208,7 @@ async def delete_session(
 
 
 @chats_router.websocket("/{session_id}/ws")
-async def chat_websocket(
+async def chat_websocket(  # noqa: C901
     websocket: WebSocket,
     session_id: UUID,
     token: str,
