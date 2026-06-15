@@ -94,6 +94,8 @@ def match_by_print_code(
     ocr_texts: list[str],
     print_index: dict,
     kcode_info: dict,
+    predicted_color: str | None = None,
+    predicted_shape: str | None = None,
 ) -> tuple[list[dict], str] | None:
     if not ocr_texts:
         return None
@@ -114,6 +116,17 @@ def match_by_print_code(
 
     if not scores or not matched_method:
         return None
+
+    # 색상/모양 보너스 점수 반영
+    if predicted_color or predicted_shape:
+        for kcode in scores:
+            info = kcode_info.get(kcode)
+            if not info:
+                continue
+            if predicted_color and info.get("color_class1") == predicted_color:
+                scores[kcode] += 2
+            if predicted_shape and info.get("drug_shape") == predicted_shape:
+                scores[kcode] += 1
 
     sorted_kcodes = sorted(scores, key=lambda k: scores[k], reverse=True)[:5]
     candidates = _build_candidates(sorted_kcodes, kcode_info, scores)
