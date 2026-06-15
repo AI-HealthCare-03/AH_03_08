@@ -162,6 +162,7 @@ def match_by_print_code(
 
     return (candidates, matched_method) if candidates else None
 
+
 class PillClassifier:
     """낱알약 이미지 분류 파이프라인."""
 
@@ -204,18 +205,20 @@ class PillClassifier:
         return kcode, drug_info, confidence_score
 
     def classify_with_ocr(
-            self,
-            image_bytes: bytes,
-            ocr_texts: list[str],
-            predicted_color: str | None = None,  # 추가
-            predicted_shape: str | None = None,  # 추가
+        self,
+        image_bytes: bytes,
+        ocr_texts: list[str],
+        predicted_color: str | None = None,  # 추가
+        predicted_shape: str | None = None,  # 추가
     ) -> tuple[str, dict, float, str, list[dict] | None]:
         """
         OCR 결과를 우선 활용하여 약품을 분류한다.
         """
         if self.print_index and ocr_texts:
             result = match_by_print_code(
-                ocr_texts, self.print_index, self.kcode_info or {},
+                ocr_texts,
+                self.print_index,
+                self.kcode_info or {},
                 predicted_color=predicted_color,
                 predicted_shape=predicted_shape,
             )

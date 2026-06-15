@@ -6,11 +6,9 @@ import os
 import torch
 import torch.nn as nn
 from PIL import Image
+from sklearn.metrics import f1_score
 from torch.utils.data import DataLoader, Dataset
 from torchvision import models, transforms
-from sklearn.metrics import f1_score
-import numpy as np
-
 
 # ── 설정 ──────────────────────────────────────────────
 KAGGLE_IMG_BASE = "/kaggle/input/datasets/jayjun/pill-image/pill_image"
@@ -21,8 +19,8 @@ BATCH_SIZE = 32
 LR = 1e-4
 NUM_WORKERS = 2
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-COLOR_CLASSES = ['갈색','검정','노랑','보라','분홍','빨강','연두','주황','청록','초록','파랑','하양','회색']
-SHAPE_CLASSES = ['기타','마름모형','사각형','삼각형','오각형','원형','육각형','장방형','타원형','팔각형']
+COLOR_CLASSES = ["갈색", "검정", "노랑", "보라", "분홍", "빨강", "연두", "주황", "청록", "초록", "파랑", "하양", "회색"]
+SHAPE_CLASSES = ["기타", "마름모형", "사각형", "삼각형", "오각형", "원형", "육각형", "장방형", "타원형", "팔각형"]
 
 
 # ── 데이터셋 ──────────────────────────────────────────
@@ -34,11 +32,13 @@ class PillDataset(Dataset):
                 color = row["color"]
                 shape = row["shape"]
                 if color in COLOR_CLASSES and shape in SHAPE_CLASSES:
-                    self.data.append((
-                        row["image_path"],
-                        COLOR_CLASSES.index(color),
-                        SHAPE_CLASSES.index(shape),
-                    ))
+                    self.data.append(
+                        (
+                            row["image_path"],
+                            COLOR_CLASSES.index(color),
+                            SHAPE_CLASSES.index(shape),
+                        )
+                    )
         self.transform = transform
 
     def __len__(self):
@@ -76,19 +76,23 @@ class ColorShapeClassifier(nn.Module):
 
 # ── 학습 ──────────────────────────────────────────────
 def train():
-    transform_train = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(30),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-    ])
-    transform_val = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-    ])
+    transform_train = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(30),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        ]
+    )
+    transform_val = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        ]
+    )
 
     train_dataset = PillDataset(TRAIN_CSV, transform_train)
     val_dataset = PillDataset(VAL_CSV, transform_val)
@@ -150,17 +154,22 @@ def train():
         shape_f1 = f1_score(all_shape_labels, all_shape_preds, average="macro")
         avg_acc = (color_acc + shape_acc) / 2
 
-        print(f"Epoch {epoch+1}/{EPOCHS} | loss: {train_loss/len(train_loader):.4f} | "
-              f"color_acc: {color_acc:.4f} | shape_acc: {shape_acc:.4f} | "
-              f"color_f1: {color_f1:.4f} | shape_f1: {shape_f1:.4f}")
+        print(
+            f"Epoch {epoch + 1}/{EPOCHS} | loss: {train_loss / len(train_loader):.4f} | "
+            f"color_acc: {color_acc:.4f} | shape_acc: {shape_acc:.4f} | "
+            f"color_f1: {color_f1:.4f} | shape_f1: {shape_f1:.4f}"
+        )
 
         if avg_acc > best_val_acc:
             best_val_acc = avg_acc
-            torch.save({
-                "model_state_dict": model.state_dict(),
-                "color_classes": COLOR_CLASSES,
-                "shape_classes": SHAPE_CLASSES,
-            }, "color_shape_model.pt")
+            torch.save(
+                {
+                    "model_state_dict": model.state_dict(),
+                    "color_classes": COLOR_CLASSES,
+                    "shape_classes": SHAPE_CLASSES,
+                },
+                "color_shape_model.pt",
+            )
             print(f"  → 모델 저장 (best avg_acc: {best_val_acc:.4f})")
 
         scheduler.step()

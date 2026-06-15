@@ -133,6 +133,7 @@ def match_by_print_code(
 
     return (candidates, matched_method) if candidates else None
 
+
 def rerank_by_color_shape(
     predicted_color: str,
     predicted_shape: str,

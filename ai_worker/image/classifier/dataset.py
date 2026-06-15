@@ -16,10 +16,7 @@ RANDOM_SEED = 42
 def build_dataset():
     random.seed(RANDOM_SEED)
 
-    drug_dirs = [
-        d for d in os.listdir(PILL_DATA_PATH)
-        if os.path.isdir(os.path.join(PILL_DATA_PATH, d))
-    ]
+    drug_dirs = [d for d in os.listdir(PILL_DATA_PATH) if os.path.isdir(os.path.join(PILL_DATA_PATH, d))]
     random.shuffle(drug_dirs)
 
     split_idx = int(len(drug_dirs) * TRAIN_RATIO)
@@ -51,11 +48,13 @@ def build_dataset():
             sampled = random.sample(png_files, min(IMAGES_PER_DRUG, len(png_files)))
 
             for img_path in sampled:
-                rows.append({
-                    "image_path": img_path,
-                    "color": color,
-                    "shape": shape,
-                })
+                rows.append(
+                    {
+                        "image_path": img_path,
+                        "color": color,
+                        "shape": shape,
+                    }
+                )
 
         output_path = os.path.join(OUTPUT_DIR, f"{split}.csv")
         with open(output_path, "w", newline="", encoding="utf-8") as f:
