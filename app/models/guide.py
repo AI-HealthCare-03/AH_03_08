@@ -27,6 +27,8 @@ class Guide(Model):
     llm_temperature = fields.FloatField(null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
+    is_read = fields.BooleanField(default=False)
+    read_at = fields.DatetimeField(null=True)
 
     class Meta:
         table = "guides"

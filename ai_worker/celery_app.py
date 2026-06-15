@@ -56,4 +56,9 @@ celery_app.conf.beat_schedule = {
         "schedule": 86400.0,
         "options": {"queue": "llm"},
     },
+    "check-unread-guides-hourly": {
+        "task": "ai_worker.tasks.llm_task.check_unread_guides_task",
+        "schedule": 3600.0,
+        "options": {"queue": "llm"},
+    },
 }

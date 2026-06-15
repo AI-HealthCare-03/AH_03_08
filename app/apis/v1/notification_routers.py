@@ -8,6 +8,9 @@ from pydantic import BaseModel, Field
 from app.dependencies.security import get_request_user
 from app.models.notifications import Notification
 
+import logging
+logger = logging.getLogger(__name__)
+
 notification_router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
@@ -85,6 +88,21 @@ async def create_notification(body: NotificationCreateRequest, current_user=Depe
         scheduled_time=body.scheduled_time,
         is_active=True,
     )
+
+    if body.type == "email":
+        try:
+            from app.models.users import User as UserModel
+            from app.services.email_service import EmailService
+            user_obj = await UserModel.get_or_none(id=current_user.id)
+            if user_obj and user_obj.email:
+                email_service = EmailService()
+                email_service.send_notification_email(
+                    to_email=user_obj.email,
+                    title=body.title,
+                    scheduled_time=str(body.scheduled_time),
+                )
+        except Exception as e:
+            logger.warning(f"알림 이메일 발송 실패 (무시): {e}")
 
     # 오늘부터 30일치 캘린더 이벤트 자동 생성 (중복 제외)
     from app.models.calendar_events import CalendarEvent

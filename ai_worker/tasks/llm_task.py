@@ -660,3 +660,29 @@ async def _do_check_notifications():
 
     finally:
         await Tortoise.close_connections()
+
+
+@celery_app.task(bind=True, name="ai_worker.tasks.llm_task.check_unread_guides_task", max_retries=1)
+def check_unread_guides_task(self):
+    """24시간 미확인 가이드 재알림 (REQ-NOTIF-003)"""
+    asyncio.run(_do_check_unread_guides())
+
+
+async def _do_check_unread_guides():
+    from datetime import datetime, timedelta
+    from tortoise import Tortoise
+
+    await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
+    try:
+        from ai_worker.models import Guide
+        cutoff = datetime.now(UTC) - timedelta(hours=24)
+        unread = await Guide.filter(
+            is_read=False,
+            status="completed",
+            created_at__lte=cutoff,
+        )
+        for guide in unread:
+            logger.info(f"[unread_guide] 미확인 가이드 알림: guide_id={guide.id} user_id={guide.user_id}")
+    finally:
+        await Tortoise.close_connections()
+
