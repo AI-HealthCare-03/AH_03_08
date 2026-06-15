@@ -14,3 +14,4 @@ class CalendarEvent(models.Model):
 
     class Meta:
         table = "calendar_events"
+        unique_together = (("user", "medication", "event_date", "scheduled_time"),)
