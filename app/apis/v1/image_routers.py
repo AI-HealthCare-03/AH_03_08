@@ -14,6 +14,7 @@ from app.dependencies.security import get_request_user
 from app.dtos.image import DrugInfoResponse, PillMatchRequest, PillMatchResponse
 from app.models.medical_records import MedicalRecord
 from app.models.users import User
+from app.services.pill_match import match_by_print_code
 
 image_router = APIRouter(prefix="/images", tags=["images"])
 
@@ -77,8 +78,6 @@ async def match_pill_by_ocr(
     OCR 식별코드로 약품 매칭 엔드포인트.
     사용자가 식별코드 수정 후 재매칭 시 사용.
     """
-    from app.services.pill_match import match_by_print_code
-
     try:
         with open(config.PILL_PRINT_INDEX_PATH, encoding="utf-8") as f:
             index_data = json.load(f)
@@ -91,11 +90,18 @@ async def match_pill_by_ocr(
     print_index = index_data.get("print_index", {})
     kcode_info = index_data.get("kcode_info", {})
 
-    result = match_by_print_code(request.ocr_texts, print_index, kcode_info)
+    result = match_by_print_code(
+        request.ocr_texts,
+        print_index,
+        kcode_info,
+        predicted_color=request.predicted_color,
+        predicted_shape=request.predicted_shape,
+    )
     if not result:
         return PillMatchResponse(matched=False)
 
     candidates_list, _ = result
+    # rerank_by_color_shape 호출 제거
     info = candidates_list[0]
 
     return PillMatchResponse(
