@@ -22,6 +22,8 @@ class DrugInfoResponse(BaseModel):
 
 class PillMatchRequest(BaseModel):
     ocr_texts: list[str]
+    predicted_color: str | None = None  # 추가
+    predicted_shape: str | None = None  # 추가
 
 
 class PillMatchResponse(BaseModel):
