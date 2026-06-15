@@ -229,7 +229,7 @@ async def add_my_medication(body: ManualMedicationRequest, current_user=Depends(
     record = await MedicalRecord.create(
         user_id=current_user.id,
         record_type=body.record_type if body.record_type is not None else 99,
-        status="completed",
+        status="COMPLETED",
     )
     med = await Medication.create(
         medical_record_id=record.id,

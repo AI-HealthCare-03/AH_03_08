@@ -12,7 +12,7 @@ class TortoiseRecordRepository(AbstractRecordRepository):
             id=orm.id,
             user_id=orm.user_id,
             record_type=RecordType(orm.record_type),
-            status=RecordStatus(orm.status),
+            status=RecordStatus(orm.status.upper()),
             ocr_raw_text=orm.ocr_raw_text,
             parsed_data=orm.parsed_data,
             file_url=orm.file_url,

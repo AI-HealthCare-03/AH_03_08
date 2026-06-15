@@ -31,7 +31,7 @@ def analyze_health_data(self, request_data: dict) -> dict:
         response = AnalysisResult(
             user_id=request.user_id,
             record_id=request.record_id,
-            status="completed",
+            status="COMPLETED",
             result=result,
             error=None,
         )
