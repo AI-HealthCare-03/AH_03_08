@@ -71,6 +71,19 @@ async def upload_record(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="JPG, PNG, PDF 파일만 업로드 가능합니다.")
 
     content = await file.read()
+
+    # 실제 파일 시그니처 검증 (NREQ-SEC-003)
+    MIME_SIGNATURES = {
+        b"\xff\xd8\xff": "image/jpeg",
+        b"\x89PNG": "image/png",
+        b"%PDF": "application/pdf",
+    }
+    if not any(content.startswith(sig) for sig in MIME_SIGNATURES):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="파일 형식이 올바르지 않습니다. JPG, PNG, PDF만 허용됩니다.",
+        )
+
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="파일 크기는 10MB를 초과할 수 없습니다."

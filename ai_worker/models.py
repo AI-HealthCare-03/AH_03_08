@@ -34,6 +34,8 @@ class Guide(models.Model):
     summary_text = fields.TextField(null=True)  # app/models/guides.py 와 속성명 통일
     allergy_warnings = fields.JSONField(null=True)
     condition_interactions = fields.JSONField(null=True)
+    is_read = fields.BooleanField(default=False)
+    read_at = fields.DatetimeField(null=True)
 
     class Meta:
         table = "guides"

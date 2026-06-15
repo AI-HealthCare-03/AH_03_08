@@ -37,3 +37,26 @@ class EmailService:
             )
         except ClientError as e:
             raise RuntimeError(f"이메일 발송 실패: {e.response['Error']['Message']}") from e
+
+    def send_notification_email(self, to_email: str, title: str, scheduled_time: str):
+        try:
+            self.client.send_email(
+                Source=self.sender,
+                Destination={"ToAddresses": [to_email]},
+                Message={
+                    "Subject": {"Data": "[MediLog] 복약 알림 등록", "Charset": "UTF-8"},
+                    "Body": {
+                        "Html": {
+                            "Data": f"""
+                            <h2>복약 알림이 등록되었습니다.</h2>
+                            <p><b>{title}</b></p>
+                            <p>복용 시간: {scheduled_time}</p>
+                            <p>MediLog 앱에서 복약 현황을 확인하세요.</p>
+                            """,
+                            "Charset": "UTF-8",
+                        }
+                    },
+                },
+            )
+        except ClientError as e:
+            raise RuntimeError(f"알림 이메일 발송 실패: {e.response['Error']['Message']}") from e
