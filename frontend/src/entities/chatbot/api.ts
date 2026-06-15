@@ -23,6 +23,10 @@ async function fetchMessages(sessionId: string): Promise<ChatMessage[]> {
   return data.items
 }
 
+async function deleteSession(sessionId: string): Promise<void> {
+  await apiClient.delete(`/chats/${sessionId}`)
+}
+
 async function fetchGuides(): Promise<Guide[]> {
   const { data } = await apiClient.get<{ success: boolean; data: { items: Guide[] } }>('/guides')
   return data.data.items.filter((g) => g.status === 'done')
@@ -45,6 +49,14 @@ export function useChatMessages(sessionId: string) {
     queryKey: KEYS.messages(sessionId),
     queryFn: () => fetchMessages(sessionId),
     enabled: !!sessionId,
+  })
+}
+
+export function useDeleteSession() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: deleteSession,
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.sessions }),
   })
 }
 

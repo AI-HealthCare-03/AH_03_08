@@ -15,4 +15,12 @@ class DeleteRecordUseCase:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found.")
         if record.user_id != user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+        # 연결된 가이드 → 챗봇 세션 명시적 삭제 (DB CASCADE에만 의존하지 않도록)
+        from app.models.chat_sessions import ChatSession
+        from app.models.guide import Guide
+
+        guide = await Guide.filter(record_id=record_id).first()
+        if guide:
+            await ChatSession.filter(guide_id=guide.id).delete()
+
         await self.repo.delete_by_id(record_id)

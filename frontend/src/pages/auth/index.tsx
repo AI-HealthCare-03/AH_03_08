@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { login, loginSchema, redirectToGoogle, redirectToKakao, type LoginFormValues } from '@/features/auth/api'
 import { useAuthStore } from '@/app/providers/auth-store'
 
+
 export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -138,6 +139,8 @@ export function LoginPage() {
           </div>
         </div>
 
+
+        {/* 회원가입 링크 */}
         <p className="text-center text-sm mt-5" style={{ color: 'var(--color-text-tertiary)' }}>
           아직 계정이 없으신가요?{' '}
           <Link
