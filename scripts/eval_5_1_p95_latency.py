@@ -123,13 +123,13 @@ def _to_markdown(report: dict) -> str:
         "",
         "| 항목 | 내용 |",
         "|------|------|",
-        f"| 평가 항목 | 5-1 API P95 Latency (NREQ-PERF-001) |",
+        "| 평가 항목 | 5-1 API P95 Latency (NREQ-PERF-001) |",
         f"| 기준 | P95 ≤ **{report['p95_limit_ms']:,}ms** |",
         f"| 실행 일시 (UTC) | {report['executed_at']} |",
         f"| API Base | `{report['api_base']}` |",
         f"| 반복 횟수 | 엔드포인트당 **{report['iterations']}회** |",
-        f"| 측정 범위 | **조회(GET) API만** (LLM generate 제외) |",
-        f"| 비고 | 3-2/3-3은 llm-worker 이슈로 중단, 5-1만 진행 |",
+        "| 측정 범위 | **조회(GET) API만** (LLM generate 제외) |",
+        "| 비고 | 3-2/3-3은 llm-worker 이슈로 중단, 5-1만 진행 |",
         "",
         "## 2. 결과표",
         "",
@@ -226,7 +226,11 @@ async def main(iterations: int, output: Path | None) -> None:
         conclusion = (
             f"조회(GET) API {total}개 엔드포인트를 각 {iterations}회 호출하였다. "
             f"P95 ≤ {P95_LIMIT_MS}ms 기준 **{pass_n}/{total} PASS**."
-            + (" 전체 조회 API가 성능 기준을 만족한다." if all_pass else " 일부 엔드포인트가 기준을 초과하거나 오류가 있었다.")
+            + (
+                " 전체 조회 API가 성능 기준을 만족한다."
+                if all_pass
+                else " 일부 엔드포인트가 기준을 초과하거나 오류가 있었다."
+            )
             + " LLM 비동기(generate→done) 구간은 llm-worker 이슈로 본 측정에서 제외하였다."
         )
         one_liner = (

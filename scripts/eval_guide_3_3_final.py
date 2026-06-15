@@ -118,35 +118,23 @@ def build_extractors(record: dict[str, Any], scenario: str) -> dict[str, Any]:
                 else ("75mg" if "75" in b else ("100mg" if "100" in b else "미검출"))
             ),
             "복용횟수": lambda g, b: freq_label if ("1회" in b or "하루" in b or "1일" in b) else "미검출",
-            "복용시간": lambda g, b: (
-                "아침/저녁"
-                if re.search(r"아침|저녁|점심|식후|취침", b)
-                else "미검출"
-            ),
+            "복용시간": lambda g, b: "아침/저녁" if re.search(r"아침|저녁|점심|식후|취침", b) else "미검출",
             "복용기간": lambda g, b: days_label if ("30" in b or "30일" in b) else "미검출",
             "기저질환 경고 키워드": lambda g, b: "고혈압" if "고혈압" in b else "미검출",
             "알러지 경고 키워드": lambda g, b: (
                 _norm_allergy_tail(_field_str(g.get("medication_guide")))
                 or ("페니실린" if "페니실린" in b else "미검출")
             ),
-            "주의사항 키워드": lambda g, b: (
-                "주의/피하/경고 포함" if re.search(r"주의|피하|경고|출혈", b) else "미검출"
-            ),
+            "주의사항 키워드": lambda g, b: "주의/피하/경고 포함" if re.search(r"주의|피하|경고|출혈", b) else "미검출",
             "생활습관 핵심 키워드": lambda g, b: _field_str(g.get("lifestyle_guide"))[:100] or "없음",
             "상호작용 경고 키워드": lambda g, b: json.dumps(
                 g.get("condition_interactions") or g.get("drug_interactions") or [],
                 ensure_ascii=False,
                 sort_keys=True,
             ),
-            "복용 방법": lambda g, b: (
-                "복용 안내 포함"
-                if "복용" in _field_str(g.get("medication_guide"))
-                else "미검출"
-            ),
+            "복용 방법": lambda g, b: "복용 안내 포함" if "복용" in _field_str(g.get("medication_guide")) else "미검출",
             "의료 면책 문구": lambda g, b: (
-                "의사·약사 상담"
-                if (("의사" in b or "의료" in b) and ("약사" in b or "상담" in b))
-                else "미검출"
+                "의사·약사 상담" if (("의사" in b or "의료" in b) and ("약사" in b or "상담" in b)) else "미검출"
             ),
         }
 
@@ -158,30 +146,21 @@ def build_extractors(record: dict[str, Any], scenario: str) -> dict[str, Any]:
             if re.search(r"3.*정|3정|3알|1회\s*3", b)
             else ("용량언급" if ("3" in b and "정" in b) else "미검출")
         ),
-        "복용횟수": lambda g, b: ("1일 3회" if re.search(r"1일\s*3회|하루\s*3번|3회", b) else "미검출"),
-        "복용시간": lambda g, b: (
-            "식후/시간대" if re.search(r"식후|아침|점심|저녁", b) else "미검출"
-        ),
-        "복용기간": lambda g, b: ("1일" if "1일" in b or meds[0].get("days") == 1 else "미검출"),
+        "복용횟수": lambda g, b: "1일 3회" if re.search(r"1일\s*3회|하루\s*3번|3회", b) else "미검출",
+        "복용시간": lambda g, b: "식후/시간대" if re.search(r"식후|아침|점심|저녁", b) else "미검출",
+        "복용기간": lambda g, b: "1일" if "1일" in b or meds[0].get("days") == 1 else "미검출",
         "기저질환 경고 키워드": lambda g, b: "고혈압" if "고혈압" in b else "미검출",
         "알러지 경고 키워드": lambda g, b: (
-            _norm_allergy_tail(_field_str(g.get("medication_guide")))
-            or ("페니실린" if "페니실린" in b else "미검출")
+            _norm_allergy_tail(_field_str(g.get("medication_guide"))) or ("페니실린" if "페니실린" in b else "미검출")
         ),
-        "주의사항 키워드": lambda g, b: (
-            "주의/피하/경고 포함" if re.search(r"주의|피하|경고", b) else "미검출"
-        ),
+        "주의사항 키워드": lambda g, b: "주의/피하/경고 포함" if re.search(r"주의|피하|경고", b) else "미검출",
         "생활습관 핵심 키워드": lambda g, b: _field_str(g.get("lifestyle_guide"))[:100] or "없음",
         "상호작용 경고 키워드": lambda g, b: json.dumps(
             g.get("condition_interactions") or [], ensure_ascii=False, sort_keys=True
         ),
-        "복용 방법": lambda g, b: (
-            "복용 안내 포함" if "복용" in _field_str(g.get("medication_guide")) else "미검출"
-        ),
+        "복용 방법": lambda g, b: "복용 안내 포함" if "복용" in _field_str(g.get("medication_guide")) else "미검출",
         "의료 면책 문구": lambda g, b: (
-            "의사·약사 상담"
-            if (("의사" in b or "의료" in b) and ("약사" in b or "상담" in b))
-            else "미검출"
+            "의사·약사 상담" if (("의사" in b or "의료" in b) and ("약사" in b or "상담" in b)) else "미검출"
         ),
     }
 
@@ -248,7 +227,6 @@ async def run_scenario(
         }
         snapshots.append(snap)
         run_details.append(snap)
-        temps = [s.get("llm_temperature") for s in snapshots if s.get("llm_temperature") is not None]
         print(f"    done guide_id={guide_id} polls={polls} llm_temp={guide.get('llm_temperature')}")
 
     items = analyze_items(snapshots, extractors, n)
@@ -300,7 +278,7 @@ def build_report(
     bag_temps = [s.get("llm_temperature") for s in bag_snaps]
     lines.append(f"- 처방전 guide `llm_temperature` 저장값: {set(pre_temps)}")
     lines.append(f"- 약봉투 guide `llm_temperature` 저장값: {set(bag_temps)}")
-    lines.append(f"- 측정 시 `ai_worker/tasks/llm_task.py` ChatOpenAI **temperature=0** 적용")
+    lines.append("- 측정 시 `ai_worker/tasks/llm_task.py` ChatOpenAI **temperature=0** 적용")
     lines.append("")
 
     lines.extend(
@@ -381,9 +359,7 @@ async def main() -> None:
     client, headers = await login_client()
     try:
         print(f"=== 3-3 FINAL: prescription {RUNS} runs ===")
-        pre_snaps, pre_items = await run_scenario(
-            client, headers, PRESCRIPTION_RECORD, RUNS, "prescription"
-        )
+        pre_snaps, pre_items = await run_scenario(client, headers, PRESCRIPTION_RECORD, RUNS, "prescription")
         print(f"=== 3-3 FINAL: drugbag {RUNS} runs ===")
         bag_snaps, bag_items = await run_scenario(client, headers, DRUGBAG_RECORD, RUNS, "drugbag")
 
