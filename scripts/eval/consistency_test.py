@@ -56,7 +56,9 @@ def main():
     testcases = all_cases if args.cases is None else all_cases[: args.cases]
     llm = _llm()
 
-    print(f"[consistency] 모델: {MODEL}, temperature=0, 케이스: {len(testcases)}/{len(all_cases)}개, 반복: {args.runs}회\n")
+    print(
+        f"[consistency] 모델: {MODEL}, temperature=0, 케이스: {len(testcases)}/{len(all_cases)}개, 반복: {args.runs}회\n"
+    )
 
     case_results: list[dict] = []
     for case in testcases:
@@ -89,14 +91,10 @@ def main():
     print(f"  {'-' * 57}")
     for r in case_results:
         flag = "O" if r["consistent"] else "X"
-        print(
-            f"  {r['id']:<12} {r['category']:<18} "
-            f"{r['pass_rate']:>10.4f} {r['std_dev']:>8.4f} {flag:>6}"
-        )
+        print(f"  {r['id']:<12} {r['category']:<18} {r['pass_rate']:>10.4f} {r['std_dev']:>8.4f} {flag:>6}")
     print(f"  {'-' * 57}")
     print(f"  {'평균':<30} {avg_pass_rate:>10.4f} {avg_std_dev:>8.4f}")
-    print(f"\n  완전 일관 케이스: {consistent_count}/{len(case_results)}  "
-          f"({consistent_count / len(case_results):.0%})")
+    print(f"\n  완전 일관 케이스: {consistent_count}/{len(case_results)}  ({consistent_count / len(case_results):.0%})")
     print(f"{'=' * 62}")
 
     output = {

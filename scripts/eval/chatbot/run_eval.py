@@ -75,7 +75,7 @@ def _calc_metrics(results: list[dict]) -> dict:
         "total": total,
         "passed": synonym_match,
         "failed": total - synonym_match,
-        "name_accuracy": round(exact_match / total, 4),       # 정확 명칭 일치율
+        "name_accuracy": round(exact_match / total, 4),  # 정확 명칭 일치율
         "synonym_accuracy": round(synonym_match / total, 4),  # 동의어 포함 일치율
     }
 
@@ -101,7 +101,11 @@ def main():
         print(f"  [{i:02d}/{len(testcases)}] {case['id']} ... ", end="", flush=True)
         result = _run_case(case, llm)
         results.append(result)
-        status = "PASS" if result["passed"] else f"FAIL (exact={result['exact_name_matched']}, synonym={result['name_matched']})"
+        status = (
+            "PASS"
+            if result["passed"]
+            else f"FAIL (exact={result['exact_name_matched']}, synonym={result['name_matched']})"
+        )
         print(status)
 
     metrics = _calc_metrics(results)
