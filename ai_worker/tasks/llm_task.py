@@ -49,7 +49,7 @@ def _get_llm() -> ChatOpenAI:
     if _llm is None:
         _llm = ChatOpenAI(
             model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            temperature=0.1,  # 개선: 0 → 0.1 (약간의 다양성, 더 자연스러운 문장)
+            temperature=0,
             max_tokens=4096,
             api_key=os.getenv("OPENAI_API_KEY", ""),
         )
@@ -61,7 +61,7 @@ def _get_llm_stream() -> ChatOpenAI:
     if _llm_stream is None:
         _llm_stream = ChatOpenAI(
             model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            temperature=0.1,
+            temperature=0,
             max_tokens=2048,
             streaming=True,
             api_key=os.getenv("OPENAI_API_KEY", ""),
