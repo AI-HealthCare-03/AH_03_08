@@ -44,9 +44,7 @@ def _primary_metric(m: dict) -> tuple[float, str]:
 
 def _print_chatbot(rows: list[dict]):
     print("\n[챗봇 KCD 검증 히스토리]")
-    print(
-        f"{'날짜':<22} {'split':<6} {'모델':<15} {'주요지표':>8} {'Δ':>8} {'보조지표':>10}"
-    )
+    print(f"{'날짜':<22} {'split':<6} {'모델':<15} {'주요지표':>8} {'Δ':>8} {'보조지표':>10}")
     print("-" * 78)
     prev_val: float | None = None
     for r in rows:

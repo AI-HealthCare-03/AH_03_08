@@ -100,8 +100,7 @@ async def main() -> None:
     print(f"  {'최대 latency (s)':<22} {max(seq_latencies):>14.2f} {max(con_latencies):>14.2f}")
     print(f"  {'최소 latency (s)':<22} {min(seq_latencies):>14.2f} {min(con_latencies):>14.2f}")
     print(f"  {'-' * 52}")
-    print(f"  속도 향상 (speedup): {speedup:.2f}x  "
-          f"({(1 - con_total / seq_total) * 100:.1f}% 단축)")
+    print(f"  속도 향상 (speedup): {speedup:.2f}x  ({(1 - con_total / seq_total) * 100:.1f}% 단축)")
     print(f"{'=' * 56}")
 
     output = {
