@@ -149,8 +149,12 @@ export function usePillResult(id: string | null) {
   })
 }
 
-async function matchPillByOcr(ocr_texts: string[]) {
-  const { data } = await apiClient.post('/images/pill-match', { ocr_texts })
+async function matchPillByOcr(payload: {
+  ocr_texts: string[]
+  predicted_color?: string
+  predicted_shape?: string
+}) {
+  const { data } = await apiClient.post('/images/pill-match', payload)
   return data
 }
 
