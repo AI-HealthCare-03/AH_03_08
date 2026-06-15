@@ -115,6 +115,8 @@ def match_by_print_code(
     ocr_texts: list[str],
     print_index: dict,
     kcode_info: dict,
+    predicted_color: str | None = None,  # 추가
+    predicted_shape: str | None = None,  # 추가
 ) -> tuple[list[dict], str] | None:
     """
     OCR 추출 텍스트로 식별코드 인덱스에서 약품을 매칭한다.
@@ -144,55 +146,21 @@ def match_by_print_code(
     if not scores or not matched_method:
         return None
 
+    # 색상/모양 보너스 점수 반영 ← 추가
+    if predicted_color or predicted_shape:
+        for kcode in scores:
+            info = kcode_info.get(kcode)
+            if not info:
+                continue
+            if predicted_color and info.get("color_class1") == predicted_color:
+                scores[kcode] += 2
+            if predicted_shape and info.get("drug_shape") == predicted_shape:
+                scores[kcode] += 1
+
     sorted_k_codes = sorted(scores, key=lambda k: scores[k], reverse=True)[:5]
     candidates = _build_candidates(sorted_k_codes, kcode_info, scores)
 
     return (candidates, matched_method) if candidates else None
-
-
-def rerank_by_color_shape(
-    image_bytes: bytes,
-    candidates: list[dict],
-    color_shape_model: ColorShapeClassifier,
-    color_classes: list[str],
-    shape_classes: list[str],
-) -> list[dict]:
-    """
-    색상/모양 분류기로 후보 약품 리스트를 재정렬한다.
-
-    Args:
-        image_bytes: 업로드된 이미지 bytes
-        candidates: OCR 매칭 후보 리스트
-        color_shape_model: 색상/모양 분류 모델
-        color_classes: 색상 클래스 목록
-        shape_classes: 모양 클래스 목록
-
-    Returns:
-        list[dict]: 재정렬된 후보 리스트
-    """
-    try:
-        predicted_color, predicted_shape, color_conf, shape_conf = predict_color_shape(
-            color_shape_model, image_bytes, color_classes, shape_classes
-        )
-        logger.info(
-            f"색상/모양 예측 - color: {predicted_color}({color_conf:.2f}), "
-            f"shape: {predicted_shape}({shape_conf:.2f})"
-        )
-
-        for candidate in candidates:
-            bonus = 0
-            if candidate.get("color_class1") == predicted_color:
-                bonus += 2
-            if candidate.get("drug_shape") == predicted_shape:
-                bonus += 1
-            candidate["score"] = candidate.get("score", 0) + bonus
-
-        return sorted(candidates, key=lambda x: x["score"], reverse=True)
-
-    except Exception as exc:
-        logger.warning(f"색상/모양 재정렬 실패: {exc}")
-        return candidates
-
 
 class PillClassifier:
     """낱알약 이미지 분류 파이프라인."""
@@ -244,22 +212,26 @@ class PillClassifier:
         OCR 결과를 우선 활용하여 약품을 분류한다.
         """
         if self.print_index and ocr_texts:
-            result = match_by_print_code(ocr_texts, self.print_index, self.kcode_info or {})
-            if result:
-                candidates, ocr_method = result
-
-                # 색상/모양 모델로 재정렬
-                if (
+            predicted_color, predicted_shape = None, None
+            if (
                     self.color_shape_model is not None
                     and self.color_classes is not None
                     and self.shape_classes is not None
-                    and len(candidates) > 1
-                ):
-                    candidates = rerank_by_color_shape(
-                        image_bytes, candidates,
-                        self.color_shape_model, self.color_classes, self.shape_classes
-                    )
+            ):
+                predicted_color, predicted_shape, color_conf, shape_conf = predict_color_shape(
+                    self.color_shape_model, image_bytes, self.color_classes, self.shape_classes
+                )
+                logger.info(
+                    f"색상/모양 예측 - color: {predicted_color}({color_conf:.2f}), shape: {predicted_shape}({shape_conf:.2f})")
 
+            result = match_by_print_code(
+                ocr_texts, self.print_index, self.kcode_info or {},
+                predicted_color=predicted_color,
+                predicted_shape=predicted_shape,
+            )
+
+            if result:
+                candidates, ocr_method = result
                 best = candidates[0]
                 drug_info = {
                     "drug_name": best["drug_name"],
