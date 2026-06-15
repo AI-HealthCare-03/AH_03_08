@@ -18,8 +18,9 @@ export function GoogleCallbackPage() {
   }, [])
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-sm text-gray-500">Google 로그인 처리 중...</p>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-background-primary)' }}>
+      <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>Google 로그인 중...</p>
     </div>
   )
 }
+

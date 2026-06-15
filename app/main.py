@@ -1,10 +1,12 @@
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import redis.asyncio as aioredis
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.apis.v1 import v1_routers
 from app.core.config import config
@@ -43,5 +45,9 @@ app.add_middleware(
 )
 
 initialize_tortoise(app)
+
+upload_dir = Path(config.UPLOAD_DIR)
+upload_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(upload_dir)), name="uploads")
 
 app.include_router(v1_routers)

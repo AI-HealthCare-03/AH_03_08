@@ -26,6 +26,7 @@ class UploadRecordUseCase:
         record = MedicalRecord(
             user_id=command.user_id,
             record_type=command.record_type,
+            file_url=f"/uploads/{file_name}",
         )
         saved = await self.repo.save(record)
 

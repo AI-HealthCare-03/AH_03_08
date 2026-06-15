@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { BookOpen } from 'lucide-react'
 import { GuideListScreen } from '@/features/guide/screens/GuideListScreen'
 import { GuideDetailScreen } from '@/features/guide/screens/GuideDetailScreen'
 import { useGuide, useGuides } from '@/entities/guide/api'
@@ -78,9 +79,10 @@ export function GuidePage() {
           {showDetail ? (
             <GuideDetailScreen guide={guide} isLoading={detailLoading} />
           ) : (
-            <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/80 p-12 text-center">
-              <p className="text-sm font-medium text-gray-600">왼쪽에서 가이드를 선택하세요</p>
-              <p className="text-xs text-gray-400 mt-2">상세 내용이 이 영역에 표시됩니다</p>
+            <div className="min-h-[400px] rounded-2xl border border-dashed border-gray-200 bg-gray-50/80 flex flex-col items-center justify-center gap-3 text-gray-400">
+              <BookOpen className="h-10 w-10" />
+              <p className="text-sm font-medium text-gray-500">왼쪽에서 가이드를 선택하세요</p>
+              <p className="text-xs text-gray-400">상세 내용이 이 영역에 표시됩니다</p>
             </div>
           )}
         </div>

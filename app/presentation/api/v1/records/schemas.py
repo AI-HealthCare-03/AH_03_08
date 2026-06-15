@@ -24,6 +24,7 @@ class RecordResponseSchema(BaseModel):
     status: RecordStatus
     ocr_raw_text: str | None = None
     parsed_data: dict[str, Any] | None = None
+    file_url: str | None = None
     created_at: datetime
     guide_id: UUID | None = None
 

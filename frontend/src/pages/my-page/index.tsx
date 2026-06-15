@@ -26,19 +26,22 @@ function getSeverity(s: string) {
 }
 
 // ── 프로필 편집 폼 ────────────────────────────────────────────
-function ProfileEditForm({ initialName, initialGender, onClose }: {
+function ProfileEditForm({ initialName, initialGender, initialBirthDate, onClose }: {
   initialName?: string
   initialGender?: string | null
+  initialBirthDate?: string | null
   onClose: () => void
 }) {
   const [name, setName] = useState(initialName ?? '')
   const [gender, setGender] = useState(initialGender ?? '')
+  const [birthDate, setBirthDate] = useState(initialBirthDate ?? '')
   const { mutate: update, isPending } = useUpdateProfile()
 
   function handleSave() {
-    const body: { name?: string; gender?: string } = {}
+    const body: { name?: string; gender?: string; birth_date?: string } = {}
     if (name.trim()) body.name = name.trim()
     if (gender) body.gender = gender
+    if (birthDate) body.birth_date = birthDate
     update(body, { onSuccess: onClose })
   }
 
@@ -72,6 +75,14 @@ function ProfileEditForm({ initialName, initialGender, onClose }: {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="w-full flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-gray-400">생년월일</label>
+        <input
+          type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)}
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-[#1D9E75] focus:ring-2 focus:ring-[#1D9E75]/10"
+        />
       </div>
 
       <div className="flex gap-2 w-full pt-1">
@@ -305,6 +316,7 @@ export function MyPage() {
         <ProfileEditForm
           initialName={user?.name}
           initialGender={user?.gender}
+          initialBirthDate={user?.birth_date}
           onClose={() => setEditingProfile(false)}
         />
       ) : (

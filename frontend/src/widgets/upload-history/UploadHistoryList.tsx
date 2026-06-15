@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pencil, Trash2, MoreVertical, Sparkles, PlusCircle } from 'lucide-react'
+import { Pencil, Trash2, MoreVertical, Sparkles, PlusCircle, ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
@@ -9,10 +9,10 @@ import {
 } from '@/components/ui/dialog'
 import { useMedicalRecords, useDeleteRecord, useUpdateRecord, useGenerateGuide } from '@/entities/medical-record/api'
 import { useInvalidateGuides } from '@/entities/guide/api'
-import { useAddMedication, useMedications } from '@/entities/medication/api'
+import { useAddMedication, useMedications, useDrugClassFallback, useScheduleMedication } from '@/entities/medication/api'
 import { RECORD_TYPE_META } from '@/entities/medical-record/model'
 import type { MedicalRecord, Medication } from '@/entities/medical-record/model'
-import { getDrugCategory, parseDrugName, formatFrequency } from '@/shared/lib/drug-category'
+import { parseDrugName, formatFrequency } from '@/shared/lib/drug-category'
 import { toast } from 'sonner'
 
 const TYPE_ICON: Record<string, string> = {
@@ -27,19 +27,175 @@ const TYPE_BADGE: Record<string, { bg: string; color: string }> = {
   pill_photo:   { bg: '#F0FDF4', color: '#15803D' },
 }
 
+function calcEndDate(startDate: string, days: number | null | undefined, eveningExtra: number): string {
+  if (!days) return startDate
+  const d = new Date(startDate + 'T00:00:00')
+  d.setDate(d.getDate() + days - 1 + eveningExtra)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function fmtDate(iso: string) {
+  const [, m, d] = iso.split('-')
+  return `${Number(m)}/${Number(d)}`
+}
+
+function MedSelectItem({ med, idx, existingMedId, existingDrugClass, alreadyScheduled, isSelected, startDate, eveningExtra, onToggle }: {
+  med: Medication; idx: number; existingMedId: string | null; existingDrugClass: string | null; alreadyScheduled: boolean; isSelected: boolean
+  startDate: string; eveningExtra: number; onToggle: (i: number) => void
+}) {
+  const isExisting = !!existingMedId
+  const parsed = parseDrugName(med.name ?? '')
+  const category = useDrugClassFallback(parsed.name, existingDrugClass ?? med.drug_class, existingMedId ?? undefined)
+  const endDate = calcEndDate(startDate, med.days, eveningExtra)
+
+  return (
+    <button
+      type="button"
+      onClick={() => !alreadyScheduled && onToggle(idx)}
+      disabled={alreadyScheduled}
+      className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors w-full ${
+        alreadyScheduled
+          ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
+          : isExisting
+            ? isSelected ? 'border-blue-400 bg-blue-50' : 'border-blue-100 bg-blue-50/50'
+            : isSelected ? 'border-[#1D9E75] bg-[#1D9E75]/5' : 'border-gray-100 bg-gray-50'
+      }`}
+    >
+      <div className={`h-4 w-4 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
+        alreadyScheduled
+          ? 'border-gray-200 bg-gray-100'
+          : isExisting
+            ? isSelected ? 'border-blue-400 bg-blue-400' : 'border-blue-200'
+            : isSelected ? 'border-[#1D9E75] bg-[#1D9E75]' : 'border-gray-300'
+      }`}>
+        {alreadyScheduled
+          ? <svg className="h-2.5 w-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </svg>
+          : isSelected && (
+              <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+            )
+        }
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {category && (
+            <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-[#1D9E75]/10 text-[#1D9E75] shrink-0">
+              {category}
+            </span>
+          )}
+          <p className="text-xs font-medium text-gray-700 truncate">{parsed.name}</p>
+          {alreadyScheduled
+            ? <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-400 shrink-0">이미 추가됨</span>
+            : isExisting && <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-600 shrink-0">일정 추가</span>
+          }
+        </div>
+        <div className="flex flex-wrap items-center gap-1 mt-1">
+          {med.days ? (
+            <span className="text-[11px] text-gray-500 font-medium">
+              {fmtDate(startDate)} ~ {fmtDate(endDate)}
+              <span className="text-gray-400 ml-1">({med.days}일분)</span>
+            </span>
+          ) : null}
+          {(med.dosage != null ? String(med.dosage) : parsed.dosage) && (
+            <span className="px-1.5 py-0.5 rounded border border-gray-200 text-[10px] text-gray-500">
+              용량 {med.dosage != null ? String(med.dosage) : parsed.dosage}
+            </span>
+          )}
+          {med.frequency && <span className="px-1.5 py-0.5 rounded border border-gray-200 text-[10px] text-gray-500">{med.frequency}회/일</span>}
+          {med.instructions && (
+            <span className="px-1.5 py-0.5 rounded border border-gray-200 text-[10px] text-gray-500">
+              {String(med.instructions)}
+            </span>
+          )}
+          {(() => {
+            const times = getScheduledTimes(med.frequency, med.instructions != null ? String(med.instructions) : null)
+            const fmt = (t: string) => t.slice(0, 5)
+            return (
+              <span className="px-1.5 py-0.5 rounded border border-[#1D9E75]/30 bg-[#1D9E75]/5 text-[10px] text-[#1D9E75] font-medium">
+                ⏰ {times.map(fmt).join(', ')}
+              </span>
+            )
+          })()}
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function inferTimeFromInstructions(instructions: string | null | undefined): string {
+  if (!instructions) return '08:00:00'
+  const s = String(instructions).toLowerCase()
+  if (s.includes('취침') || s.includes('자기 전')) return '22:00:00'
+  if (s.includes('석식') || s.includes('저녁')) return '18:00:00'
+  if (s.includes('중식') || s.includes('점심')) return '12:00:00'
+  return '08:00:00'
+}
+
+function getScheduledTimes(frequency: number | null | undefined, instructions?: string | null): string[] {
+  const freq = frequency != null ? Number(frequency) : null
+  const s = instructions ? String(instructions).toLowerCase() : ''
+
+  if (freq === 4) return ['06:00:00', '12:00:00', '18:00:00', '22:00:00']
+
+  if (freq === 3) {
+    if (s.includes('취침') || s.includes('자기 전')) return ['08:00:00', '12:00:00', '22:00:00']
+    return ['08:00:00', '12:00:00', '18:00:00']
+  }
+
+  if (freq === 2) {
+    const hasMorning = s.includes('조식') || s.includes('아침')
+    const hasLunch  = s.includes('중식') || s.includes('점심')
+    const hasEvening = s.includes('석식') || s.includes('저녁')
+    const hasBed = s.includes('취침') || s.includes('자기 전')
+    if (hasMorning && hasLunch)   return ['08:00:00', '12:00:00']
+    if (hasLunch   && hasEvening) return ['12:00:00', '18:00:00']
+    if (hasMorning && hasBed)     return ['08:00:00', '22:00:00']
+    if (hasEvening && hasBed)     return ['18:00:00', '22:00:00']
+    return ['08:00:00', '18:00:00']
+  }
+
+  return [inferTimeFromInstructions(instructions)]
+}
+
 function AddMedicationsModal({ record, onClose }: { record: MedicalRecord; onClose: () => void }) {
   const meds: Medication[] = record.parsed_data?.medications ?? []
   const { data: existingMeds } = useMedications()
-  const existingNames = new Set((existingMeds ?? []).map((m) => m.drug_name.trim().toLowerCase()))
+  // drug_name(소문자) → { id, start_date } 맵
+  const existingMedMap = new Map((existingMeds ?? []).map((m) => [m.drug_name.trim().toLowerCase(), { id: m.id, start_date: m.start_date ?? null, drug_class: m.drug_class ?? null }]))
 
-  const [selected, setSelected] = useState<Set<number>>(() =>
-    new Set(meds.map((_, i) => i).filter((i) => !existingNames.has(parseDrugName(meds[i].name ?? '').name.toLowerCase())))
-  )
+  // 시작일: 교부일 or 오늘
+  const defaultStart = record.parsed_data?.issued_at
+    ? record.parsed_data.issued_at.slice(0, 10)
+    : new Date().toISOString().split('T')[0]
+  const [startDate, setStartDate] = useState(defaultStart)
+
+  // 저녁 보정: 시작일이 오늘이고 17시 이후면 +1일
+  const eveningExtra = (() => {
+    const today = new Date().toISOString().split('T')[0]
+    return startDate === today && new Date().getHours() >= 17 ? 1 : 0
+  })()
+
+  // 이미 일정이 있는 약물은 초기 선택에서 제외
+  const [selected, setSelected] = useState<Set<number>>(() => {
+    return new Set(
+      meds.map((med, i) => {
+        const key = parseDrugName(med.name ?? '').name.trim().toLowerCase()
+        const existing = existingMedMap.get(key)
+        return existing?.start_date ? null : i
+      }).filter((i): i is number => i !== null)
+    )
+  })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { mutateAsync: addMedication } = useAddMedication()
+  const { mutateAsync: scheduleMedication } = useScheduleMedication()
 
   function toggle(i: number) {
-    if (existingNames.has(meds[i].name?.trim().toLowerCase())) return
     setSelected((prev) => {
       const next = new Set(prev)
       next.has(i) ? next.delete(i) : next.add(i)
@@ -48,46 +204,74 @@ function AddMedicationsModal({ record, onClose }: { record: MedicalRecord; onClo
   }
 
   async function handleSubmit() {
-    const targets = meds.filter((_, i) => selected.has(i))
+    const targets = meds.map((med, i) => ({ med, i })).filter(({ i }) => selected.has(i))
     if (!targets.length) return
     setIsSubmitting(true)
     let successCount = 0
-    for (const med of targets) {
+    for (const { med } of targets) {
       try {
         const parsed = parseDrugName(med.name ?? '')
-        // parsed.dosage = 약품명에서 추출한 농도 (e.g. "500mg"), 우선 사용
-        // med.dosage    = OCR의 1회 복용 정수 (e.g. 1) → "N정" 형태로 폴백
-        const dosage = parsed.dosage ?? (med.dosage != null ? `${med.dosage}정` : undefined)
-        const frequency = formatFrequency(med.frequency != null ? String(med.frequency) : null) ?? undefined
-        const instrParts = [
-          med.instructions != null ? String(med.instructions) : null,
-          med.days != null ? `${med.days}일분` : null,
-        ].filter(Boolean)
-        const instructions = instrParts.length ? instrParts.join(' · ') : undefined
-        await addMedication({
-          drug_name: parsed.name,
-          dosage,
-          frequency,
-          instructions,
-        })
+        const existing = existingMedMap.get(parsed.name.trim().toLowerCase()) ?? null
+        const existingId = existing?.id ?? null
+        const endDate = calcEndDate(startDate, med.days, eveningExtra)
+        const times = getScheduledTimes(med.frequency, med.instructions != null ? String(med.instructions) : null)
+
+        if (existingId) {
+          if (med.days) {
+            for (const t of times) {
+              await scheduleMedication({ id: existingId, start_date: startDate, end_date: endDate, scheduled_time: t })
+            }
+          }
+        } else {
+          const dosage = parsed.dosage ?? (med.dosage != null ? `${med.dosage}정` : undefined)
+          const frequency = formatFrequency(med.frequency != null ? String(med.frequency) : null) ?? undefined
+          const instrParts = [
+            med.instructions != null ? String(med.instructions) : null,
+            med.days != null ? `${med.days}일분` : null,
+          ].filter(Boolean)
+          const newMed = await addMedication({
+            drug_name: parsed.name,
+            dosage,
+            frequency,
+            instructions: instrParts.length ? instrParts.join(' · ') : undefined,
+            drug_class: med.drug_class ?? null,
+            start_date: startDate,
+            end_date: med.days ? endDate : null,
+            scheduled_time: times[0],
+            record_type: record.record_type === 'prescription' ? 0 : record.record_type === 'medicine_bag' ? 1 : null,
+          })
+          // 2회/일 이상이면 나머지 시간대 일정 + 알림 추가
+          if (newMed && med.days && times.length > 1) {
+            for (const t of times.slice(1)) {
+              await scheduleMedication({ id: newMed.id, start_date: startDate, end_date: endDate, scheduled_time: t })
+            }
+          }
+        }
         successCount++
-      } catch (err) {
-        console.error('[의약품 추가 실패]', med.name, err)
+      } catch (err: unknown) {
+        const axiosErr = err as { response?: { status: number; data?: unknown } }
+        const detail = axiosErr?.response?.data
+          ? JSON.stringify(axiosErr.response.data)
+          : err instanceof Error ? err.message : String(err)
+        toast.error(`'${med.name}' 추가 실패: ${detail}`)
       }
     }
     setIsSubmitting(false)
-    toast.success(`${successCount}개 의약품이 추가되었습니다.`)
+    if (successCount > 0) toast.success(`${successCount}개 처리 완료`)
+    if (successCount === 0) return
     onClose()
   }
+
+  const isEvening = eveningExtra > 0
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-xl px-6 pt-6 pb-8 flex flex-col gap-5 max-h-[80vh]">
+      <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-xl px-6 pt-6 pb-8 flex flex-col gap-4 max-h-[85vh]">
         <div className="flex items-center justify-between shrink-0">
           <div>
             <p className="text-base font-bold text-gray-900">내 의약품에 추가</p>
-            <p className="text-xs text-gray-400 mt-0.5">추가할 의약품을 선택하세요</p>
+            <p className="text-xs text-gray-400 mt-0.5">캘린더에 복약 일정을 등록하고 복용 시간 알림을 받을 수 있어요</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -96,65 +280,44 @@ function AddMedicationsModal({ record, onClose }: { record: MedicalRecord; onClo
           </button>
         </div>
 
+        {/* 복용 시작일 */}
+        <div className="shrink-0 rounded-xl bg-gray-50 border border-gray-100 px-4 py-3 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-600">복용 시작일</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="text-xs text-gray-700 border border-gray-200 rounded-lg px-2 py-1 bg-white"
+            />
+          </div>
+          {isEvening && (
+            <p className="text-[11px] text-amber-600">
+              현재 17시 이후로 저녁 복용 시작이 감지되어 종료일을 +1일 적용했습니다.
+            </p>
+          )}
+          {!isEvening && record.parsed_data?.issued_at && (
+            <p className="text-[11px] text-gray-400">교부일 기준으로 초기 설정됨</p>
+          )}
+        </div>
+
         <div className="flex flex-col gap-2 overflow-y-auto">
           {meds.map((med, i) => {
-            const parsed = parseDrugName(med.name ?? '')
-            const isRegistered = existingNames.has(parsed.name.toLowerCase())
-            const isSelected = selected.has(i)
-            const category = getDrugCategory(parsed.name)
-
+            const key = parseDrugName(med.name ?? '').name.trim().toLowerCase()
+            const existing = existingMedMap.get(key) ?? null
             return (
-              <button
+              <MedSelectItem
                 key={i}
-                type="button"
-                onClick={() => toggle(i)}
-                disabled={isRegistered}
-                className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
-                  isRegistered
-                    ? 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
-                    : isSelected
-                    ? 'border-[#1D9E75] bg-[#1D9E75]/5'
-                    : 'border-gray-100 bg-gray-50'
-                }`}
-              >
-                <div className={`h-4 w-4 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
-                  isRegistered ? 'border-gray-200 bg-gray-200' : isSelected ? 'border-[#1D9E75] bg-[#1D9E75]' : 'border-gray-300'
-                }`}>
-                  {isRegistered ? (
-                    <svg className="h-2.5 w-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : isSelected ? (
-                    <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : null}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-1.5 flex-wrap">
-                    {category ? (
-                      <>
-                        <p className="text-sm font-semibold text-gray-800">{category}</p>
-                        <p className="text-[11px] text-gray-400 truncate">{parsed.name}</p>
-                      </>
-                    ) : (
-                      <p className="text-sm font-semibold text-gray-800 truncate">{parsed.name}</p>
-                    )}
-                    {isRegistered && (
-                      <span className="text-[10px] text-gray-400 font-normal">이미 등록됨</span>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {(med.dosage != null ? String(med.dosage) : parsed.dosage) && (
-                      <span className="px-1.5 py-0.5 rounded border border-gray-300 text-[10px] text-gray-500">
-                        용량 {med.dosage != null ? String(med.dosage) : parsed.dosage}
-                      </span>
-                    )}
-                    {med.frequency && <span className="px-1.5 py-0.5 rounded border border-gray-300 text-[10px] text-gray-500">{med.frequency}회/일</span>}
-                    {med.days && <span className="px-1.5 py-0.5 rounded border border-gray-300 text-[10px] text-gray-500">{med.days}일분</span>}
-                  </div>
-                </div>
-              </button>
+                med={med}
+                idx={i}
+                existingMedId={existing?.id ?? null}
+                existingDrugClass={existing?.drug_class ?? null}
+                alreadyScheduled={!!existing?.start_date}
+                isSelected={selected.has(i)}
+                startDate={startDate}
+                eveningExtra={eveningExtra}
+                onToggle={toggle}
+              />
             )
           })}
         </div>
@@ -169,7 +332,7 @@ function AddMedicationsModal({ record, onClose }: { record: MedicalRecord; onClo
             className="flex-1 py-3 rounded-xl text-sm text-white font-semibold disabled:opacity-50 transition-colors"
             style={{ background: '#1D9E75' }}
           >
-            {isSubmitting ? '추가 중...' : `${selected.size}개 추가`}
+            {isSubmitting ? '처리 중...' : `${selected.size}개 추가`}
           </button>
         </div>
       </div>
@@ -192,6 +355,7 @@ export function UploadHistoryList() {
   const [editMeds, setEditMeds] = useState<Medication[]>([])
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const [addMedTarget, setAddMedTarget] = useState<MedicalRecord | null>(null)
+  const [imageOpen, setImageOpen] = useState<string | null>(null)
 
   function handleGenerateGuide(record: MedicalRecord) {
     setGeneratingId(record.id)
@@ -220,7 +384,7 @@ export function UploadHistoryList() {
   function updateMed(i: number, field: keyof Medication, value: string) {
     setEditMeds(prev => prev.map((m, idx) => {
       if (idx !== i) return m
-      if (field === 'days') return { ...m, days: value ? Number(value) : null }
+      if (field === 'days' || field === 'frequency') return { ...m, [field]: value ? Number(value) : null }
       return { ...m, [field]: value || undefined }
     }))
   }
@@ -277,12 +441,16 @@ export function UploadHistoryList() {
           const isThisGenerating = generatingId === record.id
           const isMenuOpen = menuOpen === record.id
 
+          const hasImage = !!record.file_url && !record.file_url.endsWith('.pdf')
+          const isImageOpen = imageOpen === record.id
+
           return (
             <li
               key={record.id}
               onClick={() => { setMenuOpen(null); canNavigate && navigate(`/guide?id=${record.guide_id}`) }}
-              className={`relative flex items-start gap-3 rounded-xl bg-white p-4 shadow-sm transition-colors ${canNavigate ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+              className={`relative flex flex-col rounded-xl bg-white shadow-sm transition-colors ${canNavigate ? 'cursor-pointer hover:bg-gray-50' : ''}`}
             >
+              <div className="flex items-start gap-3 p-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 mt-0.5">
                 <RecordIcon name={TYPE_ICON[record.record_type]} />
               </div>
@@ -338,7 +506,7 @@ export function UploadHistoryList() {
               <div className="flex flex-col items-end gap-2 shrink-0">
                 <StatusBadge status={record.status} />
 
-                {canGenerate && (
+                {canGenerate && !isThisGenerating && (
                   <button
                     className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-white"
                     style={{ background: '#1D9E75' }}
@@ -390,6 +558,27 @@ export function UploadHistoryList() {
                   )}
                 </div>
               </div>
+              </div>{/* flex items-start gap-3 p-4 */}
+
+              {hasImage && isImageOpen && (
+                <div className="px-4 pb-4" onClick={e => e.stopPropagation()}>
+                  <img
+                    src={`${import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'}${record.file_url}`}
+                    alt="업로드 이미지"
+                    className="w-full rounded-lg border border-gray-100 object-contain max-h-72"
+                  />
+                </div>
+              )}
+
+              {hasImage && (
+                <button
+                  className="flex w-full items-center justify-center gap-1 border-t border-gray-100 py-1.5 text-xs text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors rounded-b-xl"
+                  onClick={e => { e.stopPropagation(); setImageOpen(isImageOpen ? null : record.id) }}
+                >
+                  {isImageOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  {isImageOpen ? '이미지 접기' : '이미지 보기'}
+                </button>
+              )}
             </li>
           )
         })}
@@ -413,7 +602,7 @@ export function UploadHistoryList() {
 
       {/* 수정 다이얼로그 */}
       <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>기록 수정</DialogTitle>
           </DialogHeader>
@@ -471,44 +660,68 @@ export function UploadHistoryList() {
                   약물 추가
                 </button>
               </div>
-              <div className="flex flex-col gap-2 max-h-52 overflow-y-auto pr-0.5">
-                {editMeds.length === 0 && (
+              <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-0.5">
+                {editMeds.length === 0 ? (
                   <p className="text-xs text-gray-400 py-2 text-center">등록된 약물이 없습니다.</p>
+                ) : (
+                  editMeds.map((med, i) => (
+                    <div key={i} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5 flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          className="flex-1 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-green-500"
+                          placeholder="약품명"
+                          value={med.name}
+                          onChange={e => updateMed(i, 'name', e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeMed(i)}
+                          className="shrink-0 p-1.5 rounded-md text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+                        >
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <label className="flex flex-col gap-0.5">
+                          <span className="text-[10px] text-gray-400">용량</span>
+                          <input
+                            className="w-full rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-green-500"
+                            placeholder="예: 1정"
+                            value={med.dosage ?? ''}
+                            onChange={e => updateMed(i, 'dosage', e.target.value)}
+                          />
+                        </label>
+                        <label className="flex flex-col gap-0.5">
+                          <span className="text-[10px] text-gray-400">1일 횟수</span>
+                          <input
+                            className="w-full rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-green-500"
+                            placeholder="예: 3"
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={med.frequency ?? ''}
+                            onChange={e => updateMed(i, 'frequency', e.target.value)}
+                            onKeyDown={e => ['-', '+', 'e'].includes(e.key) && e.preventDefault()}
+                          />
+                        </label>
+                        <label className="flex flex-col gap-0.5">
+                          <span className="text-[10px] text-gray-400">복용 일수</span>
+                          <input
+                            className="w-full rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-green-500"
+                            placeholder="예: 3"
+                            type="number"
+                            min="1"
+                            value={med.days ?? ''}
+                            onChange={e => updateMed(i, 'days', e.target.value)}
+                            onKeyDown={e => ['-', '+', 'e'].includes(e.key) && e.preventDefault()}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  ))
                 )}
-                {editMeds.map((med, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input
-                      className="flex-1 rounded-lg border border-gray-200 px-2.5 py-2 text-xs outline-none focus:border-green-500"
-                      placeholder="약품명"
-                      value={med.name}
-                      onChange={e => updateMed(i, 'name', e.target.value)}
-                    />
-                    <input
-                      className="w-20 rounded-lg border border-gray-200 px-2.5 py-2 text-xs outline-none focus:border-green-500"
-                      placeholder="용량"
-                      value={med.dosage ?? ''}
-                      onChange={e => updateMed(i, 'dosage', e.target.value)}
-                    />
-                    <input
-                      className="w-16 rounded-lg border border-gray-200 px-2.5 py-2 text-xs outline-none focus:border-green-500"
-                      placeholder="일수"
-                      type="number"
-                      min="0"
-                      value={med.days ?? ''}
-                      onChange={e => updateMed(i, 'days', e.target.value)}
-                      onKeyDown={e => ['-', '+', 'e'].includes(e.key) && e.preventDefault()}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeMed(i)}
-                      className="shrink-0 p-1.5 rounded-md text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
-                    >
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
               </div>
             </div>
           </div>

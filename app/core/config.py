@@ -74,6 +74,9 @@ class Config(BaseSettings):
     KAKAO_CLIENT_SECRET: str = ""
     KAKAO_REDIRECT_URI: str = ""
 
+    # 공공데이터포털 (e약은요 API)
+    PUBLIC_DATA_API_KEY: str = ""
+
     # Internal
     INTERNAL_SECRET: str = "local-internal-secret-change-in-prod"
 

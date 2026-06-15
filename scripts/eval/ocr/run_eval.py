@@ -13,7 +13,7 @@ label.json 형식:
     "hospital": "서울내과의원",
     "disease_code": "N30.0",
     "medications": [
-      {"name": "아목시실린", "dosage": 250.0, "frequency": 3, "days": 5}
+      {"name": "아목시실린", "concentration": "250mg", "dosage": 1, "frequency": 3, "days": 5}
     ]
   }
 
@@ -62,16 +62,56 @@ def _exact(a: str | None, b: str | None) -> bool:
 
 def _score_medications(pred: list[dict], label: list[dict]) -> dict:
     if not label:
-        return {"matched": 0, "total": 0, "accuracy": 1.0}
+        return {"matched": 0, "total": 0, "accuracy": 1.0, "details": []}
 
+    med_fields = ["concentration", "dosage", "frequency", "days"]
+    details = []
     matched = 0
-    for lm in label:
-        for pm in pred:
-            if _similarity(pm.get("name"), lm.get("name")) >= 0.8:
-                matched += 1
-                break
 
-    return {"matched": matched, "total": len(label), "accuracy": round(matched / len(label), 4)}
+    for lm in label:
+        # 이름 유사도 0.8 이상인 예측 약품 찾기
+        best = max(
+            pred,
+            key=lambda pm: _similarity(pm.get("name"), lm.get("name")),
+            default=None,
+        )
+        name_sim = _similarity(best.get("name") if best else None, lm.get("name"))
+        name_matched = name_sim >= 0.8
+
+        field_scores: dict[str, bool] = {}
+        if name_matched and best:
+            matched += 1
+            for f in med_fields:
+                pv = best.get(f)
+                lv = lm.get(f)
+                # 숫자 필드는 값 동일 여부, 문자열은 유사도
+                if isinstance(lv, (int, float)):
+                    field_scores[f] = pv == lv
+                else:
+                    field_scores[f] = _exact(str(pv) if pv is not None else None, str(lv) if lv is not None else None)
+        else:
+            field_scores = {f: False for f in med_fields}
+
+        details.append(
+            {
+                "expected_name": lm.get("name"),
+                "predicted_name": best.get("name") if best else None,
+                "name_matched": name_matched,
+                "field_scores": field_scores,
+            }
+        )
+
+    field_total = len(label) * len(med_fields)
+    field_correct = sum(1 for d in details for ok in d["field_scores"].values() if ok)
+
+    return {
+        "matched": matched,
+        "total": len(label),
+        "name_accuracy": round(matched / len(label), 4),
+        "field_accuracy": round(field_correct / field_total, 4) if field_total else 1.0,
+        "accuracy": round((matched / len(label) + (field_correct / field_total if field_total else 1.0)) / 2, 4),
+        "details": details,
+    }
 
 
 def _score_case(pred: dict, label: dict) -> dict:
@@ -173,10 +213,18 @@ async def main():
     filename = RESULTS_DIR / f"{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.json"
     filename.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
 
+    avg_med_name = (
+        round(sum(r["scores"]["medications"]["name_accuracy"] for r in valid) / len(valid), 4) if valid else 0.0
+    )
+    avg_med_field = (
+        round(sum(r["scores"]["medications"]["field_accuracy"] for r in valid) / len(valid), 4) if valid else 0.0
+    )
+
     print(f"\n{'=' * 50}")
-    print(f"  필드 정확도     : {avg_field:.4f}")
-    print(f"  약물 정확도     : {avg_med:.4f}")
-    print(f"  종합 정확도     : {avg_overall:.4f}")
+    print(f"  기본 필드 정확도       : {avg_field:.1%}  (환자명·병원·질병코드 등)")
+    print(f"  약품명 인식 정확도     : {avg_med_name:.1%}")
+    print(f"  약품 상세 정확도       : {avg_med_field:.1%}  (함량·용량·횟수·일수)")
+    print(f"  종합 정확도            : {avg_overall:.1%}")
     print(f"{'=' * 50}")
     print(f"\n결과 저장: {filename}")
 
