@@ -129,13 +129,20 @@ export function PillResultCard({ pillResult, onRematch }: PillResultCardProps) {
   }
 
   function handleRematch() {
-    matchOcr(tokens, {
+  matchOcr(
+    {
+      ocr_texts: tokens,
+      predicted_color: pillResult.color_class1 ?? undefined,
+      predicted_shape: pillResult.drug_shape ?? undefined,
+    },
+    {
       onSuccess: (data) => {
         setSelectedCandidate(data.candidates ? data.candidates[0] : null)
         onRematch(data)
       },
-    })
-  }
+    }
+  )
+}
 
   function handleConfirmCandidate() {
     if (!selectedCandidate) return
