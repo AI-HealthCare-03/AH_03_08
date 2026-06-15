@@ -204,26 +204,16 @@ class PillClassifier:
         return kcode, drug_info, confidence_score
 
     def classify_with_ocr(
-        self,
-        image_bytes: bytes,
-        ocr_texts: list[str],
+            self,
+            image_bytes: bytes,
+            ocr_texts: list[str],
+            predicted_color: str | None = None,  # 추가
+            predicted_shape: str | None = None,  # 추가
     ) -> tuple[str, dict, float, str, list[dict] | None]:
         """
         OCR 결과를 우선 활용하여 약품을 분류한다.
         """
         if self.print_index and ocr_texts:
-            predicted_color, predicted_shape = None, None
-            if (
-                    self.color_shape_model is not None
-                    and self.color_classes is not None
-                    and self.shape_classes is not None
-            ):
-                predicted_color, predicted_shape, color_conf, shape_conf = predict_color_shape(
-                    self.color_shape_model, image_bytes, self.color_classes, self.shape_classes
-                )
-                logger.info(
-                    f"색상/모양 예측 - color: {predicted_color}({color_conf:.2f}), shape: {predicted_shape}({shape_conf:.2f})")
-
             result = match_by_print_code(
                 ocr_texts, self.print_index, self.kcode_info or {},
                 predicted_color=predicted_color,
