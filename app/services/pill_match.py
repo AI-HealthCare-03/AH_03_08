@@ -119,3 +119,33 @@ def match_by_print_code(
     candidates = _build_candidates(sorted_kcodes, kcode_info, scores)
 
     return (candidates, matched_method) if candidates else None
+
+def rerank_by_color_shape(
+    predicted_color: str,
+    predicted_shape: str,
+    candidates: list[dict],
+) -> list[dict]:
+    """
+    색상/모양 예측 결과로 후보 약품 리스트를 재정렬한다.
+
+    Args:
+        predicted_color: 예측된 색상
+        predicted_shape: 예측된 모양
+        candidates: OCR 매칭 후보 리스트
+
+    Returns:
+        list[dict]: 재정렬된 후보 리스트
+    """
+    try:
+        for candidate in candidates:
+            bonus = 0
+            if candidate.get("color_class1") == predicted_color:
+                bonus += 2
+            if candidate.get("drug_shape") == predicted_shape:
+                bonus += 1
+            candidate["score"] = candidate.get("score", 0) + bonus
+
+        return sorted(candidates, key=lambda x: x["score"], reverse=True)
+
+    except Exception:
+        return candidates
