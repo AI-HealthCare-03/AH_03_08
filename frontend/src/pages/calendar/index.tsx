@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { toast } from '@/shared/lib/toast'
 import { Pencil } from 'lucide-react'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
@@ -587,7 +588,17 @@ function CalendarEventAddModal({ defaultDate, onClose }: { defaultDate: string; 
     if (!medicationId) return
     create(
       { medication_id: medicationId, event_date: defaultDate, scheduled_time: `${time}:00`, note: note || undefined },
-      { onSuccess: onClose },
+      {
+        onSuccess: onClose,
+        onError: (error: unknown) => {
+          const status = (error as { response?: { status?: number } })?.response?.status
+          if (status === 409) {
+            toast.error('이미 같은 시간에 해당 약의 복약 일정이 존재합니다.')
+          } else {
+            toast.error('일정 추가에 실패했습니다. 다시 시도해주세요.')
+          }
+        },
+      },
     )
   }
 
