@@ -1,10 +1,11 @@
 """
 챗봇 KCD 검증 평가 스크립트
 
-실행: uv run python scripts/eval/chatbot/run_eval.py
+실행: uv run python scripts/eval/chatbot/run_eval.py [--split all|train|test]
 결과: scripts/eval/chatbot/results/YYYY-MM-DD_HHMMSS.json
 """
 
+import argparse
 import json
 import os
 import sys
@@ -19,7 +20,6 @@ load_dotenv(Path(__file__).parents[3] / "envs" / ".local.env")
 
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
-from ai_worker.kcd import lookup as kcd_lookup  # noqa: E402
 from ai_worker.kcd import synonyms as kcd_synonyms  # noqa: E402
 from ai_worker.prompts.llm_prompts import build_chat_system_prompt  # noqa: E402
 
@@ -38,69 +38,78 @@ def _run_case(case: dict, llm: ChatOpenAI) -> dict:
     expected_code = case["expected_kcd_code"]
     expected_name = case["expected_name"]
 
-    kcd_facts = kcd_lookup(question)
-    code_detected = expected_code in kcd_facts
-
-    system_prompt = build_chat_system_prompt(user_health={}, rag_docs=[], kcd_facts=kcd_facts)
+    # 실제 앱과 동일하게 disease_code를 current_record로 주입
+    system_prompt = build_chat_system_prompt(
+        user_health={},
+        rag_docs=[],
+        current_record={"disease_code": expected_code},
+        disease_name=expected_name,
+    )
     response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=question)])
     answer = response.content
 
-    # KCD 동의어 중 하나라도 답변에 포함되면 통과
+    exact_name_matched = expected_name in answer
     all_names = kcd_synonyms(expected_code) or [expected_name]
     name_matched = any(name in answer for name in all_names)
 
     return {
         "id": case["id"],
         "category": case.get("category", ""),
+        "split": case.get("split", "train"),
         "question": question,
         "expected_kcd_code": expected_code,
         "expected_name": expected_name,
-        "code_detected": code_detected,
+        "exact_name_matched": exact_name_matched,
         "name_matched": name_matched,
         "llm_answer": answer,
-        "passed": code_detected and name_matched,
+        "passed": name_matched,
     }
 
 
-def _calc_f1(results: list[dict]) -> dict:
-    tp = sum(1 for r in results if r["code_detected"] and r["name_matched"])
-    fp = sum(1 for r in results if r["code_detected"] and not r["name_matched"])
-    fn = sum(1 for r in results if not r["code_detected"])
-
-    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-    recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+def _calc_metrics(results: list[dict]) -> dict:
+    total = len(results)
+    exact_match = sum(1 for r in results if r["exact_name_matched"])
+    synonym_match = sum(1 for r in results if r["name_matched"])
 
     return {
-        "tp": tp,
-        "fp": fp,
-        "fn": fn,
-        "precision": round(precision, 4),
-        "recall": round(recall, 4),
-        "f1_score": round(f1, 4),
-        "code_detection_rate": round(sum(1 for r in results if r["code_detected"]) / len(results), 4),
-        "name_accuracy": round(sum(1 for r in results if r["name_matched"]) / len(results), 4),
+        "total": total,
+        "passed": synonym_match,
+        "failed": total - synonym_match,
+        "name_accuracy": round(exact_match / total, 4),       # 정확 명칭 일치율
+        "synonym_accuracy": round(synonym_match / total, 4),  # 동의어 포함 일치율
     }
 
 
 def main():
-    testcases = json.loads(TESTCASES_PATH.read_text(encoding="utf-8"))
+    parser = argparse.ArgumentParser(description="챗봇 KCD 검증 평가")
+    parser.add_argument(
+        "--split",
+        choices=["all", "train", "test"],
+        default="all",
+        help="평가할 데이터 분할 (기본: all)",
+    )
+    args = parser.parse_args()
+
+    all_cases = json.loads(TESTCASES_PATH.read_text(encoding="utf-8"))
+    testcases = all_cases if args.split == "all" else [c for c in all_cases if c.get("split") == args.split]
+
     llm = _llm()
-    print(f"[eval] 모델: {MODEL}, 테스트 케이스: {len(testcases)}개\n")
+    print(f"[eval] 모델: {MODEL}, split={args.split}, 테스트 케이스: {len(testcases)}개\n")
 
     results = []
     for i, case in enumerate(testcases, 1):
         print(f"  [{i:02d}/{len(testcases)}] {case['id']} ... ", end="", flush=True)
         result = _run_case(case, llm)
         results.append(result)
-        status = "PASS" if result["passed"] else f"FAIL (감지={result['code_detected']}, 명칭={result['name_matched']})"
+        status = "PASS" if result["passed"] else f"FAIL (exact={result['exact_name_matched']}, synonym={result['name_matched']})"
         print(status)
 
-    metrics = _calc_f1(results)
+    metrics = _calc_metrics(results)
 
     output = {
         "eval_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "model": MODEL,
+        "split": args.split,
         "total_cases": len(results),
         "metrics": metrics,
         "cases": results,
@@ -111,11 +120,10 @@ def main():
     filename.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
 
     print(f"\n{'=' * 50}")
-    print(f"  F1 Score     : {metrics['f1_score']:.4f}")
-    print(f"  Precision    : {metrics['precision']:.4f}")
-    print(f"  Recall       : {metrics['recall']:.4f}")
-    print(f"  코드 감지율  : {metrics['code_detection_rate']:.4f}")
-    print(f"  명칭 정확도  : {metrics['name_accuracy']:.4f}")
+    print(f"  Split           : {args.split}  ({len(results)}건)")
+    print(f"  정확 명칭 일치율 : {metrics['name_accuracy']:.4f}")
+    print(f"  동의어 포함 일치율: {metrics['synonym_accuracy']:.4f}")
+    print(f"  통과 / 전체      : {metrics['passed']} / {metrics['total']}")
     print(f"{'=' * 50}")
     print(f"\n결과 저장: {filename}")
 
