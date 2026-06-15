@@ -25,4 +25,4 @@ scripts/eval/ocr/testcases/
 
 ai_worker/image/classifier/train.csv
 ai_worker/image/classifier/val.csv
-ai_worker/image/classifier/color_shape_model.pt
+ai_worker/image/classifier/color_shape_model.pt.DS_Store
