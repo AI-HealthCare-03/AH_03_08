@@ -1,14 +1,14 @@
 # ai_worker/image/classifier/model.py
 
 import io
+
 import torch
 import torch.nn as nn
 from PIL import Image
 from torchvision import models, transforms
 
-
-COLOR_CLASSES = ['갈색','검정','노랑','보라','분홍','빨강','연두','주황','청록','초록','파랑','하양','회색']
-SHAPE_CLASSES = ['기타','마름모형','사각형','삼각형','오각형','원형','육각형','장방형','타원형','팔각형']
+COLOR_CLASSES = ["갈색", "검정", "노랑", "보라", "분홍", "빨강", "연두", "주황", "청록", "초록", "파랑", "하양", "회색"]
+SHAPE_CLASSES = ["기타", "마름모형", "사각형", "삼각형", "오각형", "원형", "육각형", "장방형", "타원형", "팔각형"]
 
 
 class ColorShapeClassifier(nn.Module):
@@ -64,11 +64,13 @@ def predict_color_shape(
     Returns:
         tuple: (predicted_color, predicted_shape, color_confidence, shape_confidence)
     """
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-    ])
+    transform = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        ]
+    )
 
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     tensor = transform(image).unsqueeze(0)

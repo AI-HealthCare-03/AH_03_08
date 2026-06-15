@@ -70,20 +70,14 @@ async def _run_color_shape_async(image_bytes: bytes, classifier) -> tuple[str, s
     try:
         from ai_worker.image.classifier import predict_color_shape
 
-        if (
-            classifier.color_shape_model is None
-            or classifier.color_classes is None
-            or classifier.shape_classes is None
-        ):
+        if classifier.color_shape_model is None or classifier.color_classes is None or classifier.shape_classes is None:
             return None
 
         predicted_color, predicted_shape, color_conf, shape_conf = predict_color_shape(
-            classifier.color_shape_model, image_bytes,
-            classifier.color_classes, classifier.shape_classes
+            classifier.color_shape_model, image_bytes, classifier.color_classes, classifier.shape_classes
         )
         logger.info(
-            f"색상/모양 예측 - color: {predicted_color}({color_conf:.2f}), "
-            f"shape: {predicted_shape}({shape_conf:.2f})"
+            f"색상/모양 예측 - color: {predicted_color}({color_conf:.2f}), shape: {predicted_shape}({shape_conf:.2f})"
         )
         return predicted_color, predicted_shape
     except Exception as exc:
@@ -138,7 +132,8 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
 
         # OCR + 색상/모양 결과로 분류
         kcode, drug_info, confidence_score, method, candidates = classifier.classify_with_ocr(
-            image_bytes, ocr_texts,
+            image_bytes,
+            ocr_texts,
             predicted_color=predicted_color,
             predicted_shape=predicted_shape,
         )
