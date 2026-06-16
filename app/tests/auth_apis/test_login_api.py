@@ -11,7 +11,7 @@ class TestLoginAPI(TestCase):
     async def test_login_success(self):
         signup_data = {
             "email": "login_test@example.com",
-            "email_token": "valid_test_token",
+            "email_token": "login_test@example.com",
             "password": "Password123!",
             "name": "logintest",
             "gender": "FEMALE",
@@ -23,6 +23,10 @@ class TestLoginAPI(TestCase):
         mock_redis = AsyncMock()
         mock_redis.get = AsyncMock(return_value="login_test@example.com")
         mock_redis.delete = AsyncMock()
+        mock_redis.exists = AsyncMock(return_value=0) 
+        mock_redis.incr = AsyncMock(return_value=1)    
+        mock_redis.expire = AsyncMock()                
+        mock_redis.setex = AsyncMock()  
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             app.state.redis = mock_redis
