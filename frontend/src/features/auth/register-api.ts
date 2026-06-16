@@ -27,6 +27,7 @@ const positiveNumber = z.preprocess(
 export const registerSchema = z
   .object({
     email: z.string().email('올바른 이메일을 입력해주세요'),
+    email_token: z.string().min(1, '이메일 인증이 필요합니다'),
     password: passwordRule,
     passwordConfirm: z.string(),
     name: z.string().min(1, '이름을 입력해주세요').max(20, '20자 이하로 입력해주세요'),
@@ -56,6 +57,15 @@ export const registerSchema = z
 export type RegisterFormValues = z.infer<typeof registerSchema>
 export type AllergyInput = z.infer<typeof allergySchema>
 export type ConditionInput = z.infer<typeof conditionSchema>
+
+export async function sendVerificationEmail(email: string) {
+  await apiClient.post('/auth/email/send', { email })
+}
+
+export async function verifyEmailCode(email: string, code: string): Promise<string> {
+  const res = await apiClient.post('/auth/email/verify', { email, code })
+  return res.data.data.email_token as string
+}
 
 export async function register(values: RegisterFormValues) {
   const { passwordConfirm: _, ...payload } = values
