@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock
+
 from httpx import ASGITransport, AsyncClient
 from starlette import status
 from tortoise.contrib.test import TestCase
@@ -9,6 +11,7 @@ class TestLoginAPI(TestCase):
     async def test_login_success(self):
         signup_data = {
             "email": "login_test@example.com",
+            "email_token": "valid_test_token",
             "password": "Password123!",
             "name": "logintest",
             "gender": "FEMALE",
@@ -16,9 +19,16 @@ class TestLoginAPI(TestCase):
             "phone_number": "01011112222",
         }
         login_data = {"email": "login_test@example.com", "password": "Password123!"}
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value="login_test@example.com")
+        mock_redis.delete = AsyncMock()
+
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            app.state.redis = mock_redis
             await client.post("/api/v1/auth/signup", json=signup_data)
             response = await client.post("/api/v1/auth/login", json=login_data)
+
         assert response.status_code == status.HTTP_200_OK
         assert "access_token" in response.json()["data"]
         assert any("refresh_token" in header for header in response.headers.get_list("set-cookie"))

@@ -79,12 +79,14 @@ async def signup(
     body: SignUpRequest,
     auth_service: Annotated[AuthService, Depends(AuthService)],
 ) -> Response:
-    """회원가입 (REQ-AUTH-001) — email_token 필수"""
     redis = request.app.state.redis
     verified_email = await redis.get(f"email_token:{body.email_token}")
 
     if not verified_email or verified_email != str(body.email):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="유효하지 않은 이메일 인증 토큰입니다.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="유효하지 않은 이메일 인증 토큰입니다."
+        )
 
     await auth_service.signup(body)
     await redis.delete(f"email_token:{body.email_token}")
