@@ -75,7 +75,9 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
     const meta = rec ? RECORD_TYPE_META[rec.record_type] : null
     const placeName = rec?.record_type === 'medicine_bag'
       ? rec.parsed_data?.pharmacy
-      : rec?.parsed_data?.hospital
+      : rec?.record_type === 'pill_photo'
+        ? rec.parsed_data?.drug_info?.drug_name
+        : rec?.parsed_data?.hospital
     const title = meta ? (placeName ? `${placeName} ${meta.label}` : meta.label) : guideDisplayTitle(guide)
     try {
       const newSession = await createSession({ guide_id: guide.id, title })
