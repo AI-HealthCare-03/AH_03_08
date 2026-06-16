@@ -206,15 +206,18 @@ export function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {comparison.map(c => (
-                  <tr key={c.version} className="border-t border-gray-100">
-                    <td className="px-4 py-3 font-medium">{c.version}</td>
-                    <td className="px-4 py-3">{c.avg_latency_ms != null ? `${c.avg_latency_ms}ms` : '-'}</td>
-                    <td className="px-4 py-3">{c.success_rate != null ? `${(c.success_rate * 100).toFixed(1)}%` : '-'}</td>
-                    <td className="px-4 py-3">{c.avg_rating != null ? `${c.avg_rating} / 5` : '-'}</td>
-                    <td className="px-4 py-3">{c.total_count}</td>
-                  </tr>
-                ))}
+                {comparison.length === 0
+                  ? <EmptyRow colSpan={5} />
+                  : comparison.map(c => (
+                    <tr key={c.version} className="border-t border-gray-100">
+                      <td className="px-4 py-3 font-medium">{c.version}</td>
+                      <td className="px-4 py-3">{c.avg_latency_ms != null ? `${c.avg_latency_ms}ms` : '-'}</td>
+                      <td className="px-4 py-3">{c.success_rate != null ? `${(c.success_rate * 100).toFixed(1)}%` : '-'}</td>
+                      <td className="px-4 py-3">{c.avg_rating != null ? `${c.avg_rating} / 5` : '-'}</td>
+                      <td className="px-4 py-3">{c.total_count}</td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
           </div>
@@ -238,17 +241,20 @@ export function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {consistency.map(c => (
-                  <tr key={c.model_type} className="border-t border-gray-100">
-                    <td className="px-4 py-3 font-medium">{c.model_type}</td>
-                    <td className="px-4 py-3">{c.latency_mean != null ? `${c.latency_mean}ms` : '-'}</td>
-                    <td className="px-4 py-3">{c.latency_stddev != null ? `${c.latency_stddev}ms` : '-'}</td>
-                    <td className="px-4 py-3">{c.sample_count}</td>
-                    <td className="px-4 py-3">
-                      {c.latency_stddev == null ? '-' : c.latency_stddev < 100 ? '✅ 안정' : c.latency_stddev < 500 ? '⚠️ 보통' : '❌ 불안정'}
-                    </td>
-                  </tr>
-                ))}
+                {consistency.length === 0
+                  ? <EmptyRow colSpan={5} message="누적된 모델 지표 데이터가 없습니다" />
+                  : consistency.map(c => (
+                    <tr key={c.model_type} className="border-t border-gray-100">
+                      <td className="px-4 py-3 font-medium">{c.model_type}</td>
+                      <td className="px-4 py-3">{c.latency_mean != null ? `${c.latency_mean}ms` : '-'}</td>
+                      <td className="px-4 py-3">{c.latency_stddev != null ? `${c.latency_stddev}ms` : '-'}</td>
+                      <td className="px-4 py-3">{c.sample_count}</td>
+                      <td className="px-4 py-3">
+                        {c.latency_stddev == null ? '-' : c.latency_stddev < 100 ? '✅ 안정' : c.latency_stddev < 500 ? '⚠️ 보통' : '❌ 불안정'}
+                      </td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
           </div>
@@ -402,15 +408,18 @@ export function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {feedbacks.map((f: any) => (
-                  <tr key={f.feedback_id} className="border-t border-gray-100">
-                    <td className="px-4 py-3">{f.user_id}</td>
-                    <td className="px-4 py-3">{'★'.repeat(f.rating)}{'☆'.repeat(5 - f.rating)}</td>
-                    <td className="px-4 py-3 text-gray-500">{f.comment || '-'}</td>
-                    <td className="px-4 py-3">{f.status}</td>
-                    <td className="px-4 py-3 text-gray-400">{f.created_at?.slice(0, 10)}</td>
-                  </tr>
-                ))}
+                {feedbacks.length === 0
+                  ? <EmptyRow colSpan={5} message="제출된 피드백이 없습니다" />
+                  : feedbacks.map((f: any) => (
+                    <tr key={f.feedback_id} className="border-t border-gray-100">
+                      <td className="px-4 py-3">{f.user_id}</td>
+                      <td className="px-4 py-3">{'★'.repeat(f.rating)}{'☆'.repeat(5 - f.rating)}</td>
+                      <td className="px-4 py-3 text-gray-500">{f.comment || '-'}</td>
+                      <td className="px-4 py-3">{f.status}</td>
+                      <td className="px-4 py-3 text-gray-400">{f.created_at?.slice(0, 10)}</td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
             <Pagination page={feedbacksPage} total={feedbacksTotal} limit={20} onChange={setFeedbacksPage} />
@@ -434,16 +443,19 @@ export function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {promptVersions.map(v => (
-                  <tr key={v.version} className="border-t border-gray-100">
-                    <td className="px-4 py-3 font-medium">{v.version}</td>
-                    <td className="px-4 py-3">{v.guide_count}</td>
-                    <td className="px-4 py-3">{v.feedback_count}</td>
-                    <td className="px-4 py-3">
-                      {v.avg_rating != null ? `${v.avg_rating} / 5` : '-'}
-                    </td>
-                  </tr>
-                ))}
+                {promptVersions.length === 0
+                  ? <EmptyRow colSpan={4} />
+                  : promptVersions.map(v => (
+                    <tr key={v.version} className="border-t border-gray-100">
+                      <td className="px-4 py-3 font-medium">{v.version}</td>
+                      <td className="px-4 py-3">{v.guide_count}</td>
+                      <td className="px-4 py-3">{v.feedback_count}</td>
+                      <td className="px-4 py-3">
+                        {v.avg_rating != null ? `${v.avg_rating} / 5` : '-'}
+                      </td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
           </div>
@@ -463,15 +475,18 @@ export function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((u: any) => (
-                  <tr key={u.user_id} className="border-t border-gray-100">
-                    <td className="px-4 py-3 font-medium">{u.name}</td>
-                    <td className="px-4 py-3 text-gray-500">{u.email}</td>
-                    <td className="px-4 py-3">{u.is_admin ? '✅' : '-'}</td>
-                    <td className="px-4 py-3">{u.is_active ? '✅' : '❌'}</td>
-                    <td className="px-4 py-3 text-gray-400">{u.created_at?.slice(0, 10)}</td>
-                  </tr>
-                ))}
+                {users.length === 0
+                  ? <EmptyRow colSpan={5} message="가입된 사용자가 없습니다" />
+                  : users.map((u: any) => (
+                    <tr key={u.user_id} className="border-t border-gray-100">
+                      <td className="px-4 py-3 font-medium">{u.name}</td>
+                      <td className="px-4 py-3 text-gray-500">{u.email}</td>
+                      <td className="px-4 py-3">{u.is_admin ? '✅' : '-'}</td>
+                      <td className="px-4 py-3">{u.is_active ? '✅' : '❌'}</td>
+                      <td className="px-4 py-3 text-gray-400">{u.created_at?.slice(0, 10)}</td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
             <Pagination page={usersPage} total={usersTotal} limit={20} onChange={setUsersPage} />
@@ -510,5 +525,15 @@ function Pagination({ page, total, limit, onChange }: {
         </button>
       </div>
     </div>
+  )
+}
+
+function EmptyRow({ colSpan, message = '데이터가 없습니다' }: { colSpan: number; message?: string }) {
+  return (
+    <tr>
+      <td colSpan={colSpan} className="px-4 py-10 text-center text-sm text-gray-400">
+        {message}
+      </td>
+    </tr>
   )
 }
