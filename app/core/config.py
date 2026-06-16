@@ -48,6 +48,7 @@ class Config(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_CHAT_MODEL: str = "gpt-4o-mini"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    GUIDE_LLM_TEMPERATURE: float = 0.0
 
     # OCR
     CLOVA_OCR_URL: str = ""
