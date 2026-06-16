@@ -16,6 +16,7 @@ class ConditionInput(BaseModel):
     condition_name: str = Field(..., max_length=200)
     severity: Literal["mild", "moderate", "severe"] = "mild"
 
+
 class EmailSendRequest(BaseModel):
     email: EmailStr
 
@@ -23,6 +24,7 @@ class EmailSendRequest(BaseModel):
 class EmailVerifyRequest(BaseModel):
     email: EmailStr
     code: str
+
 
 class SignUpRequest(BaseModel):
     email: Annotated[EmailStr, Field(None, max_length=40)]
