@@ -1,3 +1,4 @@
+from app.core.config import config
 from app.models.guide import Guide
 
 
@@ -6,8 +7,8 @@ async def create_guide(user_id: int, record_id: str) -> Guide:
         user_id=user_id,
         record_id=record_id,
         status="processing",
-        llm_model="gpt-4o-mini",
-        llm_temperature=0.0,
+        llm_model=config.OPENAI_CHAT_MODEL,
+        llm_temperature=config.GUIDE_LLM_TEMPERATURE,
     )
 
 
