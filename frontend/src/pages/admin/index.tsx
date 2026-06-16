@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/app/providers/auth-store'
 import { apiClient } from '@/shared/api/client'
@@ -407,20 +407,44 @@ export function AdminPage() {
                 <tr>
                   <th className="px-4 py-3 text-left">사용자</th>
                   <th className="px-4 py-3 text-left">평점</th>
+                  <th className="px-4 py-3 text-left">태그</th>
                   <th className="px-4 py-3 text-left">코멘트</th>
-                  <th className="px-4 py-3 text-left">상태</th>
+                  <th className="px-4 py-3 text-left">
+                    <span className="relative group cursor-default">
+                      상태
+                      <span className="absolute left-0 top-5 z-10 hidden group-hover:block w-64 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 leading-relaxed shadow-lg">
+                        <b>✅ ACTIVE</b>: 정상 제출된 피드백<br />
+                        <b>🚫 INACTIVE</b>: 관리자가 비활성화한 피드백
+                      </span>
+                    </span>
+                  </th>
                   <th className="px-4 py-3 text-left">날짜</th>
                 </tr>
               </thead>
               <tbody>
                 {feedbacks.length === 0
-                  ? <EmptyRow colSpan={5} message="제출된 피드백이 없습니다" />
+                  ? <EmptyRow colSpan={6} message="제출된 피드백이 없습니다" />
                   : feedbacks.map((f: any) => (
                     <tr key={f.feedback_id} className="border-t border-gray-100">
                       <td className="px-4 py-3">{f.user_email ?? f.user_id}</td>
                       <td className="px-4 py-3">{f.rating === 1 ? '👍 긍정' : '👎 부정'}</td>
-                      <td className="px-4 py-3 text-gray-500">{f.comment || '-'}</td>
-                      <td className="px-4 py-3">{f.status}</td>
+                      <td className="px-4 py-3 max-w-[180px]">
+                        {f.tag_ids?.length > 0
+                          ? <div className="flex flex-wrap gap-1">
+                              {f.tag_ids.map((tag: string) => (
+                                <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{tag}</span>
+                              ))}
+                            </div>
+                          : <span className="text-gray-300">-</span>
+                        }
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 max-w-[160px] whitespace-pre-wrap break-words">{f.comment || '-'}</td>
+                      <td className="px-4 py-3">
+                        {f.status === 'ACTIVE'
+                          ? <span title="ACTIVE">✅</span>
+                          : <span title="INACTIVE">🚫</span>
+                        }
+                      </td>
                       <td className="px-4 py-3 text-gray-400">{f.created_at?.slice(0, 10)}</td>
                     </tr>
                   ))
@@ -468,8 +492,8 @@ export function AdminPage() {
 
             {promptText && (
               <div className="space-y-4">
-                <PromptBlock title="가이드 생성 시스템 프롬프트 (현재 적용 중)" text={promptText.guide_system} />
-                <PromptBlock title="챗봇 시스템 프롬프트 (현재 적용 중)" text={promptText.chat_system} />
+                <PromptBlock title={<><span className="bg-[#1D9E75] text-white text-xs font-semibold px-2 py-0.5 rounded mr-2">가이드 생성</span>시스템 프롬프트 (현재 적용 중)</>} text={promptText.guide_system} />
+                <PromptBlock title={<><span className="bg-[#1D9E75] text-white text-xs font-semibold px-2 py-0.5 rounded mr-2">챗봇</span>시스템 프롬프트 (현재 적용 중)</>} text={promptText.chat_system} />
               </div>
             )}
           </div>
@@ -484,7 +508,15 @@ export function AdminPage() {
                   <th className="px-4 py-3 text-left">이름</th>
                   <th className="px-4 py-3 text-left">이메일</th>
                   <th className="px-4 py-3 text-left">관리자</th>
-                  <th className="px-4 py-3 text-left">활성</th>
+                  <th className="px-4 py-3 text-left">
+                    <span className="relative group cursor-default">
+                      활성
+                      <span className="absolute left-0 top-5 z-10 hidden group-hover:block w-64 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 leading-relaxed shadow-lg">
+                        <b>✅ 활성</b>: 이메일 인증(로그인 가능)한 계정<br />
+                        <b>❌ 비활성</b>: 비활성화한 계정
+                      </span>
+                    </span>
+                  </th>
                   <th className="px-4 py-3 text-left">가입일</th>
                 </tr>
               </thead>
@@ -542,7 +574,7 @@ function Pagination({ page, total, limit, onChange }: {
   )
 }
 
-function PromptBlock({ title, text }: { title: string; text: string }) {
+function PromptBlock({ title, text }: { title: React.ReactNode; text: string }) {
   const [open, setOpen] = useState(false)
   return (
     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
