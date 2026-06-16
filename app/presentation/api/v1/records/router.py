@@ -73,12 +73,12 @@ async def upload_record(
     content = await file.read()
 
     # 실제 파일 시그니처 검증 (NREQ-SEC-003)
-    MIME_SIGNATURES = {
+    mime_signatures = {
         b"\xff\xd8\xff": "image/jpeg",
         b"\x89PNG": "image/png",
         b"%PDF": "application/pdf",
     }
-    if not any(content.startswith(sig) for sig in MIME_SIGNATURES):
+    if not any(content.startswith(sig) for sig in mime_signatures):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="파일 형식이 올바르지 않습니다. JPG, PNG, PDF만 허용됩니다.",
