@@ -73,6 +73,7 @@ async def get_calendar_by_date(event_date: str, current_user=Depends(get_request
 async def create_calendar_event(body: CalendarEventCreateRequest, current_user=Depends(get_request_user)):
     from app.models.medical_records import MedicalRecord
     from app.models.medications import Medication
+    from app.models.notifications import Notification
 
     med = await Medication.filter(id=body.medication_id).first()
     if not med:
@@ -80,6 +81,16 @@ async def create_calendar_event(body: CalendarEventCreateRequest, current_user=D
     record = await MedicalRecord.filter(id=med.medical_record_id, user_id=current_user.id).first()
     if not record:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medication not found.")
+    duplicate = await CalendarEvent.filter(
+        user_id=current_user.id,
+        medication_id=body.medication_id,
+        event_date=body.event_date,
+        scheduled_time=body.scheduled_time,
+    ).exists()
+    if duplicate:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="이미 같은 시간에 해당 약의 복약 일정이 존재합니다."
+        )
     row = await CalendarEvent.create(
         user_id=current_user.id,
         medication_id=body.medication_id,
@@ -88,6 +99,20 @@ async def create_calendar_event(body: CalendarEventCreateRequest, current_user=D
         status="PENDING",
         note=body.note,
     )
+    exists = await Notification.filter(
+        user_id=current_user.id,
+        medication_id=body.medication_id,
+        scheduled_time=body.scheduled_time,
+    ).exists()
+    if not exists:
+        await Notification.create(
+            user_id=current_user.id,
+            medication_id=body.medication_id,
+            title=f"{med.drug_name} 복용 알림",
+            type="push",
+            scheduled_time=body.scheduled_time,
+            is_active=True,
+        )
     return _ok(_to_resp(row))
 
 
