@@ -34,7 +34,16 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
       if (navigator.share) {
         await navigator.share({ title: guideDisplayTitle(guide), url })
       } else {
-        await navigator.clipboard.writeText(url)
+        try {
+          await navigator.clipboard.writeText(url)
+        } catch {
+          const el = document.createElement('textarea')
+          el.value = url
+          document.body.appendChild(el)
+          el.select()
+          document.execCommand('copy')
+          document.body.removeChild(el)
+        }
         toast.success('링크가 복사되었습니다.')
       }
     } catch {
