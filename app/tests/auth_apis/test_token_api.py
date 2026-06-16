@@ -11,6 +11,7 @@ class TestJWTTokenRefreshAPI(TestCase):
     async def test_token_refresh_success(self):
         signup_data = {
             "email": "refresh@example.com",
+            "email_token": "refresh@example.com",
             "password": "Password123!",
             "name": "refreshtest",
             "gender": "MALE",

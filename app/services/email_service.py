@@ -15,20 +15,19 @@ class EmailService:
         self.sender = settings.SES_SENDER_EMAIL
 
     async def send_verification_email(self, to_email: str, token: str):
-        verify_url = f"{settings.ALLOWED_ORIGINS}/auth/verify-email?token={token}"
         try:
             self.client.send_email(
                 Source=self.sender,
                 Destination={"ToAddresses": [to_email]},
                 Message={
-                    "Subject": {"Data": "[MediLog] 이메일 인증", "Charset": "UTF-8"},
+                    "Subject": {"Data": "[MediLog] 이메일 인증 코드", "Charset": "UTF-8"},
                     "Body": {
                         "Html": {
                             "Data": f"""
                             <h2>MediLog 이메일 인증</h2>
-                            <p>아래 링크를 클릭하여 이메일 인증을 완료하세요.</p>
-                            <a href="{verify_url}">이메일 인증하기</a>
-                            <p>링크는 24시간 동안 유효합니다.</p>
+                            <p>아래 인증 코드를 입력해주세요.</p>
+                            <h1 style="letter-spacing: 8px; color: #4CAF50;">{token}</h1>
+                            <p>인증 코드는 10분간 유효합니다.</p>
                             """,
                             "Charset": "UTF-8",
                         }
@@ -36,7 +35,8 @@ class EmailService:
                 },
             )
         except ClientError as e:
-            raise RuntimeError(f"이메일 발송 실패: {e.response['Error']['Message']}") from e
+            error_msg = e.response["Error"]["Message"]
+            raise RuntimeError(f"이메일 발송 실패: {error_msg}") from e
 
     def send_notification_email(self, to_email: str, title: str, scheduled_time: str):
         try:
