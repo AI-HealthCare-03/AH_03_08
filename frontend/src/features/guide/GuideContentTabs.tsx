@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Download, HeartPulse, Newspaper, Pill } from 'lucide-react'
+import { Download, HeartPulse, Newspaper, Pill } from 'lucide-react'
 import type { Guide } from '@/entities/guide/model'
 import { GUIDE_TABS, type GuideContentTab } from './constants'
 import { splitBulletLines } from './guide-utils'
@@ -20,15 +20,6 @@ function toStr(val: unknown): string {
     return Object.values(obj).filter(v => typeof v === 'string').join('\n')
   }
   return String(val)
-}
-
-function WarningBox({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-amber-200 bg-status-amber-bg px-4 py-3 flex gap-2">
-      <AlertTriangle className="h-5 w-5 shrink-0 text-status-amber-icon mt-0.5" />
-      <div className="text-sm text-status-amber-text leading-relaxed">{children}</div>
-    </div>
-  )
 }
 
 export function GuideContentTabs({ guide }: GuideContentTabsProps) {
@@ -56,16 +47,6 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
     }
     return map
   }, [guide.allergy_warnings, guide.condition_interactions])
-
-  const primaryWarning =
-    guide.condition_interactions?.[0] ||
-    (guide.allergy_warnings?.[0]
-      ? {
-          drug_name: guide.allergy_warnings[0].drug_name,
-          condition: '알러지',
-          interaction: guide.allergy_warnings[0].warning,
-        }
-      : null)
 
   async function handleCreateCardNews() {
     try {
@@ -152,14 +133,6 @@ export function GuideContentTabs({ guide }: GuideContentTabsProps) {
                 {toStr(guide.medication_guide).trim() || '복약 안내 내용이 없습니다.'}
               </p>
             </article>
-          )}
-          {primaryWarning && (
-            <WarningBox>
-              <span className="font-semibold">주의: </span>
-              {primaryWarning.drug_name}
-              {primaryWarning.condition ? ` · ${primaryWarning.condition}` : ''}:{' '}
-              {primaryWarning.interaction}
-            </WarningBox>
           )}
         </div>
       )}
