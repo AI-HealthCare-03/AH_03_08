@@ -17,6 +17,7 @@ from app.models.users import User
 
 _SIGNUP = {
     "email": "msg_test@example.com",
+    "email_token": "msg_test@example.com",
     "password": "Password123!",
     "name": "메시지테스터",
     "gender": "MALE",
