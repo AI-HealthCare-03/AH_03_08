@@ -21,6 +21,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
 from ai_worker.celery_app import celery_app
+from ai_worker.core.config import config
 from ai_worker.prompts.llm_prompts import (
     GUIDE_SYSTEM,
     INTERACTION_CHECK_SYSTEM,
@@ -48,8 +49,8 @@ def _get_llm() -> ChatOpenAI:
     global _llm
     if _llm is None:
         _llm = ChatOpenAI(
-            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            temperature=0,
+            model=os.getenv("OPENAI_MODEL", config.OPENAI_CHAT_MODEL),
+            temperature=config.GUIDE_LLM_TEMPERATURE,
             max_tokens=4096,
             api_key=os.getenv("OPENAI_API_KEY", ""),
         )
@@ -60,8 +61,8 @@ def _get_llm_stream() -> ChatOpenAI:
     global _llm_stream
     if _llm_stream is None:
         _llm_stream = ChatOpenAI(
-            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            temperature=0,
+            model=os.getenv("OPENAI_MODEL", config.OPENAI_CHAT_MODEL),
+            temperature=config.GUIDE_LLM_TEMPERATURE,
             max_tokens=2048,
             streaming=True,
             api_key=os.getenv("OPENAI_API_KEY", ""),
