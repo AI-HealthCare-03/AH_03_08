@@ -88,7 +88,9 @@ async def create_calendar_event(body: CalendarEventCreateRequest, current_user=D
         scheduled_time=body.scheduled_time,
     ).exists()
     if duplicate:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 같은 시간에 해당 약의 복약 일정이 존재합니다.")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="이미 같은 시간에 해당 약의 복약 일정이 존재합니다."
+        )
     row = await CalendarEvent.create(
         user_id=current_user.id,
         medication_id=body.medication_id,
