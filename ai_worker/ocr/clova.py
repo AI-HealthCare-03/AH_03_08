@@ -14,21 +14,32 @@ class ClovaOCRProvider(OCRProvider):
         self._secret = secret
 
     async def extract_text(self, file_path: str) -> str:
-        path = Path(file_path)
-        with open(path, "rb") as f:
-            image_data = base64.b64encode(f.read()).decode("utf-8")
-
-        ext = path.suffix.lstrip(".").lower()
-        if ext == "jpg":
-            ext = "jpeg"
+        # S3 URL이면 다운로드, 로컬 경로면 직접 읽기
+        if file_path.startswith("http"):
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.get(file_path)
+                resp.raise_for_status()
+                image_bytes = resp.content
+            ext = file_path.split(".")[-1].lower()
+            if ext == "jpg":
+                ext = "jpeg"
+            image_data = base64.b64encode(image_bytes).decode("utf-8")
+            name = file_path.split("/")[-1]
+        else:
+            path = Path(file_path)
+            with open(path, "rb") as f:
+                image_data = base64.b64encode(f.read()).decode("utf-8")
+            ext = path.suffix.lstrip(".").lower()
+            if ext == "jpg":
+                ext = "jpeg"
+            name = path.name
 
         payload = {
-            "images": [{"format": ext, "name": path.name, "data": image_data}],
+            "images": [{"format": ext, "name": name, "data": image_data}],
             "requestId": str(uuid.uuid4()),
             "timestamp": int(time.time() * 1000),
             "version": "V2",
         }
-
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 self._url,
@@ -39,7 +50,6 @@ class ClovaOCRProvider(OCRProvider):
                 json=payload,
             )
             response.raise_for_status()
-
         data = response.json()
         texts = [
             field.get("inferText", "")

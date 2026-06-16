@@ -89,6 +89,7 @@ class Config(BaseSettings):
     AWS_SECRET_KEY: str = ""
     AWS_REGION: str = "ap-northeast-2"
     SES_SENDER_EMAIL: str = ""
+    S3_BUCKET_NAME: str = ""
 
 
 config = Config()
