@@ -49,3 +49,11 @@ uv run python scripts/eval_5_1_p95_latency.py --iterations 30 --output docs/eval
 3. 결론 문단은 리포트 하단 `Notion 붙여넣기용 결론` 사용
 
 `reports/` 는 실행 후 생성 (git에 커밋하지 않아도 됨).
+
+## 배포 후 스모크 테스트
+
+로그인 → 가이드 생성 → `status=done` → `llm_temperature=0` 확인.
+
+```powershell
+uv run python scripts/smoke_test_guide.py
+```
