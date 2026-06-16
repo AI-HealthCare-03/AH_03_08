@@ -1,4 +1,4 @@
-# 평가 점수 — 가이드 API 측정 (3-2, 3-3, 5-1)
+# 평가 점수 — 가이드 API 측정 (3-2, 3-3, 3-4, 5-1)
 
 ## 사전 조건
 
@@ -34,13 +34,39 @@ uv run python scripts/eval_guide_3_3_final.py
 - 출력: `docs/evaluation/reports/3-3-report-final.md`
 - raw JSON: `docs/evaluation/reports/3-3-report-final-raw.json`
 
+## 3-4 피드백 반영 구조 (5점)
+
+사용자 피드백 POST/GET + 관리자 목록 조회 실측. 가이드 1건 이상 필요.
+
+```powershell
+# 선택: 관리자 계정 (기본 admin@medilog.com / Passwd1!)
+$env:EVAL_ADMIN_EMAIL="admin@medilog.com"
+$env:EVAL_ADMIN_PASSWORD="Passwd1!"
+uv run python scripts/eval_3_4_feedback_flow.py
+```
+
+- 출력: `docs/evaluation/reports/3-4-feedback-verify.md`
+
 ## 5-1 P95 Latency (5점)
+
+### 조회 API (단일 사용자)
 
 조회(GET) API 30회 반복, P95 ≤ 3,000ms (llm-worker 불필요).
 
 ```powershell
 uv run python scripts/eval_5_1_p95_latency.py --iterations 30 --output docs/evaluation/reports/5-1-report.md
 ```
+
+### 부하 테스트 (동시 사용자)
+
+`GET /users/me` 동시 사용자 시뮬레이션 (1/10/50/100 users × 100 req).
+
+```powershell
+uv run python scripts/eval_5_1_load_concurrent.py
+uv run python scripts/eval_5_1_load_concurrent.py --quick   # 빠른 확인용
+```
+
+- 출력: `docs/evaluation/reports/5-1-load-report.md`
 
 ## Notion 정리
 
