@@ -47,7 +47,7 @@ async def list_feedbacks(
 
 @admin_router.get("/prompts/current", summary="current prompt text")
 async def get_current_prompts(_: AdminUser):
-    from ai_worker.prompts.llm_prompts import CHAT_BASE_SYSTEM, GUIDE_SYSTEM
+    from app.core.prompt_constants import CHAT_BASE_SYSTEM, GUIDE_SYSTEM
 
     return _ok({"guide_system": GUIDE_SYSTEM, "chat_system": CHAT_BASE_SYSTEM}, "ok")
 
