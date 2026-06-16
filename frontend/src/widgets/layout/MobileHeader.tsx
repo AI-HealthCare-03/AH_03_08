@@ -30,7 +30,7 @@ export function MobileHeader() {
     <>
       {/* 모바일 상단 헤더 */}
       <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-14 bg-white border-b border-gray-100">
-        <span className="text-base font-bold" style={{ color: '#1D9E75' }}>메디로그</span>
+        <button onClick={() => navigate('/home')} className="text-base font-bold" style={{ color: '#1D9E75' }}>메디로그</button>
         <button
           onClick={() => setOpen(true)}
           aria-label="메뉴 열기"
@@ -54,7 +54,7 @@ export function MobileHeader() {
           ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex items-center justify-between px-5 h-14 border-b border-gray-100">
-          <span className="text-base font-bold" style={{ color: '#1D9E75' }}>메디로그</span>
+          <button onClick={() => { setOpen(false); navigate('/home') }} className="text-base font-bold" style={{ color: '#1D9E75' }}>메디로그</button>
           <button
             onClick={() => setOpen(false)}
             aria-label="메뉴 닫기"

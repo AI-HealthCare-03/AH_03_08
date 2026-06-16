@@ -20,7 +20,7 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex flex-col w-60 min-h-screen border-r border-gray-100 bg-[#F5F5F4] px-4 py-6 shrink-0">
       <div className="mb-8 px-2">
-        <span className="text-lg font-bold" style={{ color: '#1D9E75' }}>메디로그</span>
+        <button onClick={() => navigate('/home')} className="text-lg font-bold" style={{ color: '#1D9E75' }}>메디로그</button>
         <p className="text-xs text-gray-500 mt-0.5">건강 기록 기반 관리가이드</p>
       </div>
 
