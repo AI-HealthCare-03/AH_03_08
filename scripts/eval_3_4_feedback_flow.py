@@ -62,9 +62,7 @@ async def main_async(args: argparse.Namespace) -> int:
     if post_ok:
         admin_client, admin_headers = await login_admin_client()
         try:
-            admin_r = await admin_client.get(
-                "/admin/feedbacks", headers=admin_headers, params={"page": 1, "limit": 20}
-            )
+            admin_r = await admin_client.get("/admin/feedbacks", headers=admin_headers, params={"page": 1, "limit": 20})
             admin_status = admin_r.status_code
             admin_ok = admin_r.status_code == 200
         finally:
