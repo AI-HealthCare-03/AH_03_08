@@ -14,10 +14,18 @@ from app.core.db.databases import TORTOISE_APP_MODELS
 
 
 def _make_mock_redis() -> AsyncMock:
-    """테스트용 Redis mock — 브루트포스 방어 로직이 정상 통과하도록 기본값 설정."""
     mock = AsyncMock()
-    mock.exists.return_value = 0  # 잠금 없음
-    mock.incr.return_value = 1  # 첫 번째 실패
+    mock.exists.return_value = 0
+    mock.incr.return_value = 1
+    mock.setex = AsyncMock(return_value=True)
+    mock.delete = AsyncMock(return_value=True)
+    # email_token 검증 통과: 어떤 키로 get해도 이메일 반환
+    async def mock_get(key: str) -> str | None:
+        if key.startswith("email_token:"):
+            # key에서 token 추출 후 임의 이메일 반환
+            return key.replace("email_token:", "").replace("valid_test_token", "") or "test@example.com"
+        return None
+    mock.get = AsyncMock(side_effect=mock_get)
     return mock
 
 
