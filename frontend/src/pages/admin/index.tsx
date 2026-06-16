@@ -42,7 +42,14 @@ interface TestReport {
   feedback_structure: { flow: string; implemented: boolean }
 }
 
-type Tab = 'metrics' | 'comparison' | 'consistency' | 'feedback-flow' | 'report' | 'feedbacks' | 'users'
+interface PromptVersion {
+  version: string
+  guide_count: number
+  avg_rating: number | null
+  feedback_count: number
+}
+
+type Tab = 'metrics' | 'comparison' | 'consistency' | 'feedback-flow' | 'report' | 'feedbacks' | 'users' | 'prompt-versions'
 
 export function AdminPage() {
   const navigate = useNavigate()
@@ -55,6 +62,7 @@ export function AdminPage() {
   const [report, setReport] = useState<TestReport | null>(null)
   const [feedbacks, setFeedbacks] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
+  const [promptVersions, setPromptVersions] = useState<PromptVersion[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -88,6 +96,9 @@ export function AdminPage() {
         } else if (tab === 'users') {
           const r = await apiClient.get('/admin/users')
           setUsers(r.data.data.items)
+        } else if (tab === 'prompt-versions') {
+          const r = await apiClient.get('/admin/prompts/versions')
+          setPromptVersions(r.data.data)
         }
       } catch (e: any) {
         const msg = e?.response?.data?.message ?? e?.message ?? '알 수 없는 오류가 발생했습니다'
@@ -107,6 +118,7 @@ export function AdminPage() {
     { key: 'report', label: '테스트 보고서' },
     { key: 'feedbacks', label: '피드백 목록' },
     { key: 'users', label: '사용자' },
+    { key: 'prompt-versions', label: '프롬프트 버전' },
   ]
 
   return (
@@ -391,6 +403,38 @@ export function AdminPage() {
                     <td className="px-4 py-3 text-gray-500">{f.comment || '-'}</td>
                     <td className="px-4 py-3">{f.status}</td>
                     <td className="px-4 py-3 text-gray-400">{f.created_at?.slice(0, 10)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* 프롬프트 버전 */}
+        {tab === 'prompt-versions' && (
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b">
+              <p className="text-sm font-medium text-gray-700">프롬프트 버전별 성능 현황</p>
+              <p className="text-xs text-gray-400 mt-1">버전이 높을수록 최신 프롬프트입니다</p>
+            </div>
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500 text-xs">
+                <tr>
+                  <th className="px-4 py-3 text-left">버전</th>
+                  <th className="px-4 py-3 text-left">가이드 생성 수</th>
+                  <th className="px-4 py-3 text-left">피드백 수</th>
+                  <th className="px-4 py-3 text-left">평균 평점</th>
+                </tr>
+              </thead>
+              <tbody>
+                {promptVersions.map(v => (
+                  <tr key={v.version} className="border-t border-gray-100">
+                    <td className="px-4 py-3 font-medium">{v.version}</td>
+                    <td className="px-4 py-3">{v.guide_count}</td>
+                    <td className="px-4 py-3">{v.feedback_count}</td>
+                    <td className="px-4 py-3">
+                      {v.avg_rating != null ? `${v.avg_rating} / 5` : '-'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
