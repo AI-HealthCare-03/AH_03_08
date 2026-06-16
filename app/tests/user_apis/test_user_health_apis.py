@@ -6,6 +6,7 @@ from app.main import app
 
 SIGNUP_DATA = {
     "email": "health_test@example.com",
+    "email_token": "health_test@example.com",
     "password": "Password123!",
     "name": "healthtest",
     "gender": "MALE",

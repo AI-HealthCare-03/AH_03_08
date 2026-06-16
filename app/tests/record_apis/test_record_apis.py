@@ -9,6 +9,7 @@ from app.main import app
 
 _SIGNUP = {
     "email": "record_test@example.com",
+    "email_token": "record_test@example.com",
     "password": "Password123!",
     "name": "기록테스터",
     "gender": "FEMALE",

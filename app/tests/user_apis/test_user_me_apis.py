@@ -10,6 +10,7 @@ class TestUserMeApis(TestCase):
         email = "me@example.com"
         signup_data = {
             "email": email,
+            "email_token": email,
             "password": "Password123!",
             "name": "테스트유저",
             "gender": "FEMALE",
@@ -29,6 +30,7 @@ class TestUserMeApis(TestCase):
         email = "update_me@example.com"
         signup_data = {
             "email": email,
+            "email_token": email,
             "password": "Password123!",
             "name": "수정전",
             "gender": "MALE",
