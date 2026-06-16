@@ -35,6 +35,6 @@ class UserInfoResponse(BaseSerializerModel):
     name: str
     email: str
     phone_number: str
-    birth_date: date
-    gender: Gender
+    birth_date: date | None
+    gender: Gender | None
     created_at: datetime
