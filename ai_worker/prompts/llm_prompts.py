@@ -253,7 +253,6 @@ def _otc_label(otc_code: str | None) -> str:
 # ─────────────────────────────────────────────────────────────────
 
 
-
 def build_chat_system_prompt(  # noqa: C901
     user_health: dict,
     rag_docs: list,

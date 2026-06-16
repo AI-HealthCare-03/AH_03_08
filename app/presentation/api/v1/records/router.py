@@ -4,12 +4,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 
 from app.application.medical_record.dto.record_dto import UpdateRecordCommand, UploadRecordCommand
-from app.core.s3 import get_presigned_url
 from app.application.medical_record.use_cases.delete_record import DeleteRecordUseCase
 from app.application.medical_record.use_cases.get_record import GetRecordUseCase
 from app.application.medical_record.use_cases.list_records import ListRecordsUseCase
 from app.application.medical_record.use_cases.update_record import UpdateRecordUseCase
 from app.application.medical_record.use_cases.upload_record import UploadRecordUseCase
+from app.core.s3 import get_presigned_url
 from app.dependencies.security import get_request_user
 from app.domain.medical_record.repository import AbstractRecordRepository
 from app.domain.medical_record.value_objects import RecordType
@@ -29,6 +29,7 @@ def _to_response(record) -> RecordResponseSchema:
     if schema.file_url:
         schema.file_url = get_presigned_url(schema.file_url)
     return schema
+
 
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "application/pdf"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
