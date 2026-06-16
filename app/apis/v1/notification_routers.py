@@ -1,4 +1,5 @@
 # app/apis/v1/notification_routers.py
+import logging
 from datetime import date, timedelta
 from typing import Literal
 
@@ -8,7 +9,6 @@ from pydantic import BaseModel, Field
 from app.dependencies.security import get_request_user
 from app.models.notifications import Notification
 
-import logging
 logger = logging.getLogger(__name__)
 
 notification_router = APIRouter(prefix="/notifications", tags=["notifications"])

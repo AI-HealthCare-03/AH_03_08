@@ -670,6 +670,7 @@ def check_unread_guides_task(self):
 
 async def _do_check_unread_guides():
     from datetime import datetime, timedelta
+
     from tortoise import Tortoise
 
     await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
