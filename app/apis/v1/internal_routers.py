@@ -17,7 +17,7 @@ internal_routers.py — Worker → FastAPI 콜백 수신 엔드포인트
 
 import json
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -25,6 +25,7 @@ from app.core.config import config
 from app.models.guide import Guide
 from app.models.llm import GuideAsset
 from app.models.medical_records import MedicalRecord
+from app.services.jwt import JwtService
 
 internal_router = APIRouter(prefix="/internal", tags=["internal"])
 
@@ -174,21 +175,31 @@ async def asset_callback(body: AssetCallbackRequest):
 
 
 @internal_router.get("/guides/{guide_id}/stream")
-async def guide_stream(guide_id: str, request: Request):
+async def guide_stream(guide_id: str, request: Request, token: str = Query(...)):
     """
     Server-Sent Events — 가이드 생성 완료를 클라이언트에 Push.
 
     클라이언트 사용 예:
-        const es = new EventSource('/api/v1/internal/guides/{guide_id}/stream');
+        const es = new EventSource('/api/v1/internal/guides/{guide_id}/stream?token=<access_token>');
         es.onmessage = (e) => console.log(JSON.parse(e.data));
 
     Worker가 /callback/guide 를 호출하면 Redis Pub/Sub을 통해
     해당 user의 구독자에게 이벤트가 전달됩니다.
     """
+    # 토큰 검증 (EventSource는 Authorization 헤더 미지원 → 쿼리 파라미터로 수신)
+    try:
+        verified = JwtService().verify_jwt(token=token, token_type="access")
+        request_user_id = verified.payload["user_id"]
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="인증이 필요합니다.") from e
+
     # guide 소유자 확인 (guide_id → user_id 조회)
     guide = await Guide.get_or_none(id=guide_id)
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="가이드를 찾을 수 없습니다.")
+
+    if guide.user_id != request_user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="접근 권한이 없습니다.")
 
     user_id = guide.user_id
     redis = request.app.state.redis
