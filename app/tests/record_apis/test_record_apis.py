@@ -23,8 +23,12 @@ _FAKE_S3_URL = "https://fake-bucket.s3.ap-northeast-2.amazonaws.com/uploads/test
 
 
 def _mock_s3(stack: ExitStack) -> None:
-    stack.enter_context(patch("app.core.s3.upload_to_s3", return_value=_FAKE_S3_URL))
-    stack.enter_context(patch("app.core.s3.get_presigned_url", side_effect=lambda url, **kwargs: url))
+    stack.enter_context(
+        patch("app.application.medical_record.use_cases.upload_record.upload_to_s3", return_value=_FAKE_S3_URL)
+    )
+    stack.enter_context(
+        patch("app.presentation.api.v1.records.router.get_presigned_url", side_effect=lambda url, **kwargs: url)
+    )
 
 
 async def _get_auth_headers(client: AsyncClient) -> dict:
