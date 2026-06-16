@@ -82,10 +82,7 @@ async def signup(
     redis = request.app.state.redis
     verified_email = await redis.get(f"email_token:{body.email_token}")
     if not verified_email or verified_email != str(body.email):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="유효하지 않은 이메일 인증 토큰입니다."
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="유효하지 않은 이메일 인증 토큰입니다.")
 
     if not verified_email:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="유효하지 않은 이메일 인증 토큰입니다.")
