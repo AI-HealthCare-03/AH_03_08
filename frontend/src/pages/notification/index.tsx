@@ -83,7 +83,7 @@ function NotificationRow({ item, startDate, endDate }: {
           종료
         </span>
       ) : (
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md shrink-0 ${SLOT_STYLE[label]}`}>
+        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md shrink-0 w-10 text-center ${SLOT_STYLE[label]}`}>
           {label}
         </span>
       )}
