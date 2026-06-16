@@ -172,9 +172,9 @@ async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
         logger.info(f"[generate_guide] 완료 guide_id={guide_id}")
 
     except Exception as exc:
-        guide_failed(guide_id, user_id)
         logger.error(f"[generate_guide] 실패: {exc}", exc_info=True)
-        # 지수 백오프: 30s, 60s, 120s
+        if task.request.retries >= task.max_retries:
+            guide_failed(guide_id, user_id)
         countdown = 30 * (2**task.request.retries)
         raise task.retry(exc=exc, countdown=countdown) from exc
 
