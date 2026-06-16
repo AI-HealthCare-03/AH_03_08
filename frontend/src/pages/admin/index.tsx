@@ -20,8 +20,8 @@ interface ModelComparison {
 
 interface ConsistencyItem {
   model_type: string
-  mean_ms: number | null
-  stddev_ms: number | null
+  latency_mean: number | null   // 평균 레이턴시 (ms)
+  latency_stddev: number | null // 레이턴시 표준편차 (ms)
   sample_count: number
 }
 
@@ -42,7 +42,14 @@ interface TestReport {
   feedback_structure: { flow: string; implemented: boolean }
 }
 
-type Tab = 'metrics' | 'comparison' | 'consistency' | 'feedback-flow' | 'report' | 'feedbacks' | 'users'
+interface PromptVersion {
+  version: string
+  guide_count: number
+  avg_rating: number | null
+  feedback_count: number
+}
+
+type Tab = 'metrics' | 'comparison' | 'consistency' | 'feedback-flow' | 'report' | 'feedbacks' | 'users' | 'prompt-versions'
 
 export function AdminPage() {
   const navigate = useNavigate()
@@ -54,8 +61,14 @@ export function AdminPage() {
   const [feedbackFlow, setFeedbackFlow] = useState<FeedbackFlow | null>(null)
   const [report, setReport] = useState<TestReport | null>(null)
   const [feedbacks, setFeedbacks] = useState<any[]>([])
+  const [feedbacksPage, setFeedbacksPage] = useState(1)
+  const [feedbacksTotal, setFeedbacksTotal] = useState(0)
   const [users, setUsers] = useState<any[]>([])
+  const [usersPage, setUsersPage] = useState(1)
+  const [usersTotal, setUsersTotal] = useState(0)
+  const [promptVersions, setPromptVersions] = useState<PromptVersion[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isAdmin) navigate('/home', { replace: true })
@@ -63,7 +76,8 @@ export function AdminPage() {
 
   useEffect(() => {
     setLoading(true)
-    const fetch = async () => {
+    setError(null)
+    const doFetch = async () => {
       try {
         if (tab === 'metrics') {
           const r = await apiClient.get('/admin/metrics/summary')
@@ -81,18 +95,26 @@ export function AdminPage() {
           const r = await apiClient.get('/admin/report')
           setReport(r.data.data)
         } else if (tab === 'feedbacks') {
-          const r = await apiClient.get('/admin/feedbacks')
+          const r = await apiClient.get('/admin/feedbacks', { params: { page: feedbacksPage } })
           setFeedbacks(r.data.data.items)
+          setFeedbacksTotal(r.data.data.total)
         } else if (tab === 'users') {
-          const r = await apiClient.get('/admin/users')
+          const r = await apiClient.get('/admin/users', { params: { page: usersPage } })
           setUsers(r.data.data.items)
+          setUsersTotal(r.data.data.total)
+        } else if (tab === 'prompt-versions') {
+          const r = await apiClient.get('/admin/prompts/versions')
+          setPromptVersions(r.data.data)
         }
+      } catch (e: any) {
+        const msg = e?.response?.data?.message ?? e?.message ?? '알 수 없는 오류가 발생했습니다'
+        setError(msg)
       } finally {
         setLoading(false)
       }
     }
-    fetch()
-  }, [tab])
+    doFetch()
+  }, [tab, feedbacksPage, usersPage])
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'metrics', label: 'AI 지표' },
@@ -102,6 +124,7 @@ export function AdminPage() {
     { key: 'report', label: '테스트 보고서' },
     { key: 'feedbacks', label: '피드백 목록' },
     { key: 'users', label: '사용자' },
+    { key: 'prompt-versions', label: '프롬프트 버전' },
   ]
 
   return (
@@ -120,7 +143,7 @@ export function AdminPage() {
         {tabs.map(t => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => { setTab(t.key); setFeedbacksPage(1); setUsersPage(1) }}
             className={`py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
               tab === t.key ? 'border-[#1D9E75] text-[#1D9E75]' : 'border-transparent text-gray-500'
             }`}
@@ -132,6 +155,11 @@ export function AdminPage() {
 
       <div className="p-6">
         {loading && <p className="text-sm text-gray-400">로딩 중...</p>}
+        {error && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+            {error}
+          </div>
+        )}
 
         {/* AI 지표 */}
         {tab === 'metrics' && metrics && (
@@ -178,15 +206,18 @@ export function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {comparison.map(c => (
-                  <tr key={c.version} className="border-t border-gray-100">
-                    <td className="px-4 py-3 font-medium">{c.version}</td>
-                    <td className="px-4 py-3">{c.avg_latency_ms != null ? `${c.avg_latency_ms}ms` : '-'}</td>
-                    <td className="px-4 py-3">{c.success_rate != null ? `${(c.success_rate * 100).toFixed(1)}%` : '-'}</td>
-                    <td className="px-4 py-3">{c.avg_rating != null ? `${c.avg_rating} / 5` : '-'}</td>
-                    <td className="px-4 py-3">{c.total_count}</td>
-                  </tr>
-                ))}
+                {comparison.length === 0
+                  ? <EmptyRow colSpan={5} />
+                  : comparison.map(c => (
+                    <tr key={c.version} className="border-t border-gray-100">
+                      <td className="px-4 py-3 font-medium">{c.version}</td>
+                      <td className="px-4 py-3">{c.avg_latency_ms != null ? `${c.avg_latency_ms}ms` : '-'}</td>
+                      <td className="px-4 py-3">{c.success_rate != null ? `${(c.success_rate * 100).toFixed(1)}%` : '-'}</td>
+                      <td className="px-4 py-3">{c.avg_rating != null ? `${c.avg_rating} / 5` : '-'}</td>
+                      <td className="px-4 py-3">{c.total_count}</td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
           </div>
@@ -210,17 +241,20 @@ export function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {consistency.map(c => (
-                  <tr key={c.model_type} className="border-t border-gray-100">
-                    <td className="px-4 py-3 font-medium">{c.model_type}</td>
-                    <td className="px-4 py-3">{c.mean_ms != null ? `${c.mean_ms}ms` : '-'}</td>
-                    <td className="px-4 py-3">{c.stddev_ms != null ? `${c.stddev_ms}ms` : '-'}</td>
-                    <td className="px-4 py-3">{c.sample_count}</td>
-                    <td className="px-4 py-3">
-                      {c.stddev_ms == null ? '-' : c.stddev_ms < 100 ? '✅ 안정' : c.stddev_ms < 500 ? '⚠️ 보통' : '❌ 불안정'}
-                    </td>
-                  </tr>
-                ))}
+                {consistency.length === 0
+                  ? <EmptyRow colSpan={5} message="누적된 모델 지표 데이터가 없습니다" />
+                  : consistency.map(c => (
+                    <tr key={c.model_type} className="border-t border-gray-100">
+                      <td className="px-4 py-3 font-medium">{c.model_type}</td>
+                      <td className="px-4 py-3">{c.latency_mean != null ? `${c.latency_mean}ms` : '-'}</td>
+                      <td className="px-4 py-3">{c.latency_stddev != null ? `${c.latency_stddev}ms` : '-'}</td>
+                      <td className="px-4 py-3">{c.sample_count}</td>
+                      <td className="px-4 py-3">
+                        {c.latency_stddev == null ? '-' : c.latency_stddev < 100 ? '✅ 안정' : c.latency_stddev < 500 ? '⚠️ 보통' : '❌ 불안정'}
+                      </td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
           </div>
@@ -374,15 +408,54 @@ export function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {feedbacks.map((f: any) => (
-                  <tr key={f.feedback_id} className="border-t border-gray-100">
-                    <td className="px-4 py-3">{f.user_id}</td>
-                    <td className="px-4 py-3">{'★'.repeat(f.rating)}{'☆'.repeat(5 - f.rating)}</td>
-                    <td className="px-4 py-3 text-gray-500">{f.comment || '-'}</td>
-                    <td className="px-4 py-3">{f.status}</td>
-                    <td className="px-4 py-3 text-gray-400">{f.created_at?.slice(0, 10)}</td>
-                  </tr>
-                ))}
+                {feedbacks.length === 0
+                  ? <EmptyRow colSpan={5} message="제출된 피드백이 없습니다" />
+                  : feedbacks.map((f: any) => (
+                    <tr key={f.feedback_id} className="border-t border-gray-100">
+                      <td className="px-4 py-3">{f.user_id}</td>
+                      <td className="px-4 py-3">{'★'.repeat(f.rating)}{'☆'.repeat(5 - f.rating)}</td>
+                      <td className="px-4 py-3 text-gray-500">{f.comment || '-'}</td>
+                      <td className="px-4 py-3">{f.status}</td>
+                      <td className="px-4 py-3 text-gray-400">{f.created_at?.slice(0, 10)}</td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table>
+            <Pagination page={feedbacksPage} total={feedbacksTotal} limit={20} onChange={setFeedbacksPage} />
+          </div>
+        )}
+
+        {/* 프롬프트 버전 */}
+        {tab === 'prompt-versions' && (
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b">
+              <p className="text-sm font-medium text-gray-700">프롬프트 버전별 성능 현황</p>
+              <p className="text-xs text-gray-400 mt-1">버전이 높을수록 최신 프롬프트입니다</p>
+            </div>
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500 text-xs">
+                <tr>
+                  <th className="px-4 py-3 text-left">버전</th>
+                  <th className="px-4 py-3 text-left">가이드 생성 수</th>
+                  <th className="px-4 py-3 text-left">피드백 수</th>
+                  <th className="px-4 py-3 text-left">평균 평점</th>
+                </tr>
+              </thead>
+              <tbody>
+                {promptVersions.length === 0
+                  ? <EmptyRow colSpan={4} />
+                  : promptVersions.map(v => (
+                    <tr key={v.version} className="border-t border-gray-100">
+                      <td className="px-4 py-3 font-medium">{v.version}</td>
+                      <td className="px-4 py-3">{v.guide_count}</td>
+                      <td className="px-4 py-3">{v.feedback_count}</td>
+                      <td className="px-4 py-3">
+                        {v.avg_rating != null ? `${v.avg_rating} / 5` : '-'}
+                      </td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
           </div>
@@ -402,20 +475,65 @@ export function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((u: any) => (
-                  <tr key={u.user_id} className="border-t border-gray-100">
-                    <td className="px-4 py-3 font-medium">{u.name}</td>
-                    <td className="px-4 py-3 text-gray-500">{u.email}</td>
-                    <td className="px-4 py-3">{u.is_admin ? '✅' : '-'}</td>
-                    <td className="px-4 py-3">{u.is_active ? '✅' : '❌'}</td>
-                    <td className="px-4 py-3 text-gray-400">{u.created_at?.slice(0, 10)}</td>
-                  </tr>
-                ))}
+                {users.length === 0
+                  ? <EmptyRow colSpan={5} message="가입된 사용자가 없습니다" />
+                  : users.map((u: any) => (
+                    <tr key={u.user_id} className="border-t border-gray-100">
+                      <td className="px-4 py-3 font-medium">{u.name}</td>
+                      <td className="px-4 py-3 text-gray-500">{u.email}</td>
+                      <td className="px-4 py-3">{u.is_admin ? '✅' : '-'}</td>
+                      <td className="px-4 py-3">{u.is_active ? '✅' : '❌'}</td>
+                      <td className="px-4 py-3 text-gray-400">{u.created_at?.slice(0, 10)}</td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
+            <Pagination page={usersPage} total={usersTotal} limit={20} onChange={setUsersPage} />
           </div>
         )}
       </div>
     </div>
+  )
+}
+
+function Pagination({ page, total, limit, onChange }: {
+  page: number
+  total: number
+  limit: number
+  onChange: (p: number) => void
+}) {
+  const totalPages = Math.ceil(total / limit)
+  if (totalPages <= 1) return null
+  return (
+    <div className="flex items-center justify-between px-4 py-3 border-t text-sm text-gray-500">
+      <span>총 {total}건 ({page} / {totalPages} 페이지)</span>
+      <div className="flex gap-1">
+        <button
+          onClick={() => onChange(page - 1)}
+          disabled={page === 1}
+          className="px-3 py-1 rounded border text-xs disabled:opacity-40 hover:bg-gray-50 transition-colors"
+        >
+          이전
+        </button>
+        <button
+          onClick={() => onChange(page + 1)}
+          disabled={page === totalPages}
+          className="px-3 py-1 rounded border text-xs disabled:opacity-40 hover:bg-gray-50 transition-colors"
+        >
+          다음
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function EmptyRow({ colSpan, message = '데이터가 없습니다' }: { colSpan: number; message?: string }) {
+  return (
+    <tr>
+      <td colSpan={colSpan} className="px-4 py-10 text-center text-sm text-gray-400">
+        {message}
+      </td>
+    </tr>
   )
 }

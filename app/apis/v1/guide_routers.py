@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -5,14 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.celery_client import celery_client as celery_app
 from app.dependencies.security import get_request_user
 from app.dtos.guide import FeedbackCreateRequest, GuideGenerateRequest
+from app.models.guide import Guide as GuideModel
 from app.models.medical_records import MedicalRecord
 from app.models.users import User
 from app.repositories.guide_repository import create_guide
 from app.services import feedback_service
 from app.services import guide as guide_service
-
-from datetime import UTC, datetime
-from app.models.guide import Guide as GuideModel
 
 GENERATE_GUIDE_TASK = "ai_worker.tasks.llm_task.generate_guide_task"
 
@@ -88,5 +87,5 @@ async def get_guide_api(guide_id: str, current_user: CurrentUser):
         guide_obj.is_read = True
         guide_obj.read_at = datetime.now(UTC)
         await guide_obj.save(update_fields=["is_read", "read_at"])
-    
+
     return _ok(data, "가이드 조회 성공")

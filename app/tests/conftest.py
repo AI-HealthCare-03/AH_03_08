@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Generator
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 import pytest_asyncio
@@ -11,6 +11,15 @@ from tortoise.contrib.test import finalizer, initializer
 
 from app.core import config
 from app.core.db.databases import TORTOISE_APP_MODELS
+
+
+def _make_mock_redis() -> AsyncMock:
+    """테스트용 Redis mock — 브루트포스 방어 로직이 정상 통과하도록 기본값 설정."""
+    mock = AsyncMock()
+    mock.exists.return_value = 0  # 잠금 없음
+    mock.incr.return_value = 1  # 첫 번째 실패
+    return mock
+
 
 TEST_BASE_URL = "http://test"
 TEST_DB_LABEL = "models"
@@ -43,6 +52,10 @@ def initialize(request: FixtureRequest) -> Generator[None, None]:
     if not _session_needs_db(request):
         yield
         return
+
+    from app.main import app as fastapi_app
+
+    fastapi_app.state.redis = _make_mock_redis()
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)

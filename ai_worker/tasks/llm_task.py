@@ -49,7 +49,7 @@ def _get_llm() -> ChatOpenAI:
     if _llm is None:
         _llm = ChatOpenAI(
             model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            temperature=0.1,  # 개선: 0 → 0.1 (약간의 다양성, 더 자연스러운 문장)
+            temperature=0,
             max_tokens=4096,
             api_key=os.getenv("OPENAI_API_KEY", ""),
         )
@@ -61,7 +61,7 @@ def _get_llm_stream() -> ChatOpenAI:
     if _llm_stream is None:
         _llm_stream = ChatOpenAI(
             model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            temperature=0.1,
+            temperature=0,
             max_tokens=2048,
             streaming=True,
             api_key=os.getenv("OPENAI_API_KEY", ""),
@@ -172,9 +172,9 @@ async def _do_generate_guide(task, guide_id: str, record_id: str, user_id: int):
         logger.info(f"[generate_guide] 완료 guide_id={guide_id}")
 
     except Exception as exc:
-        guide_failed(guide_id, user_id)
         logger.error(f"[generate_guide] 실패: {exc}", exc_info=True)
-        # 지수 백오프: 30s, 60s, 120s
+        if task.request.retries >= task.max_retries:
+            guide_failed(guide_id, user_id)
         countdown = 30 * (2**task.request.retries)
         raise task.retry(exc=exc, countdown=countdown) from exc
 
@@ -670,11 +670,13 @@ def check_unread_guides_task(self):
 
 async def _do_check_unread_guides():
     from datetime import datetime, timedelta
+
     from tortoise import Tortoise
 
     await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
     try:
         from ai_worker.models import Guide
+
         cutoff = datetime.now(UTC) - timedelta(hours=24)
         unread = await Guide.filter(
             is_read=False,
@@ -685,4 +687,3 @@ async def _do_check_unread_guides():
             logger.info(f"[unread_guide] 미확인 가이드 알림: guide_id={guide.id} user_id={guide.user_id}")
     finally:
         await Tortoise.close_connections()
-

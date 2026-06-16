@@ -85,8 +85,6 @@ class UserRepository:
             hashed_password="",
             name=name,
             phone_number="",
-            gender="MALE",
-            birth_date="2000-01-01",
             oauth_provider=oauth_provider,
             oauth_id=oauth_id,
             is_active=True,

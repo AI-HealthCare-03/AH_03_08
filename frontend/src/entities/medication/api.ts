@@ -45,7 +45,11 @@ export function useAddMedication() {
       const { data } = await apiClient.post<{ data: MedicationItem }>('/users/me/medications', body)
       return data.data
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY })
+      qc.invalidateQueries({ queryKey: ['calendar'] })
+      qc.invalidateQueries({ queryKey: ['notification', 'list'] })
+    },
   })
 }
 
@@ -89,6 +93,10 @@ export function useDeleteMedication() {
     mutationFn: async (id: string) => {
       await apiClient.delete(`/users/me/medications/${id}`)
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEY })
+      qc.invalidateQueries({ queryKey: ['calendar'] })
+      qc.invalidateQueries({ queryKey: ['notification', 'list'] })
+    },
   })
 }

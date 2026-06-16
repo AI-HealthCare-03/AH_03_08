@@ -410,8 +410,8 @@ async def delete_my_medication(medication_id: str, current_user=Depends(get_requ
     med = await Medication.filter(id=medication_id, medical_record__user_id=current_user.id).first()
     if not med:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="의약품을 찾을 수 없습니다.")
-    await Notification.filter(medication_id=medication_id).delete()
-    await CalendarEvent.filter(medication_id=medication_id).delete()
+    await Notification.filter(medication_id=medication_id, user_id=current_user.id).delete()
+    await CalendarEvent.filter(medication_id=medication_id, user_id=current_user.id).delete()
     await med.delete()
     return _ok({"message": "삭제 완료"})
 
