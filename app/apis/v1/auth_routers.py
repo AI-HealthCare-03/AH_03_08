@@ -45,7 +45,10 @@ async def login(
     auth_service: Annotated[AuthService, Depends(AuthService)],
 ) -> Response:
     redis = http_request.app.state.redis
-    client_ip = http_request.client.host if http_request.client else "unknown"
+    # nginx가 X-Real-IP로 실제 클라이언트 IP를 전달 — request.client.host는 nginx 컨테이너 IP
+    client_ip = http_request.headers.get("x-real-ip") or (
+        http_request.client.host if http_request.client else "unknown"
+    )
     lock_key = f"login:lock:{client_ip}"
     fail_key = f"login:fail:{client_ip}"
 
@@ -60,7 +63,8 @@ async def login(
         await redis.delete(fail_key)
     except HTTPException:
         count = await redis.incr(fail_key)
-        await redis.expire(fail_key, _LOGIN_LOCK_TTL)
+        if count == 1:
+            await redis.expire(fail_key, _LOGIN_LOCK_TTL)
         if count >= _LOGIN_MAX_FAILS:
             await redis.setex(lock_key, _LOGIN_LOCK_TTL, 1)
         raise
