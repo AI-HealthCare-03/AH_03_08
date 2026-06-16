@@ -4,8 +4,9 @@ import re
 
 
 def _normalize_print_code(text: str) -> str:
-    """식별코드에서 '분할선' 제거 후 공백 strip."""
-    return text.replace("분할선", "").strip()
+    text = text.replace("분할선", "")
+    text = re.sub(r"[가-힣]+", "", text)
+    return text.strip()
 
 
 def _build_normalized_index(print_index: dict) -> dict[str, list[str]]:
