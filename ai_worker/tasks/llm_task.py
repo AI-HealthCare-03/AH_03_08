@@ -676,6 +676,7 @@ async def _do_check_unread_guides():
     await Tortoise.init(db_url=_db_url(), modules={"models": ["ai_worker.models"]})
     try:
         from ai_worker.models import Guide
+
         cutoff = datetime.now(UTC) - timedelta(hours=24)
         unread = await Guide.filter(
             is_read=False,
@@ -686,4 +687,3 @@ async def _do_check_unread_guides():
             logger.info(f"[unread_guide] 미확인 가이드 알림: guide_id={guide.id} user_id={guide.user_id}")
     finally:
         await Tortoise.close_connections()
-

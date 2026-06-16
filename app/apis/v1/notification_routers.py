@@ -93,6 +93,7 @@ async def create_notification(body: NotificationCreateRequest, current_user=Depe
         try:
             from app.models.users import User as UserModel
             from app.services.email_service import EmailService
+
             user_obj = await UserModel.get_or_none(id=current_user.id)
             if user_obj and user_obj.email:
                 email_service = EmailService()
