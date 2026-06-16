@@ -5,6 +5,7 @@ class RecordType(IntEnum):
     PRESCRIPTION = 0  # 진료처방전
     DRUG_BAG = 1  # 조제약봉투
     PILL = 2  # 알약
+    MANUAL = 99  # 수동 등록
 
     @classmethod
     def _missing_(cls, value):
