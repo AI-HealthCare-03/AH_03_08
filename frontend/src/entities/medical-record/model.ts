@@ -25,6 +25,7 @@ export const parsedDataSchema = z.object({
   disease_code: z.string().nullish(),
   disease_name: z.string().nullish(),
   medications: z.array(medicationSchema).default([]),
+  drug_info: z.object({ drug_name: z.string().nullish() }).nullish(),
 })
 
 export type ParsedData = z.infer<typeof parsedDataSchema>
