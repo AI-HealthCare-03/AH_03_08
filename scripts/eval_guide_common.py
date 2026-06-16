@@ -52,6 +52,19 @@ async def login_client() -> tuple[httpx.AsyncClient, dict[str, str]]:
     return client, {"Authorization": f"Bearer {token}"}
 
 
+async def login_admin_client() -> tuple[httpx.AsyncClient, dict[str, str]]:
+    email = os.getenv("EVAL_ADMIN_EMAIL", "admin@medilog.com")
+    password = os.getenv("EVAL_ADMIN_PASSWORD", "Passwd1!")
+    client = httpx.AsyncClient(base_url=BASE_URL, timeout=120.0)
+    r = await client.post("/auth/login", json={"email": email, "password": password})
+    r.raise_for_status()
+    body = r.json()
+    token = body.get("access_token") or (body.get("data") or {}).get("access_token")
+    if not token:
+        raise RuntimeError(f"admin login response missing access_token: {body}")
+    return client, {"Authorization": f"Bearer {token}"}
+
+
 async def setup_health_and_record(client: httpx.AsyncClient, headers: dict[str, str]) -> str:
     await client.post(
         "/health/allergies",
