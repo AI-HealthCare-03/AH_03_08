@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 
 from app.application.medical_record.dto.record_dto import UpdateRecordCommand, UploadRecordCommand
+from app.core.s3 import get_presigned_url
 from app.application.medical_record.use_cases.delete_record import DeleteRecordUseCase
 from app.application.medical_record.use_cases.get_record import GetRecordUseCase
 from app.application.medical_record.use_cases.list_records import ListRecordsUseCase
@@ -21,6 +22,13 @@ from app.presentation.api.v1.records.schemas import (
 )
 
 records_router = APIRouter(prefix="/records", tags=["records"])
+
+
+def _to_response(record) -> RecordResponseSchema:
+    schema = RecordResponseSchema.model_validate(record)
+    if schema.file_url:
+        schema.file_url = get_presigned_url(schema.file_url)
+    return schema
 
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "application/pdf"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -96,7 +104,7 @@ async def upload_record(
         original_filename=file.filename or "unknown",
     )
     record = await use_case.execute(command)
-    return RecordResponseSchema.model_validate(record)
+    return _to_response(record)
 
 
 @records_router.get("", response_model=RecordListResponseSchema, status_code=status.HTTP_200_OK)
@@ -110,7 +118,7 @@ async def list_records(
     return RecordListResponseSchema(
         total=total,
         page=page,
-        items=[RecordResponseSchema.model_validate(r) for r in records],
+        items=[_to_response(r) for r in records],
     )
 
 
@@ -121,7 +129,7 @@ async def get_record(
     use_case: Annotated[GetRecordUseCase, Depends(get_get_record_use_case)],
 ) -> RecordResponseSchema:
     record = await use_case.execute(record_id=record_id, user_id=user.id)
-    return RecordResponseSchema.model_validate(record)
+    return _to_response(record)
 
 
 @records_router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -146,4 +154,4 @@ async def update_record(
         parsed_data=body.parsed_data,
     )
     record = await use_case.execute(command)
-    return RecordResponseSchema.model_validate(record)
+    return _to_response(record)
