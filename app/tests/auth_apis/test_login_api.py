@@ -23,10 +23,10 @@ class TestLoginAPI(TestCase):
         mock_redis = AsyncMock()
         mock_redis.get = AsyncMock(return_value="login_test@example.com")
         mock_redis.delete = AsyncMock()
-        mock_redis.exists = AsyncMock(return_value=0) 
-        mock_redis.incr = AsyncMock(return_value=1)    
-        mock_redis.expire = AsyncMock()                
-        mock_redis.setex = AsyncMock()  
+        mock_redis.exists = AsyncMock(return_value=0)
+        mock_redis.incr = AsyncMock(return_value=1)
+        mock_redis.expire = AsyncMock()
+        mock_redis.setex = AsyncMock()
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             app.state.redis = mock_redis
