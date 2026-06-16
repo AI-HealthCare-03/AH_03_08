@@ -20,8 +20,8 @@ interface ModelComparison {
 
 interface ConsistencyItem {
   model_type: string
-  mean_ms: number | null
-  stddev_ms: number | null
+  latency_mean: number | null   // 평균 레이턴시 (ms)
+  latency_stddev: number | null // 레이턴시 표준편차 (ms)
   sample_count: number
 }
 
@@ -56,6 +56,7 @@ export function AdminPage() {
   const [feedbacks, setFeedbacks] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isAdmin) navigate('/home', { replace: true })
@@ -63,6 +64,7 @@ export function AdminPage() {
 
   useEffect(() => {
     setLoading(true)
+    setError(null)
     const fetch = async () => {
       try {
         if (tab === 'metrics') {
@@ -87,6 +89,9 @@ export function AdminPage() {
           const r = await apiClient.get('/admin/users')
           setUsers(r.data.data.items)
         }
+      } catch (e: any) {
+        const msg = e?.response?.data?.message ?? e?.message ?? '알 수 없는 오류가 발생했습니다'
+        setError(msg)
       } finally {
         setLoading(false)
       }
@@ -132,6 +137,11 @@ export function AdminPage() {
 
       <div className="p-6">
         {loading && <p className="text-sm text-gray-400">로딩 중...</p>}
+        {error && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+            {error}
+          </div>
+        )}
 
         {/* AI 지표 */}
         {tab === 'metrics' && metrics && (
@@ -213,11 +223,11 @@ export function AdminPage() {
                 {consistency.map(c => (
                   <tr key={c.model_type} className="border-t border-gray-100">
                     <td className="px-4 py-3 font-medium">{c.model_type}</td>
-                    <td className="px-4 py-3">{c.mean_ms != null ? `${c.mean_ms}ms` : '-'}</td>
-                    <td className="px-4 py-3">{c.stddev_ms != null ? `${c.stddev_ms}ms` : '-'}</td>
+                    <td className="px-4 py-3">{c.latency_mean != null ? `${c.latency_mean}ms` : '-'}</td>
+                    <td className="px-4 py-3">{c.latency_stddev != null ? `${c.latency_stddev}ms` : '-'}</td>
                     <td className="px-4 py-3">{c.sample_count}</td>
                     <td className="px-4 py-3">
-                      {c.stddev_ms == null ? '-' : c.stddev_ms < 100 ? '✅ 안정' : c.stddev_ms < 500 ? '⚠️ 보통' : '❌ 불안정'}
+                      {c.latency_stddev == null ? '-' : c.latency_stddev < 100 ? '✅ 안정' : c.latency_stddev < 500 ? '⚠️ 보통' : '❌ 불안정'}
                     </td>
                   </tr>
                 ))}
