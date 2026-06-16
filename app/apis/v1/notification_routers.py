@@ -9,6 +9,8 @@ from pydantic import BaseModel, Field
 from app.dependencies.security import get_request_user
 from app.models.notifications import Notification
 
+import logging
+
 logger = logging.getLogger(__name__)
 
 notification_router = APIRouter(prefix="/notifications", tags=["notifications"])

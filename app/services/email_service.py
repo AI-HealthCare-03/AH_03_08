@@ -35,7 +35,7 @@ class EmailService:
                 },
             )
         except ClientError as e:
-            error_msg = e.response['Error']['Message']
+            error_msg = e.response["Error"]["Message"]
             raise RuntimeError(f"이메일 발송 실패: {error_msg}") from e
 
     def send_notification_email(self, to_email: str, title: str, scheduled_time: str):
