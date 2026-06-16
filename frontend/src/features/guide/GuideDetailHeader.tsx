@@ -78,7 +78,9 @@ export function GuideDetailHeader({ guide }: GuideDetailHeaderProps) {
       : rec?.record_type === 'pill_photo'
         ? rec.parsed_data?.drug_info?.drug_name
         : rec?.parsed_data?.hospital
-    const title = meta ? (placeName ? `${placeName} ${meta.label}` : meta.label) : guideDisplayTitle(guide)
+    const title = rec?.record_type === 'pill_photo' && placeName
+      ? placeName
+      : meta ? (placeName ? `${placeName} ${meta.label}` : meta.label) : guideDisplayTitle(guide)
     try {
       const newSession = await createSession({ guide_id: guide.id, title })
       navigate(`/chatbot/${newSession.id}`)
