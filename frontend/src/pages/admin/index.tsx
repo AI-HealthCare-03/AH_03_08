@@ -61,7 +61,11 @@ export function AdminPage() {
   const [feedbackFlow, setFeedbackFlow] = useState<FeedbackFlow | null>(null)
   const [report, setReport] = useState<TestReport | null>(null)
   const [feedbacks, setFeedbacks] = useState<any[]>([])
+  const [feedbacksPage, setFeedbacksPage] = useState(1)
+  const [feedbacksTotal, setFeedbacksTotal] = useState(0)
   const [users, setUsers] = useState<any[]>([])
+  const [usersPage, setUsersPage] = useState(1)
+  const [usersTotal, setUsersTotal] = useState(0)
   const [promptVersions, setPromptVersions] = useState<PromptVersion[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -73,7 +77,7 @@ export function AdminPage() {
   useEffect(() => {
     setLoading(true)
     setError(null)
-    const fetch = async () => {
+    const doFetch = async () => {
       try {
         if (tab === 'metrics') {
           const r = await apiClient.get('/admin/metrics/summary')
@@ -91,11 +95,13 @@ export function AdminPage() {
           const r = await apiClient.get('/admin/report')
           setReport(r.data.data)
         } else if (tab === 'feedbacks') {
-          const r = await apiClient.get('/admin/feedbacks')
+          const r = await apiClient.get('/admin/feedbacks', { params: { page: feedbacksPage } })
           setFeedbacks(r.data.data.items)
+          setFeedbacksTotal(r.data.data.total)
         } else if (tab === 'users') {
-          const r = await apiClient.get('/admin/users')
+          const r = await apiClient.get('/admin/users', { params: { page: usersPage } })
           setUsers(r.data.data.items)
+          setUsersTotal(r.data.data.total)
         } else if (tab === 'prompt-versions') {
           const r = await apiClient.get('/admin/prompts/versions')
           setPromptVersions(r.data.data)
@@ -107,8 +113,8 @@ export function AdminPage() {
         setLoading(false)
       }
     }
-    fetch()
-  }, [tab])
+    doFetch()
+  }, [tab, feedbacksPage, usersPage])
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'metrics', label: 'AI 지표' },
@@ -137,7 +143,7 @@ export function AdminPage() {
         {tabs.map(t => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => { setTab(t.key); setFeedbacksPage(1); setUsersPage(1) }}
             className={`py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
               tab === t.key ? 'border-[#1D9E75] text-[#1D9E75]' : 'border-transparent text-gray-500'
             }`}
@@ -407,6 +413,7 @@ export function AdminPage() {
                 ))}
               </tbody>
             </table>
+            <Pagination page={feedbacksPage} total={feedbacksTotal} limit={20} onChange={setFeedbacksPage} />
           </div>
         )}
 
@@ -467,8 +474,40 @@ export function AdminPage() {
                 ))}
               </tbody>
             </table>
+            <Pagination page={usersPage} total={usersTotal} limit={20} onChange={setUsersPage} />
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+function Pagination({ page, total, limit, onChange }: {
+  page: number
+  total: number
+  limit: number
+  onChange: (p: number) => void
+}) {
+  const totalPages = Math.ceil(total / limit)
+  if (totalPages <= 1) return null
+  return (
+    <div className="flex items-center justify-between px-4 py-3 border-t text-sm text-gray-500">
+      <span>총 {total}건 ({page} / {totalPages} 페이지)</span>
+      <div className="flex gap-1">
+        <button
+          onClick={() => onChange(page - 1)}
+          disabled={page === 1}
+          className="px-3 py-1 rounded border text-xs disabled:opacity-40 hover:bg-gray-50 transition-colors"
+        >
+          이전
+        </button>
+        <button
+          onClick={() => onChange(page + 1)}
+          disabled={page === totalPages}
+          className="px-3 py-1 rounded border text-xs disabled:opacity-40 hover:bg-gray-50 transition-colors"
+        >
+          다음
+        </button>
       </div>
     </div>
   )
