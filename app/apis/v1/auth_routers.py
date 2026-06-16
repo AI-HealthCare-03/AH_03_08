@@ -79,22 +79,15 @@ async def signup(
     body: SignUpRequest,
     auth_service: Annotated[AuthService, Depends(AuthService)],
 ) -> Response:
-    redis = request.app.state.redis
-    verified_email = await redis.get(f"email_token:{body.email_token}")
-    if not verified_email or verified_email != str(body.email):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="유효하지 않은 이메일 인증 토큰입니다.")
-
-    if not verified_email:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="유효하지 않은 이메일 인증 토큰입니다.")
-
-    # 테스트 환경에서는 이메일 검증 스킵 (mock이 고정값 반환)
-    if verified_email != str(body.email) and verified_email != "test@example.com":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="유효하지 않은 이메일 인증 토큰입니다.")
+    # email_token이 있을 때만 Redis 검증
+    if body.email_token:
+        redis = request.app.state.redis
+        verified_email = await redis.get(f"email_token:{body.email_token}")
+        if not verified_email or verified_email != str(body.email):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="유효하지 않은 이메일 인증 토큰입니다.")
+        await redis.delete(f"email_token:{body.email_token}")
 
     await auth_service.signup(body)
-    await redis.delete(f"email_token:{body.email_token}")
-    ...
-
     return Response(
         content=BaseResponse(success=True, data=None, message="Signup successful.").model_dump(),
         status_code=status.HTTP_201_CREATED,
