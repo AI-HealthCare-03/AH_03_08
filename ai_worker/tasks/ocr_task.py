@@ -136,7 +136,7 @@ async def _run_ocr(file_path: str) -> str:
     provider = get_ocr_provider(_config)
     raw_text = await provider.extract_text(file_path)
     logger.info(f"[OCR Task] 텍스트 추출 완료: {len(raw_text)}자")
-    logger.info(f"[OCR Raw]\n{raw_text}")
+    logger.debug(f"[OCR Raw]\n{raw_text}")
     return raw_text
 
 

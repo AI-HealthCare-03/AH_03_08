@@ -1,7 +1,7 @@
 import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse as Response
 
 from app.core.config import Env, config
@@ -34,12 +34,41 @@ async def signup(
     )
 
 
+_LOGIN_MAX_FAILS = 5
+_LOGIN_LOCK_TTL = 900  # 15분
+
+
 @auth_router.post("/login", status_code=status.HTTP_200_OK)
 async def login(
-    request: LoginRequest,
+    body: LoginRequest,
+    http_request: Request,
     auth_service: Annotated[AuthService, Depends(AuthService)],
 ) -> Response:
-    user = await auth_service.authenticate(request)
+    redis = http_request.app.state.redis
+    # nginx가 X-Real-IP로 실제 클라이언트 IP를 전달 — request.client.host는 nginx 컨테이너 IP
+    client_ip = http_request.headers.get("x-real-ip") or (
+        http_request.client.host if http_request.client else "unknown"
+    )
+    lock_key = f"login:lock:{client_ip}"
+    fail_key = f"login:fail:{client_ip}"
+
+    if await redis.exists(lock_key):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="로그인 시도 횟수를 초과했습니다. 15분 후 다시 시도해주세요.",
+        )
+
+    try:
+        user = await auth_service.authenticate(body)
+        await redis.delete(fail_key)
+    except HTTPException:
+        count = await redis.incr(fail_key)
+        if count == 1:
+            await redis.expire(fail_key, _LOGIN_LOCK_TTL)
+        if count >= _LOGIN_MAX_FAILS:
+            await redis.setex(lock_key, _LOGIN_LOCK_TTL, 1)
+        raise
+
     tokens = await auth_service.login(user)
     resp = Response(
         content=BaseResponse(
