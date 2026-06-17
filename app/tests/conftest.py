@@ -20,12 +20,7 @@ def _make_mock_redis() -> AsyncMock:
     mock.setex = AsyncMock(return_value=True)
     mock.delete = AsyncMock(return_value=True)
 
-    async def mock_get(key: str) -> str | None:
-        if key.startswith("email_token:"):
-            return key.replace("email_token:", "")
-        return None
-
-    mock.get = AsyncMock(side_effect=mock_get)
+    mock.get = AsyncMock(return_value=None)
     return mock
 
 

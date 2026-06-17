@@ -17,7 +17,6 @@ from app.models.users import User
 
 _SIGNUP = {
     "email": "msg_test@example.com",
-    "email_token": "msg_test@example.com",
     "password": "Password123!",
     "name": "메시지테스터",
     "gender": "MALE",
@@ -119,7 +118,11 @@ class TestStreamMessageUseCase(TestCase):
         assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
 
     async def test_other_user_session_raises_404(self):
-        other_signup = {**_SIGNUP, "email": "msg_other@example.com", "phone_number": "01011110000"}
+        other_signup = {
+            **_SIGNUP,
+            "email": "msg_other@example.com",
+            "phone_number": "01011110000",
+        }
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             headers_a = await _get_auth_headers(client)

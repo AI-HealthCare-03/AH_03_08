@@ -6,7 +6,6 @@ from app.main import app
 
 SIGNUP_DATA = {
     "email": "notif_test@example.com",
-    "email_token": "notif_test@example.com",
     "password": "Password123!",
     "name": "알림테스트",
     "gender": "FEMALE",

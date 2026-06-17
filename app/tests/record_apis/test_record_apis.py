@@ -10,7 +10,6 @@ from app.main import app
 
 _SIGNUP = {
     "email": "record_test@example.com",
-    "email_token": "record_test@example.com",
     "password": "Password123!",
     "name": "기록테스터",
     "gender": "FEMALE",
@@ -116,7 +115,11 @@ class TestGetRecordAPI(TestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     async def test_get_record_other_user_forbidden(self):
-        other_signup = {**_SIGNUP, "email": "other_record@example.com", "phone_number": "01077778888"}
+        other_signup = {
+            **_SIGNUP,
+            "email": "other_record@example.com",
+            "phone_number": "01077778888",
+        }
         other_login = {"email": "other_record@example.com", "password": "Password123!"}
 
         with ExitStack() as stack:
@@ -215,7 +218,11 @@ class TestUpdateRecordAPI(TestCase):
         assert response.json()["parsed_data"] == parsed_data
 
     async def test_update_record_other_user_forbidden(self):
-        other_signup = {**_SIGNUP, "email": "other_update@example.com", "phone_number": "01011119999"}
+        other_signup = {
+            **_SIGNUP,
+            "email": "other_update@example.com",
+            "phone_number": "01011119999",
+        }
         other_login = {"email": "other_update@example.com", "password": "Password123!"}
 
         with ExitStack() as stack:
