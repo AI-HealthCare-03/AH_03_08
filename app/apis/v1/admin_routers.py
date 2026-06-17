@@ -2,6 +2,7 @@ from datetime import UTC
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 
 from app.dependencies.security import require_admin
 from app.models.feedbacks import Feedback
@@ -294,3 +295,44 @@ async def generate_test_report(_: AdminUser):
         },
     }
     return _ok(report, "ok")
+
+
+class UserUpdateRequest(BaseModel):
+    is_active: bool | None = None
+    is_admin: bool | None = None
+
+
+class FeedbackUpdateRequest(BaseModel):
+    status: str | None = None  # ACTIVE | INACTIVE
+
+
+@admin_router.patch("/users/{user_id}", summary="user update (is_active/is_admin)")
+async def update_user(user_id: int, body: UserUpdateRequest, _: AdminUser):
+    from fastapi import HTTPException
+
+    user = await User.get_or_none(id=user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    update_fields = []
+    if body.is_active is not None:
+        user.is_active = body.is_active
+        update_fields.append("is_active")
+    if body.is_admin is not None:
+        user.is_admin = body.is_admin
+        update_fields.append("is_admin")
+    if update_fields:
+        await user.save(update_fields=update_fields)
+    return _ok({"user_id": user_id, "is_active": user.is_active, "is_admin": user.is_admin}, "ok")
+
+
+@admin_router.patch("/feedbacks/{feedback_id}", summary="feedback status update")
+async def update_feedback(feedback_id: str, body: FeedbackUpdateRequest, _: AdminUser):
+    from fastapi import HTTPException
+
+    feedback = await Feedback.get_or_none(id=feedback_id)
+    if not feedback:
+        raise HTTPException(status_code=404, detail="Feedback not found.")
+    if body.status is not None:
+        feedback.status = body.status
+        await feedback.save(update_fields=["status"])
+    return _ok({"feedback_id": feedback_id, "status": feedback.status}, "ok")
