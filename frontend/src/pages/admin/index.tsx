@@ -60,10 +60,12 @@ export function AdminPage() {
   const [consistency, setConsistency] = useState<ConsistencyItem[]>([])
   const [feedbackFlow, setFeedbackFlow] = useState<FeedbackFlow | null>(null)
   const [report, setReport] = useState<TestReport | null>(null)
-  const [feedbacks, setFeedbacks] = useState<any[]>([])
+  const [feedbacks, setFeedbacks] = useState<Record<string, unknown>[]>([])
   const [feedbacksPage, setFeedbacksPage] = useState(1)
   const [feedbacksTotal, setFeedbacksTotal] = useState(0)
-  const [users, setUsers] = useState<any[]>([])
+  const [updatingFeedback, setUpdatingFeedback] = useState<string | null>(null)
+  const [updatingUser, setUpdatingUser] = useState<number | null>(null)
+  const [users, setUsers] = useState<Record<string, unknown>[]>([])
   const [usersPage, setUsersPage] = useState(1)
   const [usersTotal, setUsersTotal] = useState(0)
   const [promptVersions, setPromptVersions] = useState<PromptVersion[]>([])
@@ -71,54 +73,100 @@ export function AdminPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!isAdmin) navigate('/home', { replace: true })
-  }, [isAdmin])
+  async function toggleFeedbackStatus(feedbackId: string, currentStatus: string) {
+    setUpdatingFeedback(feedbackId)
+    try {
+      const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+      await apiClient.patch(`/admin/feedbacks/${feedbackId}`, { status: newStatus })
+      setFeedbacks(prev => prev.map(f => f['feedback_id'] === feedbackId ? { ...f, status: newStatus } : f))
+    } catch (_e) {
+      alert('상태 변경 실패')
+    } finally {
+      setUpdatingFeedback(null)
+    }
+  }
+
+  async function toggleUserActive(userId: number, currentActive: boolean) {
+    setUpdatingUser(userId)
+    try {
+      await apiClient.patch(`/admin/users/${userId}`, { is_active: !currentActive })
+      setUsers(prev => prev.map(u => u['user_id'] === userId ? { ...u, is_active: !currentActive } : u))
+    } catch (_e) {
+      alert('변경 실패')
+    } finally {
+      setUpdatingUser(null)
+    }
+  }
+
+  async function toggleUserAdmin(userId: number, currentAdmin: boolean) {
+    setUpdatingUser(userId)
+    try {
+      await apiClient.patch(`/admin/users/${userId}`, { is_admin: !currentAdmin })
+      setUsers(prev => prev.map(u => u['user_id'] === userId ? { ...u, is_admin: !currentAdmin } : u))
+    } catch (_e) {
+      alert('변경 실패')
+    } finally {
+      setUpdatingUser(null)
+    }
+  }
 
   useEffect(() => {
-    setLoading(true)
-    setError(null)
+    if (!isAdmin) navigate('/home', { replace: true })
+  }, [isAdmin]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    let cancelled = false
     const doFetch = async () => {
+      setLoading(true)
+      setError(null)
       try {
         if (tab === 'metrics') {
           const r = await apiClient.get('/admin/metrics/summary')
-          setMetrics(r.data.data)
+          if (!cancelled) setMetrics(r.data.data)
         } else if (tab === 'comparison') {
           const r = await apiClient.get('/admin/metrics/model-comparison')
-          setComparison(r.data.data)
+          if (!cancelled) setComparison(r.data.data)
         } else if (tab === 'consistency') {
           const r = await apiClient.get('/admin/metrics/consistency')
-          setConsistency(r.data.data)
+          if (!cancelled) setConsistency(r.data.data)
         } else if (tab === 'feedback-flow') {
           const r = await apiClient.get('/admin/metrics/feedback-flow')
-          setFeedbackFlow(r.data.data)
+          if (!cancelled) setFeedbackFlow(r.data.data)
         } else if (tab === 'report') {
           const r = await apiClient.get('/admin/report')
-          setReport(r.data.data)
+          if (!cancelled) setReport(r.data.data)
         } else if (tab === 'feedbacks') {
           const r = await apiClient.get('/admin/feedbacks', { params: { page: feedbacksPage } })
-          setFeedbacks(r.data.data.items)
-          setFeedbacksTotal(r.data.data.total)
+          if (!cancelled) {
+            setFeedbacks(r.data.data.items)
+            setFeedbacksTotal(r.data.data.total)
+          }
         } else if (tab === 'users') {
           const r = await apiClient.get('/admin/users', { params: { page: usersPage } })
-          setUsers(r.data.data.items)
-          setUsersTotal(r.data.data.total)
+          if (!cancelled) {
+            setUsers(r.data.data.items)
+            setUsersTotal(r.data.data.total)
+          }
         } else if (tab === 'prompt-versions') {
           const [rv, rp] = await Promise.all([
             apiClient.get('/admin/prompts/versions'),
             apiClient.get('/admin/prompts/current'),
           ])
-          setPromptVersions(rv.data.data)
-          setPromptText(rp.data.data)
+          if (!cancelled) {
+            setPromptVersions(rv.data.data)
+            setPromptText(rp.data.data)
+          }
         }
-      } catch (e: any) {
-        const msg = e?.response?.data?.message ?? e?.message ?? '알 수 없는 오류가 발생했습니다'
-        setError(msg)
+      } catch (e: unknown) {
+        const err = e as { response?: { data?: { message?: string } }; message?: string }
+        const msg = err?.response?.data?.message ?? err?.message ?? '알 수 없는 오류가 발생했습니다'
+        if (!cancelled) setError(msg)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     doFetch()
+    return () => { cancelled = true }
   }, [tab, feedbacksPage, usersPage])
 
   const tabs: { key: Tab; label: string }[] = [
@@ -424,28 +472,38 @@ export function AdminPage() {
               <tbody>
                 {feedbacks.length === 0
                   ? <EmptyRow colSpan={6} message="제출된 피드백이 없습니다" />
-                  : feedbacks.map((f: any) => (
-                    <tr key={f.feedback_id} className="border-t border-gray-100">
-                      <td className="px-4 py-3">{f.user_email ?? f.user_id}</td>
-                      <td className="px-4 py-3">{f.rating === 1 ? '👍 긍정' : '👎 부정'}</td>
+                  : feedbacks.map((f) => (
+                    <tr key={String(f['feedback_id'])} className="border-t border-gray-100">
+                      <td className="px-4 py-3">{String(f['user_email'] ?? f['user_id'])}</td>
+                      <td className="px-4 py-3">{f['rating'] === 1 ? '👍 긍정' : '👎 부정'}</td>
                       <td className="px-4 py-3 max-w-[180px]">
-                        {f.tag_ids?.length > 0
+                        {Array.isArray(f['tag_ids']) && f['tag_ids'].length > 0
                           ? <div className="flex flex-wrap gap-1">
-                              {f.tag_ids.map((tag: string) => (
+                              {(f['tag_ids'] as string[]).map((tag) => (
                                 <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{tag}</span>
                               ))}
                             </div>
                           : <span className="text-gray-300">-</span>
                         }
                       </td>
-                      <td className="px-4 py-3 text-gray-500 max-w-[160px] whitespace-pre-wrap break-words">{f.comment || '-'}</td>
+                      <td className="px-4 py-3 text-gray-500 max-w-[160px] whitespace-pre-wrap break-words">{String(f['comment'] || '-')}</td>
                       <td className="px-4 py-3">
-                        {f.status === 'ACTIVE'
-                          ? <span title="ACTIVE">✅</span>
-                          : <span title="INACTIVE">🚫</span>
-                        }
+                        <button
+                          onClick={() => toggleFeedbackStatus(String(f['feedback_id']), String(f['status']))}
+                          disabled={updatingFeedback === String(f['feedback_id'])}
+                          className="text-xs px-2 py-1 rounded border transition-colors disabled:opacity-40"
+                          style={f['status'] === 'ACTIVE' ? { color: '#1D9E75', borderColor: '#1D9E75' } : { color: '#ef4444', borderColor: '#ef4444' }}
+                        >
+                          {updatingFeedback === String(f['feedback_id']) ? '...' : f['status'] === 'ACTIVE' ? '✅ ACTIVE' : '🚫 INACTIVE'}
+                        </button>
                       </td>
-                      <td className="px-4 py-3 text-gray-400">{f.created_at?.slice(0, 10)}</td>
+                      <td className="px-4 py-3 text-gray-400">
+                        <div>{String(f['created_at'] ?? '').slice(0, 10)}</div>
+                        <a href={`/guides/${String(f['guide_id'])}`} target="_blank" rel="noreferrer"
+                          className="text-xs text-blue-400 hover:underline">
+                          가이드 보기
+                        </a>
+                      </td>
                     </tr>
                   ))
                 }
@@ -523,13 +581,31 @@ export function AdminPage() {
               <tbody>
                 {users.length === 0
                   ? <EmptyRow colSpan={5} message="가입된 사용자가 없습니다" />
-                  : users.map((u: any) => (
-                    <tr key={u.user_id} className="border-t border-gray-100">
-                      <td className="px-4 py-3 font-medium">{u.name}</td>
-                      <td className="px-4 py-3 text-gray-500">{u.email}</td>
-                      <td className="px-4 py-3">{u.is_admin ? '✅' : '-'}</td>
-                      <td className="px-4 py-3">{u.is_active ? '✅' : '❌'}</td>
-                      <td className="px-4 py-3 text-gray-400">{u.created_at?.slice(0, 10)}</td>
+                  : users.map((u) => (
+                    <tr key={String(u['user_id'])} className="border-t border-gray-100">
+                      <td className="px-4 py-3 font-medium">{String(u['name'])}</td>
+                      <td className="px-4 py-3 text-gray-500">{String(u['email'])}</td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => toggleUserAdmin(Number(u['user_id']), Boolean(u['is_admin']))}
+                          disabled={updatingUser === Number(u['user_id'])}
+                          className="text-xs px-2 py-1 rounded border transition-colors disabled:opacity-40"
+                          style={u['is_admin'] ? { color: '#1D9E75', borderColor: '#1D9E75' } : { color: '#6b7280', borderColor: '#d1d5db' }}
+                        >
+                          {u['is_admin'] ? '✅ 관리자' : '일반'}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => toggleUserActive(Number(u['user_id']), Boolean(u['is_active']))}
+                          disabled={updatingUser === Number(u['user_id'])}
+                          className="text-xs px-2 py-1 rounded border transition-colors disabled:opacity-40"
+                          style={u['is_active'] ? { color: '#1D9E75', borderColor: '#1D9E75' } : { color: '#ef4444', borderColor: '#ef4444' }}
+                        >
+                          {updatingUser === Number(u['user_id']) ? '...' : u['is_active'] ? '✅ 활성' : '❌ 비활성'}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-gray-400">{String(u['created_at'] ?? '').slice(0, 10)}</td>
                     </tr>
                   ))
                 }
@@ -544,10 +620,10 @@ export function AdminPage() {
 }
 
 function Pagination({ page, total, limit, onChange }: {
-  page: number
-  total: number
-  limit: number
-  onChange: (p: number) => void
+  readonly page: number
+  readonly total: number
+  readonly limit: number
+  readonly onChange: (p: number) => void
 }) {
   const totalPages = Math.ceil(total / limit)
   if (totalPages <= 1) return null
@@ -574,7 +650,7 @@ function Pagination({ page, total, limit, onChange }: {
   )
 }
 
-function PromptBlock({ title, text }: { title: React.ReactNode; text: string }) {
+function PromptBlock({ title, text }: { readonly title: React.ReactNode; readonly text: string }) {
   const [open, setOpen] = useState(false)
   return (
     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -599,7 +675,7 @@ function PromptBlock({ title, text }: { title: React.ReactNode; text: string }) 
   )
 }
 
-function EmptyRow({ colSpan, message = '데이터가 없습니다' }: { colSpan: number; message?: string }) {
+function EmptyRow({ colSpan, message = '데이터가 없습니다' }: { readonly colSpan: number; readonly message?: string }) {
   return (
     <tr>
       <td colSpan={colSpan} className="px-4 py-10 text-center text-sm text-gray-400">
