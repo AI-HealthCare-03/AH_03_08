@@ -174,7 +174,7 @@ class PillClassifier:
         print_index_path: str = "",
         color_shape_model_path: str = "",
     ) -> None:
-        self.model = load_model(model_path)
+        self.model = load_model(model_path) if model_path else None
         self.label_path = label_path
         self.data_path = data_path
         self.print_index: dict | None = None
@@ -198,6 +198,8 @@ class PillClassifier:
         """
         이미지를 분류하여 K코드, 약품 정보, confidence score를 반환한다.
         """
+        if self.model is None:
+            raise ValueError("ResNet152 모델이 로드되지 않았습니다.")
         tensor = preprocess_image(image_bytes)
         class_idx, confidence_score = predict(self.model, tensor)
         kcode = get_kcode(class_idx, self.label_path)
