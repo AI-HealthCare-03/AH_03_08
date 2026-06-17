@@ -74,6 +74,14 @@ def initialize(request: FixtureRequest) -> Generator[None, None]:
     loop.close()
 
 
+@pytest.fixture(autouse=True)
+def reset_redis() -> Generator[None, None]:
+    from app.main import app as fastapi_app
+
+    fastapi_app.state.redis = _make_mock_redis()
+    yield
+
+
 @pytest_asyncio.fixture(autouse=True, scope="session")  # type: ignore[type-var]
 def event_loop() -> None:
     pass
