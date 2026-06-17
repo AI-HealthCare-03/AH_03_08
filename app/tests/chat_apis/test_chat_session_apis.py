@@ -6,7 +6,6 @@ from app.main import app
 
 _SIGNUP = {
     "email": "chat_test@example.com",
-    "email_token": "chat_test@example.com",
     "password": "Password123!",
     "name": "챗테스터",
     "gender": "MALE",
@@ -80,7 +79,11 @@ class TestListSessionsAPI(TestCase):
         assert len(data["items"]) == 2
 
     async def test_list_sessions_only_own(self):
-        other_signup = {**_SIGNUP, "email": "chat_other@example.com", "phone_number": "01033334444"}
+        other_signup = {
+            **_SIGNUP,
+            "email": "chat_other@example.com",
+            "phone_number": "01033334444",
+        }
         other_login = {"email": "chat_other@example.com", "password": "Password123!"}
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -121,7 +124,11 @@ class TestGetSessionAPI(TestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     async def test_get_session_other_user_not_found(self):
-        other_signup = {**_SIGNUP, "email": "chat_other2@example.com", "phone_number": "01055556666"}
+        other_signup = {
+            **_SIGNUP,
+            "email": "chat_other2@example.com",
+            "phone_number": "01055556666",
+        }
         other_login = {"email": "chat_other2@example.com", "password": "Password123!"}
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -159,7 +166,11 @@ class TestDeleteSessionAPI(TestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     async def test_delete_session_other_user_not_found(self):
-        other_signup = {**_SIGNUP, "email": "chat_del_other@example.com", "phone_number": "01077778888"}
+        other_signup = {
+            **_SIGNUP,
+            "email": "chat_del_other@example.com",
+            "phone_number": "01077778888",
+        }
         other_login = {"email": "chat_del_other@example.com", "password": "Password123!"}
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

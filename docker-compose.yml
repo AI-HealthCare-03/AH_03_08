@@ -97,6 +97,7 @@ services:
       - /tmp/uploads:/tmp/uploads
       - ./data:/app/data
       - ./ai_worker:/app/ai_worker
+      - ./app:/app/app
     depends_on:
       mysql:
         condition: service_healthy

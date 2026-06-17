@@ -11,7 +11,6 @@ class TestLoginAPI(TestCase):
     async def test_login_success(self):
         signup_data = {
             "email": "login_test@example.com",
-            "email_token": "login_test@example.com",
             "password": "Password123!",
             "name": "logintest",
             "gender": "FEMALE",

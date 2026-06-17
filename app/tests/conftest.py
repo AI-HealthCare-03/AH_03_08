@@ -20,12 +20,7 @@ def _make_mock_redis() -> AsyncMock:
     mock.setex = AsyncMock(return_value=True)
     mock.delete = AsyncMock(return_value=True)
 
-    async def mock_get(key: str) -> str | None:
-        if key.startswith("email_token:"):
-            return key.replace("email_token:", "")
-        return None
-
-    mock.get = AsyncMock(side_effect=mock_get)
+    mock.get = AsyncMock(return_value=None)
     return mock
 
 
@@ -72,6 +67,14 @@ def initialize(request: FixtureRequest) -> Generator[None, None]:
     yield
     finalizer()
     loop.close()
+
+
+@pytest.fixture(autouse=True)
+def reset_redis() -> Generator[None, None]:
+    from app.main import app as fastapi_app
+
+    fastapi_app.state.redis = _make_mock_redis()
+    yield
 
 
 @pytest_asyncio.fixture(autouse=True, scope="session")  # type: ignore[type-var]

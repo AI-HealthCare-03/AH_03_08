@@ -1,3 +1,4 @@
+from contextlib import ExitStack
 from io import BytesIO
 from unittest.mock import patch
 
@@ -9,7 +10,6 @@ from app.main import app
 
 _SIGNUP = {
     "email": "record_test@example.com",
-    "email_token": "record_test@example.com",
     "password": "Password123!",
     "name": "기록테스터",
     "gender": "FEMALE",
@@ -18,6 +18,16 @@ _SIGNUP = {
 }
 _LOGIN = {"email": "record_test@example.com", "password": "Password123!"}
 _FAKE_IMAGE = ("test.jpg", BytesIO(b"\xff\xd8\xff" + b"fake image content"), "image/jpeg")
+_FAKE_S3_URL = "https://fake-bucket.s3.ap-northeast-2.amazonaws.com/uploads/test.jpg"
+
+
+def _mock_s3(stack: ExitStack) -> None:
+    stack.enter_context(
+        patch("app.application.medical_record.use_cases.upload_record.upload_to_s3", return_value=_FAKE_S3_URL)
+    )
+    stack.enter_context(
+        patch("app.presentation.api.v1.records.router.get_presigned_url", side_effect=lambda url, **kwargs: url)
+    )
 
 
 async def _get_auth_headers(client: AsyncClient) -> dict:
@@ -28,7 +38,9 @@ async def _get_auth_headers(client: AsyncClient) -> dict:
 
 class TestUploadRecordAPI(TestCase):
     async def test_upload_success(self):
-        with patch("app.application.medical_record.use_cases.upload_record._celery") as mock_celery:
+        with ExitStack() as stack:
+            mock_celery = stack.enter_context(patch("app.application.medical_record.use_cases.upload_record._celery"))
+            _mock_s3(stack)
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
                 response = await client.post(
@@ -46,7 +58,9 @@ class TestUploadRecordAPI(TestCase):
         mock_celery.send_task.assert_called_once()
 
     async def test_upload_invalid_file_type(self):
-        with patch("app.application.medical_record.use_cases.upload_record._celery"):
+        with ExitStack() as stack:
+            stack.enter_context(patch("app.application.medical_record.use_cases.upload_record._celery"))
+            _mock_s3(stack)
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
                 response = await client.post(
@@ -71,7 +85,9 @@ class TestUploadRecordAPI(TestCase):
 
 class TestGetRecordAPI(TestCase):
     async def test_get_record_success(self):
-        with patch("app.application.medical_record.use_cases.upload_record._celery"):
+        with ExitStack() as stack:
+            stack.enter_context(patch("app.application.medical_record.use_cases.upload_record._celery"))
+            _mock_s3(stack)
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
 
@@ -99,12 +115,17 @@ class TestGetRecordAPI(TestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     async def test_get_record_other_user_forbidden(self):
-        other_signup = {**_SIGNUP, "email": "other_record@example.com", "phone_number": "01077778888"}
+        other_signup = {
+            **_SIGNUP,
+            "email": "other_record@example.com",
+            "phone_number": "01077778888",
+        }
         other_login = {"email": "other_record@example.com", "password": "Password123!"}
 
-        with patch("app.application.medical_record.use_cases.upload_record._celery"):
+        with ExitStack() as stack:
+            stack.enter_context(patch("app.application.medical_record.use_cases.upload_record._celery"))
+            _mock_s3(stack)
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-                # 첫 번째 유저가 업로드
                 headers_a = await _get_auth_headers(client)
                 upload_resp = await client.post(
                     "/api/v1/records/upload",
@@ -114,7 +135,6 @@ class TestGetRecordAPI(TestCase):
                 )
                 record_id = upload_resp.json()["id"]
 
-                # 두 번째 유저가 조회 시도
                 await client.post("/api/v1/auth/signup", json=other_signup)
                 login_resp = await client.post("/api/v1/auth/login", json=other_login)
                 headers_b = {"Authorization": f"Bearer {login_resp.json()['data']['access_token']}"}
@@ -125,7 +145,9 @@ class TestGetRecordAPI(TestCase):
 
 class TestListRecordsAPI(TestCase):
     async def test_list_records_success(self):
-        with patch("app.application.medical_record.use_cases.upload_record._celery"):
+        with ExitStack() as stack:
+            stack.enter_context(patch("app.application.medical_record.use_cases.upload_record._celery"))
+            _mock_s3(stack)
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
 
@@ -146,7 +168,9 @@ class TestListRecordsAPI(TestCase):
         assert data["page"] == 1
 
     async def test_list_records_pagination(self):
-        with patch("app.application.medical_record.use_cases.upload_record._celery"):
+        with ExitStack() as stack:
+            stack.enter_context(patch("app.application.medical_record.use_cases.upload_record._celery"))
+            _mock_s3(stack)
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
 
@@ -170,7 +194,9 @@ class TestUpdateRecordAPI(TestCase):
     async def test_update_record_success(self):
         parsed_data = {"medications": [{"name": "타이레놀", "dosage": "500mg"}]}
 
-        with patch("app.application.medical_record.use_cases.upload_record._celery"):
+        with ExitStack() as stack:
+            stack.enter_context(patch("app.application.medical_record.use_cases.upload_record._celery"))
+            _mock_s3(stack)
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers = await _get_auth_headers(client)
 
@@ -192,10 +218,16 @@ class TestUpdateRecordAPI(TestCase):
         assert response.json()["parsed_data"] == parsed_data
 
     async def test_update_record_other_user_forbidden(self):
-        other_signup = {**_SIGNUP, "email": "other_update@example.com", "phone_number": "01011119999"}
+        other_signup = {
+            **_SIGNUP,
+            "email": "other_update@example.com",
+            "phone_number": "01011119999",
+        }
         other_login = {"email": "other_update@example.com", "password": "Password123!"}
 
-        with patch("app.application.medical_record.use_cases.upload_record._celery"):
+        with ExitStack() as stack:
+            stack.enter_context(patch("app.application.medical_record.use_cases.upload_record._celery"))
+            _mock_s3(stack)
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 headers_a = await _get_auth_headers(client)
                 upload_resp = await client.post(

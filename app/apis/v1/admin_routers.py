@@ -27,11 +27,12 @@ async def list_feedbacks(
 ):
     qs = Feedback.all().order_by("-created_at")
     total = await qs.count()
-    rows = await qs.offset((page - 1) * limit).limit(limit)
+    rows = await qs.offset((page - 1) * limit).limit(limit).prefetch_related("user")
     items = [
         {
             "feedback_id": str(f.id),
             "user_id": f.user_id,
+            "user_email": f.user.email if f.user else None,
             "guide_id": str(f.guide_id),
             "rating": f.rating,
             "comment": f.comment,
@@ -42,6 +43,13 @@ async def list_feedbacks(
         for f in rows
     ]
     return _ok({"total": total, "page": page, "limit": limit, "items": items}, "ok")
+
+
+@admin_router.get("/prompts/current", summary="current prompt text")
+async def get_current_prompts(_: AdminUser):
+    from app.core.prompt_constants import CHAT_BASE_SYSTEM, GUIDE_SYSTEM
+
+    return _ok({"guide_system": GUIDE_SYSTEM, "chat_system": CHAT_BASE_SYSTEM}, "ok")
 
 
 @admin_router.get("/prompts/versions", summary="prompt version stats")
@@ -202,8 +210,8 @@ async def get_feedback_flow(_: AdminUser):
     from app.models.model_metrics import MetricSnapshot
 
     total_feedback = await Feedback.all().count()
-    positive = await Feedback.filter(rating__gte=4).count()
-    negative = await Feedback.filter(rating__lte=2).count()
+    positive = await Feedback.filter(rating=1).count()
+    negative = await Feedback.filter(rating=0).count()
     snapshots = await MetricSnapshot.all().order_by("-snapshot_date").limit(14)
     trend = [
         {
@@ -237,7 +245,7 @@ async def generate_test_report(_: AdminUser):
     metrics = await ModelMetric.filter(success=True).values("model_type", "latency_ms", "confidence_score")
     snapshots = await MetricSnapshot.all().order_by("-snapshot_date").limit(30)
     feedbacks = await Feedback.all().count()
-    positive = await Feedback.filter(rating__gte=4).count()
+    positive = await Feedback.filter(rating=1).count()
     type_map: dict[str, list] = {}
     for m in metrics:
         t = m["model_type"]

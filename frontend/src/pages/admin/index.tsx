@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/app/providers/auth-store'
 import { apiClient } from '@/shared/api/client'
@@ -67,6 +67,7 @@ export function AdminPage() {
   const [usersPage, setUsersPage] = useState(1)
   const [usersTotal, setUsersTotal] = useState(0)
   const [promptVersions, setPromptVersions] = useState<PromptVersion[]>([])
+  const [promptText, setPromptText] = useState<{ guide_system: string; chat_system: string } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -103,8 +104,12 @@ export function AdminPage() {
           setUsers(r.data.data.items)
           setUsersTotal(r.data.data.total)
         } else if (tab === 'prompt-versions') {
-          const r = await apiClient.get('/admin/prompts/versions')
-          setPromptVersions(r.data.data)
+          const [rv, rp] = await Promise.all([
+            apiClient.get('/admin/prompts/versions'),
+            apiClient.get('/admin/prompts/current'),
+          ])
+          setPromptVersions(rv.data.data)
+          setPromptText(rp.data.data)
         }
       } catch (e: any) {
         const msg = e?.response?.data?.message ?? e?.message ?? '알 수 없는 오류가 발생했습니다'
@@ -402,20 +407,44 @@ export function AdminPage() {
                 <tr>
                   <th className="px-4 py-3 text-left">사용자</th>
                   <th className="px-4 py-3 text-left">평점</th>
+                  <th className="px-4 py-3 text-left">태그</th>
                   <th className="px-4 py-3 text-left">코멘트</th>
-                  <th className="px-4 py-3 text-left">상태</th>
+                  <th className="px-4 py-3 text-left">
+                    <span className="relative group cursor-default">
+                      상태
+                      <span className="absolute left-0 top-5 z-10 hidden group-hover:block w-64 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 leading-relaxed shadow-lg">
+                        <b>✅ ACTIVE</b>: 정상 제출된 피드백<br />
+                        <b>🚫 INACTIVE</b>: 관리자가 비활성화한 피드백
+                      </span>
+                    </span>
+                  </th>
                   <th className="px-4 py-3 text-left">날짜</th>
                 </tr>
               </thead>
               <tbody>
                 {feedbacks.length === 0
-                  ? <EmptyRow colSpan={5} message="제출된 피드백이 없습니다" />
+                  ? <EmptyRow colSpan={6} message="제출된 피드백이 없습니다" />
                   : feedbacks.map((f: any) => (
                     <tr key={f.feedback_id} className="border-t border-gray-100">
-                      <td className="px-4 py-3">{f.user_id}</td>
-                      <td className="px-4 py-3">{'★'.repeat(f.rating)}{'☆'.repeat(5 - f.rating)}</td>
-                      <td className="px-4 py-3 text-gray-500">{f.comment || '-'}</td>
-                      <td className="px-4 py-3">{f.status}</td>
+                      <td className="px-4 py-3">{f.user_email ?? f.user_id}</td>
+                      <td className="px-4 py-3">{f.rating === 1 ? '👍 긍정' : '👎 부정'}</td>
+                      <td className="px-4 py-3 max-w-[180px]">
+                        {f.tag_ids?.length > 0
+                          ? <div className="flex flex-wrap gap-1">
+                              {f.tag_ids.map((tag: string) => (
+                                <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{tag}</span>
+                              ))}
+                            </div>
+                          : <span className="text-gray-300">-</span>
+                        }
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 max-w-[160px] whitespace-pre-wrap break-words">{f.comment || '-'}</td>
+                      <td className="px-4 py-3">
+                        {f.status === 'ACTIVE'
+                          ? <span title="ACTIVE">✅</span>
+                          : <span title="INACTIVE">🚫</span>
+                        }
+                      </td>
                       <td className="px-4 py-3 text-gray-400">{f.created_at?.slice(0, 10)}</td>
                     </tr>
                   ))
@@ -428,36 +457,45 @@ export function AdminPage() {
 
         {/* 프롬프트 버전 */}
         {tab === 'prompt-versions' && (
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b">
-              <p className="text-sm font-medium text-gray-700">프롬프트 버전별 성능 현황</p>
-              <p className="text-xs text-gray-400 mt-1">버전이 높을수록 최신 프롬프트입니다</p>
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b">
+                <p className="text-sm font-medium text-gray-700">프롬프트 버전별 성능 현황</p>
+                <p className="text-xs text-gray-400 mt-1">버전이 높을수록 최신 프롬프트입니다</p>
+              </div>
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-500 text-xs">
+                  <tr>
+                    <th className="px-4 py-3 text-left">버전</th>
+                    <th className="px-4 py-3 text-left">가이드 생성 수</th>
+                    <th className="px-4 py-3 text-left">피드백 수</th>
+                    <th className="px-4 py-3 text-left">평균 평점</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {promptVersions.length === 0
+                    ? <EmptyRow colSpan={4} />
+                    : promptVersions.map(v => (
+                      <tr key={v.version} className="border-t border-gray-100">
+                        <td className="px-4 py-3 font-medium">{v.version}</td>
+                        <td className="px-4 py-3">{v.guide_count}</td>
+                        <td className="px-4 py-3">{v.feedback_count}</td>
+                        <td className="px-4 py-3">
+                          {v.avg_rating != null ? `${v.avg_rating}` : '-'}
+                        </td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
             </div>
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500 text-xs">
-                <tr>
-                  <th className="px-4 py-3 text-left">버전</th>
-                  <th className="px-4 py-3 text-left">가이드 생성 수</th>
-                  <th className="px-4 py-3 text-left">피드백 수</th>
-                  <th className="px-4 py-3 text-left">평균 평점</th>
-                </tr>
-              </thead>
-              <tbody>
-                {promptVersions.length === 0
-                  ? <EmptyRow colSpan={4} />
-                  : promptVersions.map(v => (
-                    <tr key={v.version} className="border-t border-gray-100">
-                      <td className="px-4 py-3 font-medium">{v.version}</td>
-                      <td className="px-4 py-3">{v.guide_count}</td>
-                      <td className="px-4 py-3">{v.feedback_count}</td>
-                      <td className="px-4 py-3">
-                        {v.avg_rating != null ? `${v.avg_rating} / 5` : '-'}
-                      </td>
-                    </tr>
-                  ))
-                }
-              </tbody>
-            </table>
+
+            {promptText && (
+              <div className="space-y-4">
+                <PromptBlock title={<><span className="bg-[#1D9E75] text-white text-xs font-semibold px-2 py-0.5 rounded mr-2">가이드 생성</span>시스템 프롬프트 (현재 적용 중)</>} text={promptText.guide_system} />
+                <PromptBlock title={<><span className="bg-[#1D9E75] text-white text-xs font-semibold px-2 py-0.5 rounded mr-2">챗봇</span>시스템 프롬프트 (현재 적용 중)</>} text={promptText.chat_system} />
+              </div>
+            )}
           </div>
         )}
 
@@ -470,7 +508,15 @@ export function AdminPage() {
                   <th className="px-4 py-3 text-left">이름</th>
                   <th className="px-4 py-3 text-left">이메일</th>
                   <th className="px-4 py-3 text-left">관리자</th>
-                  <th className="px-4 py-3 text-left">활성</th>
+                  <th className="px-4 py-3 text-left">
+                    <span className="relative group cursor-default">
+                      활성
+                      <span className="absolute left-0 top-5 z-10 hidden group-hover:block w-64 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 leading-relaxed shadow-lg">
+                        <b>✅ 활성</b>: 이메일 인증(로그인 가능)한 계정<br />
+                        <b>❌ 비활성</b>: 비활성화한 계정
+                      </span>
+                    </span>
+                  </th>
                   <th className="px-4 py-3 text-left">가입일</th>
                 </tr>
               </thead>
@@ -524,6 +570,31 @@ function Pagination({ page, total, limit, onChange }: {
           다음
         </button>
       </div>
+    </div>
+  )
+}
+
+function PromptBlock({ title, text }: { title: React.ReactNode; text: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <button
+        className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+        onClick={() => setOpen(v => !v)}
+      >
+        <div>
+          <p className="text-sm font-medium text-gray-700">{title}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{open ? '접기' : '펼쳐서 프롬프트 전문 보기'}</p>
+        </div>
+        <span className="text-gray-400 text-lg">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="border-t px-5 py-4">
+          <pre className="text-xs text-gray-700 whitespace-pre-wrap font-mono leading-relaxed bg-gray-50 rounded-lg p-4 overflow-x-auto max-h-[500px] overflow-y-auto">
+            {text}
+          </pre>
+        </div>
+      )}
     </div>
   )
 }

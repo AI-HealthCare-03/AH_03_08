@@ -154,8 +154,9 @@ class ManualMedicationRequest(BaseModel):
     start_date: str | None = None
     end_date: str | None = None
     scheduled_time: str | None = None
-    record_type: int | None = None  # 0=처방전, 1=약봉투, None=수동(99)
+    record_type: int | None = None  # deprecated: record_id로 대체됨
     memo: str | None = None
+    record_id: str | None = None  # 기존 처방전/약봉투 레코드 ID (있으면 재사용)
 
 
 class ManualMedicationResponse(BaseModel):
@@ -226,11 +227,18 @@ async def add_my_medication(body: ManualMedicationRequest, current_user=Depends(
     from app.models.medical_records import MedicalRecord
     from app.models.medications import Medication
 
-    record = await MedicalRecord.create(
-        user_id=current_user.id,
-        record_type=body.record_type if body.record_type is not None else 99,
-        status="completed",
-    )
+    if body.record_id:
+        record = await MedicalRecord.get_or_none(id=body.record_id, user_id=current_user.id)
+        if not record:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="진료기록을 찾을 수 없습니다.")
+    else:
+        from app.domain.medical_record.value_objects import RecordType
+
+        record = await MedicalRecord.create(
+            user_id=current_user.id,
+            record_type=RecordType.MANUAL,
+            status="completed",
+        )
     med = await Medication.create(
         medical_record_id=record.id,
         drug_name=body.drug_name,
