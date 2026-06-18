@@ -53,3 +53,24 @@ class UploadRecordUseCase:
             },
             queue="image",
         )
+
+
+async def execute(self, command: UploadRecordCommand) -> MedicalRecord:
+    file_name = f"{uuid.uuid4()}_{command.original_filename}"
+    file_url = upload_to_s3(command.file_content, file_name)
+
+    record = MedicalRecord(
+        user_id=command.user_id,
+        record_type=command.record_type,
+        file_url=file_url,
+    )
+    saved = await self.repo.save(record)
+
+    # 최신 5개만 유지 — 초과분 삭제
+    await self.repo.delete_old_records(command.user_id, keep=5)
+
+    if command.record_type == RecordType.PILL:
+        self._dispatch_image_analyze(saved.id, command.file_content, command.user_id)
+    else:
+        self._dispatch_ocr(saved.id, file_url)
+    return saved

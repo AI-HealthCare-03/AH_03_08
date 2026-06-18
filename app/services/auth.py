@@ -90,7 +90,7 @@ class GoogleAuthService:
         self.user_repo = UserRepository()
         self.jwt_service = JwtService()
 
-    async def get_google_user_info(self, code: str) -> dict:
+    async def get_google_user_info(self, code: str) -> tuple[dict, str, str | None]:
         async with httpx.AsyncClient() as client:
             token_response = await client.post(
                 self.GOOGLE_TOKEN_URL,
@@ -104,15 +104,14 @@ class GoogleAuthService:
             )
             token_data = token_response.json()
             access_token = token_data.get("access_token")
-
+            refresh_token = token_data.get("refresh_token")
             if not access_token:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="구글 토큰 교환에 실패했습니다.")
-
             user_response = await client.get(
                 self.GOOGLE_USERINFO_URL,
                 headers={"Authorization": f"Bearer {access_token}"},
             )
-            return user_response.json()
+            return user_response.json(), access_token, refresh_token
 
     async def social_login(self, code: str) -> User:
         user_info = await self.get_google_user_info(code)
