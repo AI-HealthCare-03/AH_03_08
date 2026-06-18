@@ -1,185 +1,174 @@
-# AI Healthcare Project (8조) — MediLog
+# MediLog — AI 기반 복약 관리 헬스케어 플랫폼
 
-진료 기록 기반 복약 안내 및 생활습관 개선 가이드를 자동으로 생성하는 AI 헬스케어 서비스입니다.
-FastAPI API 서버, LLM 워커, AI 이미지 워커, TTS 워커를 통합한 서비스로, uv와 Docker를 활용하여 일관된 개발 및 배포 환경을 제공합니다.
+**서비스 URL**: https://medilog.kro.kr
 
----
-
-## 🚀 주요 특징
-
-- **FastAPI Framework**: 고성능 비동기 API 서버 구현
-- **LLM Worker**: LangChain + OpenAI 기반 복약 가이드 및 생활습관 개선 가이드 자동 생성
-- **AI Image Worker**: ResNet152 기반 낱알약 이미지 분류 및 약품 정보 조회
-- **TTS Worker**: OpenAI TTS API 기반 음성 파일(MP3) 생성 및 bytes 직접 반환
-- **OCR**: CLOVA OCR 기반 처방전/약봉투 텍스트 추출
-- **KCD 질병분류기호 변환**: 건강보험심사평가원 기반 200개+ KCD 사전 → 정확한 진단명 제공 (HIRA API 연동 대비)
-- **Celery + Redis**: 비동기 태스크 처리 및 스케줄링 (복약 알림 Beat 스케줄러 포함)
-- **ChromaDB**: RAG(Retrieval-Augmented Generation) 기반 벡터 검색
-- **UV Package Manager**: 매우 빠른 의존성 설치 및 가상환경 관리
-- **Tortoise ORM + Aerich**: 비동기 방식의 데이터베이스 모델링 및 마이그레이션 관리
-- **Docker-Compose**: MySQL, Redis, Nginx를 포함한 전체 서비스 스택을 한 번에 실행
-- **CI/CD**: GitHub Actions 기반 자동화 (PR 검사, Vercel 배포, EC2 배포)
-- **Nginx 보안 강화**: 악성 UA 차단, 민감 파일 접근 444 반환, Rate Limit 적용
+처방전·약봉투를 업로드하면 OCR로 의약품 정보를 자동 추출하고, LLM이 맞춤형 복약 가이드를 생성합니다.  
+처방전 컨텍스트를 이해하는 실시간 챗봇, 복약 캘린더·알림, 낱알약 이미지 인식까지 통합한 의료 정보 관리 서비스입니다.
 
 ---
 
-## 📂 프로젝트 구조
+## 핵심 기능
+
+| 기능 | 설명 |
+|------|------|
+| **OCR 의료정보 인식** | CLOVA OCR + OpenAI 파싱으로 처방전·약봉투에서 약품명·용법·KCD 질병분류기호 자동 추출 |
+| **LLM 복약 가이드 생성** | RAG + few-shot 프롬프트로 복약 방법·생활습관·약물 상호작용·알레르기 경고 가이드 생성 |
+| **실시간 챗봇** | WebSocket 스트리밍 + 처방전 컨텍스트 주입으로 처방 내용 기반 Q&A |
+| **복약 캘린더·알림** | 처방 기간 내 복약 일정 자동 생성, Celery Beat 기반 복약 알림 스케줄러 |
+| **낱알약 이미지 분류** | ResNet152 기반 이미지 분류 + 약학정보원 API 연동 |
+| **관리자 대시보드** | 사용자·피드백 관리, 프롬프트 버전 관리, AI 성능 지표 모니터링 |
+
+---
+
+## 시스템 아키텍처
+
+```
+[Frontend — Vercel]
+  React 18 + TypeScript + Vite
+  Zustand (클라이언트 상태) + TanStack Query (서버 상태·폴링)
+  Tailwind CSS + Shadcn/ui
+
+        ↕ HTTPS / WebSocket
+
+[AWS EC2 — Docker Compose]
+
+  Nginx
+  ├── Rate Limit (60 req/min), 악성 UA 차단, 민감 파일 444 반환
+  └── /api/v1/internal/* 외부 접근 차단 (Worker 콜백 보호)
+         ↓
+  FastAPI (Uvicorn)
+  ├── REST API — auth, records, guides, medications, calendar, notifications
+  ├── WebSocket — 챗봇 실시간 스트리밍
+  ├── SSE — 비동기 태스크 완료 알림
+  └── JWT + bcrypt + Google/Kakao OAuth 2.0
+         ↓ Redis Pub/Sub (Celery 브로커)
+  Celery Workers
+  ├── LLM Worker  — LangChain RAG + ChromaDB + OpenAI → 복약 가이드 생성
+  ├── AI Worker   — ResNet152 낱알약 이미지 분류
+  ├── OCR Worker  — CLOVA OCR + OpenAI 파싱 → KCD 코드 정규화
+  └── Celery Beat — 복약 알림 스케줄러 (매 분 실행)
+
+[Data Layer]
+  MySQL 8.0 + Tortoise ORM (async) + Aerich 마이그레이션
+  Redis — Celery 브로커, JWT Blacklist, 이메일 인증코드, 캐시
+  ChromaDB — 약학 문서 벡터 임베딩 (RAG)
+  AWS S3 — 처방전 이미지·PDF (Presigned URL로 보안 접근)
+
+[CI/CD — GitHub Actions]
+  PR: Ruff lint, Mypy 타입 검사, pytest-asyncio (67 passed)
+  main 병합 → EC2 Docker Compose 자동 배포
+  develop 병합 → Vercel 프론트엔드 자동 배포
+```
+
+---
+
+## 기술적 특징
+
+### OCR + LLM 파이프라인
+- 업로드 즉시 202 반환 후 **Celery 비동기 처리** — 사용자는 SSE 폴링으로 완료 감지
+- CLOVA OCR 원문 → OpenAI 구조화 파싱 → KCD 코드 후처리 정규화(O/0·l/1 혼동 교정)
+- `OCRProvider` 인터페이스 추상화로 OCR 공급사 교체 가능한 구조
+
+### 챗봇
+- 처방전에서 추출한 **KCD 질병분류기호·처방 약물**을 시스템 프롬프트에 자동 주입
+- 세션 단위 대화 히스토리 DB 저장 → 재진입 시 컨텍스트 복원
+- 의료 범위 외 질문 거절 처리 및 경고성 답변 `[경고]` 마커 구분
+- temperature=0으로 응답 일관성 확보
+
+### 보안
+- nginx 단에서 로그인 엔드포인트 **브루트포스 방어** (Rate Limit)
+- Worker 콜백 URL `/api/v1/internal/*` 외부 접근 차단
+- SSE 스트림 소유자 검증 — 타 사용자 스트림 구독 불가
+- S3 Presigned URL — 버킷 직접 노출 없이 이미지 접근
+- RefreshToken httpOnly 쿠키 + Access Token 블랙리스트(Redis)
+
+### Clean Architecture (챗봇 도메인)
+```
+domain/      — 엔티티, 추상 인터페이스 (외부 의존성 없음)
+application/ — 유스케이스 (세션·메시지 처리)
+infra/       — Tortoise ORM 레포지토리, LLM 클라이언트 구현체
+presentation/— FastAPI 라우터
+```
+
+---
+
+## 기술 스택
+
+| 분류 | 기술 |
+|------|------|
+| **Frontend** | React 18, TypeScript, Vite, Zustand, TanStack Query, Tailwind CSS, Shadcn/ui |
+| **Backend** | FastAPI, Uvicorn, Tortoise ORM, Aerich, Pydantic v2 |
+| **AI/ML** | OpenAI API, LangChain, CLOVA OCR, ChromaDB, sentence-transformers, ResNet152 |
+| **비동기 처리** | Celery, Redis, Celery Beat |
+| **데이터베이스** | MySQL 8.0, Redis |
+| **인프라** | AWS EC2, AWS S3, Docker Compose, Nginx, Vercel |
+| **인증** | JWT, bcrypt, Google OAuth 2.0, Kakao OAuth 2.0 |
+| **CI/CD** | GitHub Actions (Ruff, Mypy, pytest-asyncio, 자동 배포) |
+| **패키지 관리** | uv |
+
+---
+
+## 프로젝트 구조
 
 ```
 .
-├── ai_worker/                  # AI 모델 추론 및 학습 관련 코드 (Worker)
-│   ├── card_news/              # 카드뉴스 생성 모듈
-│   ├── core/                   # 워커 설정 및 로거
-│   ├── image/                  # 낱알약 이미지 분류 모듈
-│   ├── ocr/                    # OCR 처리 모듈
-│   ├── prompts/                # LLM 프롬프트 정의
-│   ├── rag/                    # ChromaDB RAG 모듈
-│   ├── services/               # 질병분류기호 변환 서비스 (disease_code_service.py)
-│   ├── tasks/                  # Celery 태스크
-│   │   ├── llm_task.py         # LLM 가이드 생성, 챗봇, 데일리 TIP, 복약 알림
-│   │   ├── image_task.py       # 낱알약 이미지 분류 (ResNet152)
-│   │   ├── ocr_task.py         # OCR 처리
-│   │   └── ai_task.py          # 건강 데이터 분석
-│   ├── tts/                    # TTS 모듈
-│   ├── celery_app.py           # Celery 앱 + Beat 스케줄러
-│   ├── callback.py             # Celery 콜백
-│   ├── models.py               # AI 워커 내부 모델 정의
-│   ├── user_health.py          # 사용자 건강 정보 유틸
-│   └── main.py                 # celery_app re-export (CLI 호환용)
-├── app/                        # FastAPI 서버 코드
-│   ├── apis/                   # API 라우터 (v1 버전 관리)
-│   │   └── v1/
-│   │       ├── auth_routers.py         # 회원가입, 로그인, Google/Kakao OAuth
-│   │       ├── user_routers.py         # 사용자 정보, 알러지, 기저질환 CRUD + GET/PATCH /me
-│   │       ├── notification_routers.py # 복약 알림 CRUD
-│   │       ├── calendar_routers.py     # 복약 캘린더 CRUD
-│   │       ├── asset_routers.py        # TTS/카드뉴스 에셋
-│   │       ├── guide_routers.py        # 가이드 조회
-│   │       ├── health_routers.py       # 건강 데이터
-│   │       ├── image_routers.py        # 낱알약 이미지 분석
-│   │       ├── feedback_routers.py     # 피드백
-│   │       ├── ai_routers.py           # AI 분석
-│   │       └── internal_routers.py     # Worker 콜백 + SSE
-│   ├── core/                   # 서버 설정, DB 설정, JWT, Validator 등 핵심 기능
-│   │   ├── config.py           # 환경변수 기반 설정
-│   │   ├── db/                 # Tortoise ORM 설정 및 Aerich 마이그레이션
-│   │   ├── jwt/                # JWT 토큰 발급 및 검증
-│   │   └── validators/         # 입력값 유효성 검사
-│   ├── dependencies/           # FastAPI 의존성 (인증 등)
-│   ├── dtos/                   # 데이터 전송 객체 (Pydantic models)
-│   ├── models/                 # DB 테이블 정의 (Tortoise ORM)
-│   │   ├── users.py            # 사용자 모델
-│   │   ├── guide.py            # 가이드 모델
-│   │   ├── llm.py              # LLM 관련 모델
-│   │   ├── medical_records.py  # 진료기록 모델
-│   │   ├── medications.py      # 약품 모델
-│   │   ├── allergies.py        # 알러지 모델
-│   │   ├── underlying_diseases.py # 기저질환 모델
-│   │   ├── notifications.py    # 알림 모델
-│   │   ├── calendar_events.py  # 캘린더 모델 (PENDING/TAKEN/MISSED)
-│   │   └── feedbacks.py        # 피드백 모델
+├── app/                        # FastAPI 서버
+│   ├── apis/v1/                # REST API 라우터 (auth, records, guides, chat 등)
+│   ├── models/                 # Tortoise ORM 모델 (19개 테이블)
 │   ├── repositories/           # DB 쿼리 레이어
 │   ├── services/               # 비즈니스 로직
-│   ├── tests/                  # API 테스트 코드 (67 passed, 1 skipped)
-│   └── main.py                 # FastAPI 애플리케이션 진입점
-├── envs/                       # 환경 변수 설정 파일
-│   ├── example.local.env       # 로컬 개발용 환경변수 예시
-│   └── example.prod.env        # 운영 배포용 환경변수 예시
-├── infra/                      # 인프라 설정 관련 디렉터리
-│   ├── docker/                 # Docker Compose 설정 (운영용)
-│   └── nginx/                  # Nginx 설정 파일 (보안 강화 적용)
-├── scripts/                    # 배포 및 CI용 쉘 스크립트
-├── docker-compose.yml          # 로컬 개발용 서비스 실행 설정
-└── pyproject.toml              # uv 기반 의존성 관리 설정
+│   ├── dtos/                   # Pydantic 요청·응답 스키마
+│   ├── core/                   # 설정, DB, JWT, 미들웨어
+│   └── tests/                  # pytest-asyncio 테스트 (67 passed)
+├── ai_worker/                  # Celery 워커
+│   ├── tasks/
+│   │   ├── llm_task.py         # 복약 가이드 생성, 챗봇, 알림
+│   │   ├── ocr_task.py         # OCR 처리
+│   │   └── image_task.py       # 낱알약 이미지 분류
+│   ├── prompts/                # LLM 프롬프트 정의
+│   ├── rag/                    # ChromaDB RAG 모듈
+│   └── celery_app.py           # Celery + Beat 스케줄러
+├── frontend/                   # React 클라이언트
+│   └── src/pages/              # landing, home, medical-record, guide, chatbot,
+│                               # calendar, notification, my-page, admin
+├── infra/
+│   ├── nginx/                  # Nginx 설정 (보안 강화)
+│   └── docker/                 # 운영 Docker Compose
+├── docs/
+│   ├── ERD.md                  # Mermaid ERD
+│   ├── TECH_STACK.md           # 기술 스택 정의서
+│   └── evaluation/             # AI 모델 평가 스크립트 및 결과
+├── scripts/                    # CI 및 배포 스크립트
+├── docker-compose.yml          # 로컬 개발용 전체 스택
+└── pyproject.toml              # uv 의존성 관리
 ```
 
 ---
 
-## 🏗️ 시스템 아키텍처
+## 실행 방법
 
-```
-[Client]
-  React + TypeScript + Zustand + TanStack Query
-  Kakao/Google OAuth 2.0 | Gmail SMTP 이메일 인증
-  Vercel 호스팅 + 자동 배포
+### 사전 요구사항
 
-        ↕ HTTPS / SSE / OAuth Token
+- Python 3.13+, uv, Docker & Docker Compose
 
-[CI/CD - GitHub Actions]
-  PR 검사: Ruff, Mypy, pytest-asyncio
-  Vercel 자동 배포 | EC2 배포 (Docker Compose pull & up)
-
-        ↕
-
-[AWS EC2 - Docker Compose]
-  Nginx (리버스 프록시 + SSL/TLS + Rate Limit 60/min + 악성 요청 차단)
-    ↓
-  FastAPI (Producer) - Uvicorn
-    ├── WebSocket 챗봇 스트리밍
-    ├── API 라우터 (auth, records, guides, chat, images, notifications, calendars)
-    └── 인증 서비스 (JWT + bcrypt + Google/Kakao OAuth)
-    ↓ Redis Pub/Sub
-  Consumer Group - Celery Workers
-    ├── LLM Worker   → LangChain RAG + ChromaDB + KCD 질병분류기호 변환
-    ├── Image Worker → Pillow + 약학정보 API
-    ├── TTS Worker   → OpenAI TTS → MP3 bytes 직접 반환
-    ├── OCR Worker   → CLOVA OCR + OpenAI 파싱
-    └── Celery Beat  → 복약 알림 스케줄러 (매 분 실행)
-
-[Data Layer]
-  MySQL + Tortoise ORM async + Aerich
-  Redis (캐시 + Blacklist JWT + 이메일 인증코드 + Celery Broker)
-  ChromaDB (벡터 DB + sentence-transformers)
-
-[AWS S3]
-  낱알약 이미지
-  처방전 PDF 원본 파일
-  Static 파일 (React 빌드)
-```
-
----
-
-## ⚙️ 사전 준비 사항
-
-- Python 3.13 이상
-- UV: Python 패키지 매니저
-- Docker & Docker-Compose
-
----
-
-## 🛠️ 설치 및 설정
-
-### 1. 가상환경 구축 및 의존성 설치
-
-```bash
-uv sync
-uv sync --group app  # API 서버용
-uv sync --group ai   # AI 워커용
-```
-
-### 2. 환경 변수 설정
+### 환경 변수 설정
 
 ```bash
 cp envs/example.local.env .env
 ```
 
-| 환경변수 | 설명 |
-|---------|------|
-| `SECRET_KEY` | JWT 서명용 비밀키 |
+주요 환경 변수:
+
+| 변수 | 설명 |
+|------|------|
+| `SECRET_KEY` | JWT 서명 키 |
 | `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | MySQL 접속 정보 |
-| `REDIS_URL` | Redis 접속 URL |
-| `OPENAI_API_KEY` | OpenAI API 키 (TTS, LLM) |
-| `CLOVA_OCR_URL`, `CLOVA_OCR_SECRET` | CLOVA OCR API 정보 |
-| `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`, `S3_BUCKET_NAME` | AWS S3 접속 정보 (TTS/카드뉴스 제외, 이미지 업로드용) |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | Google OAuth 정보 |
-| `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`, `KAKAO_REDIRECT_URI` | Kakao OAuth 정보 |
-| `PILL_MODEL_PATH`, `PILL_LABEL_PATH`, `PILL_PRINT_INDEX_PATH` | 낱알약 분류 모델 및 식별코드 인덱스 경로 |
-| `CHROMA_PERSIST_DIR` | ChromaDB 저장 경로 |
-| `HIRA_API_KEY` | 건강보험심사평가원 질병정보 API (AWS 배포 후 설정, 미설정 시 로컬 KCD 사전 사용) |
-
----
-
-## 🏃 실행 방법
+| `REDIS_URL` | Redis URL |
+| `OPENAI_API_KEY` | OpenAI API 키 (LLM, TTS) |
+| `CLOVA_OCR_URL`, `CLOVA_OCR_SECRET` | CLOVA OCR API |
+| `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`, `S3_BUCKET_NAME` | AWS S3 |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth |
+| `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET` | Kakao OAuth |
 
 ### Docker Compose로 전체 스택 실행
 
@@ -187,7 +176,8 @@ cp envs/example.local.env .env
 docker-compose up -d --build
 ```
 
-- API 서버: `http://localhost:8000/api/docs` (Swagger UI)
+- API 서버: `http://localhost:8000/api/docs` (로컬 환경에서만 접근 가능)
+- 프론트엔드: `http://localhost:5173`
 
 ### DB 마이그레이션
 
@@ -195,142 +185,53 @@ docker-compose up -d --build
 docker-compose exec fastapi uv run aerich upgrade
 ```
 
-### 개별 실행 (개발용)
+### 의존성만 설치 (개발용)
 
 ```bash
-# FastAPI
-uv run uvicorn app.main:app --reload
-
-# LLM Worker
-uv run celery -A ai_worker.celery_app worker -Q llm -c 2 --loglevel=info
-
-# AI Worker
-uv run celery -A ai_worker.celery_app worker -Q ai -c 2 --loglevel=info
-
-# Celery Beat (알림 스케줄러)
-uv run celery -A ai_worker.celery_app beat --loglevel=info
+uv sync --group app   # API 서버
+uv sync --group ai    # AI 워커
 ```
 
 ---
 
-## 🧪 테스트 및 품질 관리
+## 테스트
 
 ```bash
-# 전체 테스트 실행 (Docker 컨테이너 내)
-docker-compose exec fastapi uv run pytest app/tests/ --ignore=app/tests/ai_worker -q
+# 전체 테스트 실행
+docker-compose exec fastapi uv run pytest app/tests/ -q
 
-# 테스트 DB 생성 (최초 1회)
-docker exec -it mysql mysql -uroot -p"Password123@!" \
-  -e "CREATE DATABASE IF NOT EXISTS test CHARACTER SET utf8mb4; \
-      GRANT ALL PRIVILEGES ON test.* TO 'ozcoding'@'%'; FLUSH PRIVILEGES;"
+# 코드 품질 검사
+./scripts/ci/run_test.sh
+./scripts/ci/code_fommatting.sh   # Ruff
+./scripts/ci/check_mypy.sh        # Mypy
 ```
 
-```bash
-./scripts/ci/run_test.sh         # 테스트 실행
-./scripts/ci/code_fommatting.sh  # Ruff 포맷 검사
-./scripts/ci/check_mypy.sh       # Mypy 타입 검사
-```
-
-### 현재 테스트 현황
-
-| 상태 | 수 | 비고 |
-|-----|-----|------|
-| ✅ passed | 67 | auth, user, record, chat, tts, card_news, image, notification, calendar |
-| ⏭️ skipped | 1 | Kakao OAuth mock (외부 API 미연동) |
+| 상태 | 수 | 범위 |
+|------|----|------|
+| ✅ passed | 67 | auth, user, record, chat, tts, image, notification, calendar |
+| ⏭️ skipped | 1 | Kakao OAuth mock |
 | ❌ failed | 0 | |
 
 ---
 
-## 📡 주요 API 엔드포인트
+## API 주요 엔드포인트
 
 | 메서드 | 엔드포인트 | 설명 |
 |--------|-----------|------|
-| POST | `/api/v1/auth/signup` | 회원가입 |
+| POST | `/api/v1/auth/signup` | 이메일 회원가입 |
 | POST | `/api/v1/auth/login` | 로그인 |
-| GET | `/api/v1/auth/token/refresh` | 토큰 갱신 |
-| POST | `/api/v1/auth/google` | Google 소셜 로그인 |
-| POST | `/api/v1/auth/kakao` | Kakao 소셜 로그인 |
-| GET | `/api/v1/users/me` | 내 정보 조회 |
-| PATCH | `/api/v1/users/me` | 내 정보 수정 |
-| GET | `/api/v1/users/me/allergies` | 알러지 목록 조회 |
-| POST | `/api/v1/users/me/allergies` | 알러지 추가 |
-| DELETE | `/api/v1/users/me/allergies/{id}` | 알러지 삭제 |
-| GET | `/api/v1/users/me/conditions` | 기저질환 목록 조회 |
-| POST | `/api/v1/users/me/conditions` | 기저질환 추가 |
-| DELETE | `/api/v1/users/me/conditions/{id}` | 기저질환 삭제 |
-| GET | `/api/v1/notifications` | 알림 목록 조회 |
-| POST | `/api/v1/notifications` | 알림 생성 |
-| PUT | `/api/v1/notifications/{id}` | 알림 토글 |
-| DELETE | `/api/v1/notifications/{id}` | 알림 삭제 |
-| GET | `/api/v1/calendars` | 월별 캘린더 조회 |
-| GET | `/api/v1/calendars/{date}` | 일별 캘린더 조회 |
-| POST | `/api/v1/calendars` | 복약 스케줄 등록 |
-| PUT | `/api/v1/calendars/{id}/status` | 복약 완료 처리 (TAKEN) |
-| DELETE | `/api/v1/calendars/{id}` | 스케줄 삭제 |
-| POST | `/api/v1/records` | 진료기록 생성 |
-| GET | `/api/v1/records` | 진료기록 목록 조회 |
-| POST | `/api/v1/guides/generate` | 복약 가이드 생성 (LLM) |
-| GET | `/api/v1/guides` | 가이드 목록 조회 |
-| POST | `/api/v1/guides/{guide_id}/assets` | TTS/카드뉴스 에셋 생성 |
-| POST | `/api/v1/images/analyze` | 낱알약 이미지 분석 |
-
----
-
-## 🗄️ DB 테이블 구조
-
-| 테이블 | 설명 |
-|--------|------|
-| `users` | 사용자 정보 |
-| `medical_records` | 진료기록 (처방전/약봉투) |
-| `medications` | 처방 약품 정보 |
-| `guides` | 복약 가이드 및 생활습관 개선 가이드 |
-| `guide_assets` | 가이드 TTS/카드뉴스 에셋 |
-| `chat_sessions` | 챗봇 세션 |
-| `chat_messages` | 챗봇 메시지 |
-| `calendar_events` | 복약 캘린더 이벤트 (PENDING/TAKEN/MISSED) |
-| `notifications` | 복약 알림 |
-| `allergies` | 알러지 정보 |
-| `underlying_diseases` | 기저질환 정보 |
-| `feedbacks` | 가이드 피드백 |
-| `feedback_tags` | 피드백 태그 |
-| `access_logs` | API 접근 로그 |
-| `audit_logs` | 감사 로그 |
-| `error_logs` | 에러 로그 |
-| `model_metrics` | AI 모델 성능 지표 |
-
----
-
-## 📋 개발 진행 현황
-
-### ✅ 완료
-
-| 항목 | 설명 |
-|------|------|
-| 인증 (Auth) | 이메일 회원가입/로그인, Google OAuth, Kakao OAuth 엔드포인트 |
-| 마이페이지 | GET/PATCH /users/me, 알러지 CRUD, 기저질환 CRUD |
-| 알림/캘린더 | 복약 알림 CRUD, 월별·일별 캘린더 CRUD |
-| OCR 파이프라인 | CLOVA OCR → OpenAI 파싱 → disease_code 정규화 → DB 저장 |
-| LLM 가이드 생성 | RAG + 2-pass 약물 상호작용 분석 + few-shot 프롬프트 |
-| 챗봇 | WebSocket 스트리밍, 진료기록 컨텍스트 연동, KCD 진단명 변환 |
-| 질병분류기호 오안내 수정 | N300(방광염) 오안내 버그 수정, KCD 200개+ 사전 적용 |
-| Celery Beat 알림 | 매 분 복약 알림 체크 태스크 등록 |
-| Nginx 보안 강화 | 악성 UA 차단, 민감 파일 444 반환, Rate Limit |
-| 전체 테스트 | 67 passed, 1 skipped |
-
-### 🔧 진행 중 / 예정
-
-| 항목 | 설명 |
-|------|------|
-| PillClassifier 수정 | torchvision nms 연산자 충돌 (다른 팀원 담당) |
-| 프론트엔드 연동 | 알러지/기저질환/알림/캘린더/Kakao 로그인 API 연동 |
-| HIRA API 연동 | AWS 배포 후 `.env`에 `HIRA_API_KEY` 설정 시 자동 활성화 |
-| AWS 배포 | EC2 + S3 + HTTPS 설정 |
-
----
-
-## 📝 개발 가이드
-
-- **API 추가**: `app/apis/v1/` 아래에 라우터 파일 생성 후 `app/apis/v1/__init__.py`에 등록
-- **DB 모델 추가**: `app/models/`에 Tortoise 모델 정의 후 `app/core/db/databases.py`의 `TORTOISE_APP_MODELS` 리스트에 추가
-- **AI 로직 추가**: `ai_worker/tasks/`에 작성 후 `ai_worker/celery_app.py`에서 태스크 등록
-- **마이그레이션**: 모델 변경 후 `aerich migrate` 및 `aerich upgrade`로 DB 업데이트
+| POST | `/api/v1/auth/google` | Google OAuth |
+| POST | `/api/v1/auth/kakao` | Kakao OAuth |
+| POST | `/api/v1/records` | 처방전·약봉투 업로드 (OCR 비동기 처리) |
+| GET | `/api/v1/records` | 업로드 기록 목록 |
+| POST | `/api/v1/guides/generate` | 복약 가이드 생성 (LLM 비동기) |
+| GET | `/api/v1/guides` | 가이드 목록 |
+| WS | `/api/v1/chats/ws/{session_id}` | 챗봇 WebSocket 스트리밍 |
+| GET | `/api/v1/chats/{session_id}/messages` | 대화 히스토리 조회 |
+| GET | `/api/v1/calendars` | 월별 복약 캘린더 |
+| PUT | `/api/v1/calendars/{id}/status` | 복약 완료 처리 |
+| GET | `/api/v1/notifications` | 복약 알림 목록 |
+| GET | `/api/v1/images/{record_id}` | 낱알약 분석 결과 조회 |
+| POST | `/api/v1/images/pill-match` | 식별코드 기반 약품 매칭 |
+| POST | `/api/v1/guides/feedbacks` | 가이드 피드백 등록 |
+| GET | `/api/v1/health/medications/drug-search` | 공공데이터 약품 검색 |
