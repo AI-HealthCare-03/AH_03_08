@@ -21,3 +21,6 @@ class AbstractRecordRepository(ABC):
 
     @abstractmethod
     async def delete_by_id(self, record_id: UUID) -> None: ...
+
+    @abstractmethod
+    async def delete_old_records(self, user_id: int, keep: int) -> None: ...

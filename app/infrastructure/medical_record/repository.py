@@ -61,3 +61,9 @@ class TortoiseRecordRepository(AbstractRecordRepository):
 
     async def delete_by_id(self, record_id: UUID) -> None:
         await MedicalRecordORM.filter(id=record_id).delete()
+
+    async def delete_old_records(self, user_id: int, keep: int) -> None:
+        records = await MedicalRecordORM.filter(user_id=user_id).order_by("-created_at").values_list("id", flat=True)
+        if len(records) > keep:
+            old_ids = records[keep:]
+            await MedicalRecordORM.filter(id__in=old_ids).delete()
