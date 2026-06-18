@@ -113,3 +113,29 @@ class Notification(models.Model):
 
     class Meta:
         table = "notifications"
+
+
+class ModelMetric(models.Model):
+    id = fields.UUIDField(primary_key=True)
+    model_type = fields.CharField(max_length=50)
+    latency_ms = fields.FloatField(null=True)
+    success = fields.BooleanField(default=True)
+    confidence_score = fields.FloatField(null=True)
+    created_at = fields.DatetimeField(auto_now_add=True)
+
+    class Meta:
+        table = "model_metrics"
+
+
+class MetricSnapshot(models.Model):
+    id = fields.UUIDField(primary_key=True)
+    model_type = fields.CharField(max_length=50)
+    snapshot_date = fields.DateField()
+    avg_latency_ms = fields.FloatField(null=True)
+    success_rate = fields.FloatField(null=True)
+    avg_rating = fields.FloatField(null=True)
+    total_count = fields.IntField(default=0)
+    created_at = fields.DatetimeField(auto_now_add=True)
+
+    class Meta:
+        table = "metric_snapshots"

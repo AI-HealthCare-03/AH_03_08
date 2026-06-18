@@ -38,15 +38,21 @@ async def _update_metric_snapshot(model_type: str, rating: int) -> None:
     snapshot, created = await MetricSnapshot.get_or_create(
         model_type=model_type,
         snapshot_date=today,
-        defaults={"avg_rating": rating, "total_count": 1},
+        defaults={
+            "avg_rating": rating,
+            "total_count": 1,
+            "success_rate": 1.0 if rating == 1 else 0.0,
+        },
     )
     if not created:
-        # 누적 평균 업데이트
         new_total = snapshot.total_count + 1
         new_avg = ((snapshot.avg_rating or 0) * snapshot.total_count + rating) / new_total
+        old_success = (snapshot.success_rate or 0) * snapshot.total_count
+        new_success_rate = (old_success + (1 if rating == 1 else 0)) / new_total
         snapshot.avg_rating = round(new_avg, 4)
+        snapshot.success_rate = round(new_success_rate, 4)
         snapshot.total_count = new_total
-        await snapshot.save(update_fields=["avg_rating", "total_count"])
+        await snapshot.save(update_fields=["avg_rating", "success_rate", "total_count"])
 
 
 async def list_my_feedbacks(user_id: int) -> list[dict]:
