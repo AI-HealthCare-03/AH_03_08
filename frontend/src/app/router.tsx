@@ -30,7 +30,7 @@ function AdminRoute() {
 
 function RootRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated())
-  return isAuthenticated ? <Navigate to="/home" replace /> : <Navigate to="/auth/login" replace />
+  return isAuthenticated ? <Navigate to="/home" replace /> : <LandingPage />
 }
 
 export const router = createBrowserRouter([
