@@ -25,12 +25,14 @@ async def lifespan(app: FastAPI):
     await app.state.redis.aclose()
 
 
+# 프로덕션 환경에서 Swagger UI 및 OpenAPI 스펙 노출 차단
+_is_local = config.ENV == "local"
 app = FastAPI(
     lifespan=lifespan,
     default_response_class=ORJSONResponse,
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
+    docs_url="/api/docs" if _is_local else None,
+    redoc_url="/api/redoc" if _is_local else None,
+    openapi_url="/api/openapi.json" if _is_local else None,
 )
 
 # CORS — config에 get_allowed_origins가 있으면 사용, 없으면 기본값
