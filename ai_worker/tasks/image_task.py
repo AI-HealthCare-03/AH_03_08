@@ -145,6 +145,18 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
         if method == "resnet" and confidence_score < 0.7:
             logger.warning(f"분류 불가 - confidence: {confidence_score:.4f}")
             image_failed(record_id)
+            # 실패도 ModelMetric에 기록
+            try:
+                asyncio.run(
+                    _save_model_metric(
+                        model_type="pill_classifier",
+                        latency_ms=round(elapsed * 1000, 2),
+                        success=False,
+                        confidence_score=float(confidence_score),
+                    )
+                )
+            except Exception as metric_exc:
+                logger.warning(f"ModelMetric 저장 실패 (무시): {metric_exc}")
             return {
                 "success": False,
                 "data": None,
@@ -172,6 +184,19 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
         image_done(record_id, parsed_data)
         logger.info(f"낱알약 분류 완료 - kcode: {kcode}, method: {method}")
 
+        # 성공 ModelMetric 저장
+        try:
+            asyncio.run(
+                _save_model_metric(
+                    model_type="pill_classifier",
+                    latency_ms=round(elapsed * 1000, 2),
+                    success=True,
+                    confidence_score=float(confidence_score),
+                )
+            )
+        except Exception as metric_exc:
+            logger.warning(f"ModelMetric 저장 실패 (무시): {metric_exc}")
+
         return {
             "success": True,
             "data": {
@@ -189,3 +214,24 @@ def classify_pill(self, image_bytes: str, record_id: str, user_id: str) -> dict:
     except Exception as exc:
         logger.error(f"낱알약 분류 실패 - record_id: {record_id}, error: {exc}")
         raise self.retry(exc=exc, countdown=10) from exc
+
+
+async def _save_model_metric(model_type: str, latency_ms: float, success: bool, confidence_score: float) -> None:
+    import uuid
+
+    from tortoise import Tortoise
+
+    from ai_worker.models import ModelMetric
+
+    db_url = f"mysql://{config.DB_USER}:{config.DB_PASSWORD}@{config.DB_HOST}:{config.DB_PORT}/{config.DB_NAME}"
+    await Tortoise.init(db_url=db_url, modules={"models": ["ai_worker.models"]})
+    try:
+        await ModelMetric.create(
+            id=uuid.uuid4(),
+            model_type=model_type,
+            latency_ms=latency_ms,
+            success=success,
+            confidence_score=confidence_score,
+        )
+    finally:
+        await Tortoise.close_connections()
