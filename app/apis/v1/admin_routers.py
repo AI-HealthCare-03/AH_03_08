@@ -336,3 +336,43 @@ async def update_feedback(feedback_id: str, body: FeedbackUpdateRequest, _: Admi
         feedback.status = body.status
         await feedback.save(update_fields=["status"])
     return _ok({"feedback_id": feedback_id, "status": feedback.status}, "ok")
+
+
+@admin_router.get("/metrics/dashboard", summary="DAU and activity dashboard")
+async def get_dashboard(_: AdminUser):
+    from datetime import datetime, timedelta
+
+    from app.models.chat_messages import ChatMessage
+
+    now = datetime.now(UTC)
+    days = []
+    for i in range(6, -1, -1):
+        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        date_str = day_start.strftime("%Y-%m-%d")
+
+        dau_users = await Guide.filter(created_at__gte=day_start, created_at__lt=day_end).values_list(
+            "user_id", flat=True
+        )
+
+        guide_count = await Guide.filter(created_at__gte=day_start, created_at__lt=day_end).count()
+
+        upload_count = await MedicalRecord.filter(created_at__gte=day_start, created_at__lt=day_end).count()
+
+        chat_count = await ChatMessage.filter(
+            created_at__gte=day_start,
+            created_at__lt=day_end,
+            role="user",
+        ).count()
+
+        days.append(
+            {
+                "date": date_str,
+                "dau": len(set(dau_users)),
+                "guide_count": guide_count,
+                "upload_count": upload_count,
+                "chat_count": chat_count,
+            }
+        )
+
+    return _ok(days, "ok")
