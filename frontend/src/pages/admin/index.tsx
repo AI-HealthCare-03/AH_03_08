@@ -49,8 +49,15 @@ interface PromptVersion {
   feedback_count: number
 }
 
-type Tab = 'metrics' | 'comparison' | 'consistency' | 'feedback-flow' | 'report' | 'feedbacks' | 'users' | 'prompt-versions'
+interface DashboardItem {
+  date: string
+  dau: number
+  guide_count: number
+  upload_count: number
+  chat_count: number
+}
 
+type Tab = 'metrics' | 'comparison' | 'consistency' | 'feedback-flow' | 'report' | 'feedbacks' | 'users' | 'prompt-versions' | 'dashboard'
 export function AdminPage() {
   const navigate = useNavigate()
   const isAdmin = useAuthStore((s) => s.isAdmin)
@@ -70,6 +77,7 @@ export function AdminPage() {
   const [usersTotal, setUsersTotal] = useState(0)
   const [promptVersions, setPromptVersions] = useState<PromptVersion[]>([])
   const [promptText, setPromptText] = useState<{ guide_system: string; chat_system: string } | null>(null)
+  const [dashboard, setDashboard] = useState<DashboardItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -147,6 +155,9 @@ export function AdminPage() {
             setUsers(r.data.data.items)
             setUsersTotal(r.data.data.total)
           }
+        } else if (tab === 'dashboard') {
+          const r = await apiClient.get('/admin/metrics/dashboard')
+          if (!cancelled) setDashboard(r.data.data)
         } else if (tab === 'prompt-versions') {
           const [rv, rp] = await Promise.all([
             apiClient.get('/admin/prompts/versions'),
@@ -170,6 +181,7 @@ export function AdminPage() {
   }, [tab, feedbacksPage, usersPage])
 
   const tabs: { key: Tab; label: string }[] = [
+    { key: 'dashboard', label: '대시보드' },
     { key: 'metrics', label: 'AI 지표' },
     { key: 'comparison', label: '모델 비교' },
     { key: 'consistency', label: '반복 테스트' },
@@ -214,6 +226,46 @@ export function AdminPage() {
           </div>
         )}
 
+        {/* 대시보드 */}
+        {tab === 'dashboard' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {dashboard.map(d => (
+                <div key={d.date} className="bg-white rounded-xl p-4 shadow-sm">
+                  <p className="text-xs text-gray-400 mb-1">{d.date}</p>
+                  <p className="text-sm font-medium">DAU: <span className="text-[#1D9E75] font-bold">{d.dau}</span></p>
+                  <p className="text-xs text-gray-500">가이드: {d.guide_count}</p>
+                  <p className="text-xs text-gray-500">업로드: {d.upload_count}</p>
+                  <p className="text-xs text-gray-500">챗봇: {d.chat_count}</p>
+                </div>
+              ))}
+            </div>
+            <div className="bg-white rounded-xl p-5 shadow-sm">
+              <p className="text-xs text-gray-500 mb-3">최근 7일 DAU</p>
+              <div className="flex items-end gap-2 h-32">
+                {dashboard.map(d => (
+                  <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
+                    <p className="text-xs text-gray-600 font-medium">{d.dau}</p>
+                    <div className="w-full rounded-t" style={{ background: '#1D9E75', height: `${Math.max(4, (d.dau / Math.max(...dashboard.map(x => x.dau), 1)) * 100)}px` }} />
+                    <p className="text-xs text-gray-400">{d.date.slice(5)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white rounded-xl p-5 shadow-sm">
+              <p className="text-xs text-gray-500 mb-3">최근 7일 OCR 업로드</p>
+              <div className="flex items-end gap-2 h-32">
+                {dashboard.map(d => (
+                  <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
+                    <p className="text-xs text-gray-600 font-medium">{d.upload_count}</p>
+                    <div className="w-full rounded-t" style={{ background: '#378ADD', height: `${Math.max(4, (d.upload_count / Math.max(...dashboard.map(x => x.upload_count), 1)) * 100)}px` }} />
+                    <p className="text-xs text-gray-400">{d.date.slice(5)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         {/* AI 지표 */}
         {tab === 'metrics' && metrics && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
